@@ -1,4 +1,4 @@
-name: Backend CI
+name: Repository CI
 on:
   pull_request:
   push:
@@ -7,16 +7,16 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: backend-ci-${{ github.ref }}
+  group: repository-ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  scaffold:
-    name: Scaffold validation (not application tests)
+  repository:
+    name: Repository validation
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - name: Verify repository scaffold
-        run: bash scripts/verify.sh
+      - name: Verify documents and workspace
+        run: node scripts/verify.mjs

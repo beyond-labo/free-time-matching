@@ -2,7 +2,7 @@
 
 ## 所有者と生成方向
 
-公開契約は `apps/backend/openapi/openapi.yaml` に配置します。
+公開契約は生成処理の実装時に `apps/backend/openapi/openapi.yaml` へ配置します。
 Backend が HTTP スキーマ、OpenAPI の生成、実装との整合性、互換性、成果物の公開を所有します。
 iOS と他 Backend は、公開契約から自身のクライアントを生成し、自身の内部モデルへ変換します。
 
@@ -23,7 +23,7 @@ OpenAPI とリクエスト検証を別々に手動管理しません。
 ## 更新手順
 
 1. Backend の HTTP スキーマとルートを変更する。
-2. `apps/backend/scripts/export-openapi.ts` で OpenAPI を生成する。
+2. Backend が所有するエクスポート処理で OpenAPI を生成する。
 3. 生成差分とサンプルレスポンスをレビューする。
 4. 構文、規約、既存契約との互換性を検証する。
 5. 利用側の契約更新 PR でクライアントを再生成する。
@@ -36,8 +36,10 @@ OpenAPI とリクエスト検証を別々に手動管理しません。
 ## 内部型の非公開
 
 DB のキー、ビットマスク、TTL などを公開 DTO にそのまま流出させません。
-たとえば暇時間を日時の区間として公開する場合は、内部モデルから HTTP Presenter で明示的に変換します。
+たとえば暇時間を日時の区間として公開する場合は、各機能の Presentation のレスポンス Mapper で明示的に変換します。
 具体的なフィールド、状態値、認可条件は各機能の仕様で決めます。
+iOS では各機能の Infrastructure に API DTO と内部モデルの変換を置きます。
+生成型は通信基盤と API Adapter / Mapper のみに制限し、Application、Domain、TCA の State と Action へ流しません。
 
 ## 契約の配布
 
@@ -68,12 +70,11 @@ CI の比較対象は PR のベース契約とし、リリース時にはサポ�
 
 ## イベント契約
 
-Outbox、SQS、通知 Worker は現在の Backend 内部のデプロイ単位として扱います。
+Outbox、SQS、通知 Worker を導入する場合は、単一 Backend 内部のデプロイ単位として扱う方針です。
 別 Backend が購読する公開イベントを導入するときは、Producer 所有の JSON Schema または AsyncAPI としてバージョン管理します。
 Producer と Consumer で TypeScript interface を直接共有しません。
 
 ## 現在の配置
 
-`openapi.yaml` は未生成であることを示すコメントのみです。
-空の契約を公開済み API と誤認させないため、OpenAPI 文書としてはまだ利用できません。
-エクスポート、生成、破壊的変更チェックの予約スクリプトは、実行時に未実装を明示して非ゼロ終了します。
+OpenAPI、生成スクリプト、生成クライアントはまだ存在しません。
+これらは実行できる処理を実装した時点で追加します。
