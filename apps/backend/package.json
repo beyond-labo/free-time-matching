@@ -1,0 +1,9 @@
+{
+  "name": "@himatch/backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify": "node ../../scripts/verify.mjs",
+    "export:openapi": "node scripts/export-openapi.ts"
+  }
+}

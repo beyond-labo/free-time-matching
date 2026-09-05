@@ -1,0 +1,14 @@
+name: iOS CI
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  not-configured:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Explain missing configuration
+        run: |
+          echo 'Xcode プロジェクト、クライアント生成、テストの設定が未実装です。' >&2
+          exit 1
