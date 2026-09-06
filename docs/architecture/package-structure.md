@@ -32,31 +32,33 @@ Backend は private workspace として登録し、iOS は Node パッケージ�
 
 ## 実装時の配置規則
 
-Backend は `src/<feature>/<layer>/`、iOS は `Himatch/<Feature>/<Layer>/` とします。
+Backend は `src/<Feature>/<Layer>/`、iOS は `Himatch/<Feature>/<Layer>/` とします。
 機能を束ねる中間ディレクトリは設けません。
-Backend は kebab-case、iOS は PascalCase を使います。
+Backend と iOS の機能、層、役割のパッケージ名は PascalCase（UpperCamelCase）に統一します。
+役割名は `UseCase`、`Port`、`Mapper` のように単数形にします。
+`apps/backend`、`apps/ios`、`src`、`docs` などの配置用ディレクトリと、pnpm のパッケージ識別子 `@himatch/backend` はこの規則の対象外です。
 必要な役割だけを層の下に置き、以下の例を一括生成しません。
 
 ### Backend の例
 
 ```text
-src/hostings/
-├── domain/
-│   └── models/
-├── application/
-│   ├── use-cases/
-│   └── ports/
-├── presentation/
-│   ├── handlers/
-│   ├── schemas/
-│   └── mappers/
-└── infrastructure/
-    └── repositories/
+src/Hosting/
+├── Domain/
+│   └── Model/
+├── Application/
+│   ├── UseCase/
+│   └── Port/
+├── Presentation/
+│   ├── Handler/
+│   ├── Schema/
+│   └── Mapper/
+└── Infrastructure/
+    └── Repository/
 ```
 
 受信 HTTP の Handler と公開 DTO の変換は Presentation の責務です。
 HTTP ごとの追加階層は、複数の通信方式を区別する必要が出てから検討します。
-アプリ全体の起動と組み立ては `entrypoints/` と `composition/` が所有します。
+アプリ全体の起動と組み立ては `EntryPoint/` と `Composition/` が所有します。
 これらも実装時に作ります。
 
 ### iOS の例
@@ -64,21 +66,21 @@ HTTP ごとの追加階層は、複数の通信方式を区別する必要が出
 ```text
 Himatch/Hosting/
 ├── Domain/
-│   └── Models/
+│   └── Model/
 ├── Application/
-│   ├── UseCases/
-│   └── Ports/
+│   ├── UseCase/
+│   └── Port/
 ├── Presentation/
-│   ├── Views/
+│   ├── View/
 │   │   └── HostingView.swift
-│   ├── Reducers/
+│   ├── Reducer/
 │   │   └── HostingReducer.swift    # State と Action を同居させる
-│   └── Dependencies/
+│   └── Dependency/
 │       └── HostingUseCasesDependency.swift
 └── Infrastructure/
-    ├── Adapters/
+    ├── Adapter/
     │   └── HostingAPIAdapter.swift
-    └── Mappers/
+    └── Mapper/
         └── HostingAPIMapper.swift
 ```
 

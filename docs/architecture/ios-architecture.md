@@ -65,7 +65,7 @@ API Response DTO
   → Reducer の State
 ```
 
-たとえば `HostingAPIMapper` を `Himatch/Hosting/Infrastructure/Mappers/` に置きます。
+たとえば `HostingAPIMapper` を `Himatch/Hosting/Infrastructure/Mapper/` に置きます。
 同じ機能の `HostingAPIAdapter` が、通信と変換を組み合わせて Application の Port を実装します。
 DB 変換なら `HostingRecordMapper`、表示向けの変換なら Presentation の `HostingViewDataMapper` のように境界を名前で表します。
 `DTOMapper` のように対象が曖昧な共通型は作りません。
@@ -91,7 +91,7 @@ Application の UseCase と Port は通常の Swift 型、async 関数、protoco
 Application と Domain は `ComposableArchitecture` や `Dependencies` を import しません。
 クロージャを選ぶ場合も、UseCase への明示的な初期化引数として渡します。
 
-Presentation の `Dependencies/` に UseCase を呼ぶための薄い依存値と `DependencyValues` への登録を置きます。
+Presentation の `Dependency/` に UseCase を呼ぶための薄い依存値と `DependencyValues` への登録を置きます。
 Reducer は `@Dependency` でこの依存を受け取り、Effect 内で呼び出します。
 その公開シグネチャには Application の入出力型だけを使います。
 ネットワーク用 Client と、UseCase 呼び出し用の依存値を同じ名前や責務にしません。

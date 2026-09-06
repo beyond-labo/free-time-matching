@@ -28,8 +28,8 @@ TCA の採用方針と具体的なリリースバージョンの選定を分け�
 
 ## 層名と役割名
 
-層名は Backend で `domain / application / presentation / infrastructure`、iOS で `Domain / Application / Presentation / Infrastructure` とします。
-依存の組み立ては `composition / Composition` またはアプリ起動部分が所有します。
+層名は Backend と iOS ともに `Domain / Application / Presentation / Infrastructure` とします。
+依存の組み立ては `Composition` またはアプリ起動部分が所有します。
 
 | 名前 | 意味 | 使用方針 |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ TCA の採用方針と具体的なリリースバージョンの選定を分け�
 
 `Gateway` は層名にすると受信 API と外部 API 呼び出しが混在しやすく、`Port` は契約と実装の区別を失います。
 このプロジェクトでは層名を上表に統一し、クラスや役割名に `Handler`、`Repository`、`Adapter`、`Mapper` を使います。
-`presentation/http/` も「層／通信方式」としては成立しますが、HTTP しか扱わない初期段階では不要です。
+`Presentation/HTTP/` も「層／通信方式」としては成立しますが、HTTP しか扱わない初期段階では不要です。
 
 ## Backend の配置と依存
 
@@ -53,12 +53,12 @@ Infrastructure → Application / Domain の Port
 Composition → 各実装を接続
 ```
 
-受信 HTTP は各機能の `src/<feature>/presentation/` に置きます。
+受信 HTTP は各機能の `src/<Feature>/Presentation/` に置きます。
 ルート、Handler、公開スキーマ、レスポンス変換を機能内で所有します。
 全体の起動処理は機能のルート登録を組み立てるだけにし、業務判断を持ちません。
 HTTP が必要な最初の機能を実装するときにディレクトリを作成します。
 
-外部 API や DB への接続は `src/<feature>/infrastructure/` に置きます。
+外部 API や DB への接続は `src/<Feature>/Infrastructure/` に置きます。
 複数機能で実際に利用する通信基盤のみ、全体の技術基盤へ抽出します。
 Domain と Application は HTTP スキーマ、DB レコード、外部 SDK を import しません。
 

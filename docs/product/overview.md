@@ -6,13 +6,13 @@
 
 | 領域 | Backend の実装時の配置（src 配下） | 現時点で読み取れる責務 |
 | --- | --- | --- |
-| 認証 | `src/auth/` | 認証に関する処理 |
-| ユーザー | `src/users/` | ユーザー情報 |
-| 友人関係 | `src/friendships/` | ユーザー間の関係 |
-| 暇時間 | `src/availability/` | 暇時間の登録と参照 |
-| 募集 | `src/hostings/` | 募集に関する処理 |
-| 通知 | `src/notifications/` | 通知の作成と送信 |
-| アカウント削除 | `src/account-deletion/` | アカウント削除の調整 |
+| 認証 | `src/Auth/` | 認証に関する処理 |
+| ユーザー | `src/User/` | ユーザー情報 |
+| 友人関係 | `src/Friendship/` | ユーザー間の関係 |
+| 暇時間 | `src/Availability/` | 暇時間の登録と参照 |
+| 募集 | `src/Hosting/` | 募集に関する処理 |
+| 通知 | `src/Notification/` | 通知の作成と送信 |
+| アカウント削除 | `src/AccountDeletion/` | アカウント削除の調整 |
 
 ## 要件として未確定の事項
 
