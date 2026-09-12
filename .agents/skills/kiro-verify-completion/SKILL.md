@@ -1,131 +1,43 @@
 ---
 name: kiro-verify-completion
-description: Verify completion and success claims with fresh evidence. Use before claiming a task is complete, a fix works, tests pass, or a feature is ready for GO.
+description: タスク完了、修正成功、検証成功、機能 GO の主張を対象状態に対応する証拠と照合する。
 ---
 
 # kiro-verify-completion
 
-<background_information>
-This skill prevents false completion claims. A task, fix, or feature is only complete when supported by fresh evidence that matches the scope of the claim.
-</background_information>
+同期の初期確認には `kiro-spec-sync --check`（読み取り専用）を使い、変更権限がある場合だけ同期を実行する。`spec.json.freshness` が欠落している既存仕様は `unchecked` として対象範囲を調べ、欠落だけで承認を消去しない。`current` は文書整合のみを表し、承認・実装完了の代わりにならない。完了対象に `pending` が残る場合は影響を解決し、本文の意味も照合する。
 
-<instructions>
-## When to Use
+## 証拠と対象状態
 
-- Before saying a task is complete
-- Before saying a bug is fixed
-- Before saying tests pass
-- Before moving to the next task in autonomous execution
-- Before reporting `GO` from feature-level validation
-- Before trusting another subagent's success report
+主張の範囲を特定し、対応する実コマンドの出力・終了コード、検証範囲、skip、実行環境を確認する。実装者の成功宣言、チェックボックス、lint 成功だけから別の検証成功を推測しない。
 
-Do not use this skill for early planning or speculative status updates.
+証拠は「直前に再実行したか」ではなく「現在の検証対象状態を示すか」で評価する。受け入れ条件・対象ファイル・依存関係・設定・生成物・実行環境が変わらず、コマンド出力と終了コードを確認でき、主張の範囲が同じなら以前の結果を再利用できる。HEAD だけでは未コミット変更を識別できないため、対象内容または差分も記録する。関連する状態変更、結果への疑義、未検証範囲がある場合に必要な検証を再実行する。
 
-## Inputs
+## 主張ごとの条件
 
-Provide:
-- The exact claim to verify
-- Claim type:
-  - `TASK`
-  - `FIX`
-  - `TEST_OR_BUILD`
-  - `FEATURE_GO`
-- Validation commands discovered by the controller
-- Fresh command output and exit codes
-- Relevant task IDs, requirement IDs, and design refs where applicable
-- For feature-level claims:
-  - requirements coverage status
-  - design alignment status
-  - integration status
-  - blocked task status
+- `TASK`: 受け入れ条件と責務境界に対応する検証、未解決の重要レビュー指摘がないこと。
+- `FIX`: 元の症状の解消と関連する回帰検証。再現テストが難しい場合は具体的な代替証拠。
+- `TEST_OR_BUILD`: 実際のコマンド、出力、終了コードと実行範囲。部分的な成功を全体成功に広げない。
+- `FEATURE_GO`: 対象機能の全要件の実装・検証、統合と設計・契約の整合性、必要なテスト一式・ビルド・smoke、未完了・blocked の影響評価。アプリの実装には実際の生成物が起動して利用可能になる smoke を含める。文書のみなど実行対象がない場合は不適用理由を記す。
 
-## Outputs
+タスク・機能完了では [kiro-spec-sync](../kiro-spec-sync/SKILL.md) による現行本文の同期、必要な承認、再オープンされたタスクと関連仕様の再検証が解決しているかも照合する。古い本文や無効化された承認を根拠に完了としない。
 
-Return one of:
-- `VERIFIED`
-- `NOT_VERIFIED`
-- `MANUAL_VERIFY_REQUIRED`
+失敗、対象状態の不一致、証拠不足、未解決要件には `NOT_VERIFIED`。必要な環境や手動検証を利用できない場合は `MANUAL_VERIFY_REQUIRED` とし、実施済み範囲と不足手順を明記する。検証コマンドが存在しないだけで手動確認を要求せず、対象に適した意味のある検証を特定する。
 
-Also return:
-- Claim reviewed
-- Evidence used
-- Scope/evidence mismatch, if any
+## 報告
 
-Use the language specified in `spec.json`.
-
-## Gate Function
-
-1. Identify the exact claim.
-2. Identify the exact command or checklist that proves that claim.
-3. Require fresh evidence from the current code state.
-4. Check exit code, failure count, skipped scope, and missing coverage.
-5. Reject claims that are broader than the evidence.
-6. If mandatory validation cannot be completed, return `MANUAL_VERIFY_REQUIRED`.
-7. Only then allow the claim.
-
-## Claim-Specific Rules
-
-### TASK
-Require:
-- task-local verification evidence
-- no unresolved blocking findings from review
-- evidence aligned with the task boundary
-
-### FIX
-Require:
-- evidence that the original symptom is resolved
-- no broader regressions in the relevant verification scope
-
-### TEST_OR_BUILD
-Require:
-- actual command output
-- exit code
-- no inference from unrelated checks
-
-### FEATURE_GO
-Require:
-- full test suite result
-- runtime smoke boot result showing the built artifact reaches its first usable state
-- requirements coverage assessment
-- cross-task integration assessment
-- design end-to-end alignment assessment
-- blocked tasks assessment
-
-A passing test suite alone is not enough for `FEATURE_GO`.
-
-## Stop / Escalate
-
-Return `MANUAL_VERIFY_REQUIRED` when:
-- No canonical validation command is known
-- The required environment is unavailable
-- A mandatory manual verification step cannot be executed
-
-Return `NOT_VERIFIED` when:
-- The command failed
-- Evidence is stale
-- Evidence is partial
-- The claim exceeds the evidence
-- The feature still has unresolved blocked tasks or uncovered requirements
-
-## Common Rationalizations
-
-| Rationalization | Reality |
-|---|---|
-| “The subagent said it succeeded” | Reported success is not verification evidence. |
-| “Tests passed earlier” | Fresh evidence only. |
-| “Build should be fine because lint passed” | Lint does not prove build success. |
-| “Tests passed and build succeeded, so it must run” | Type erasure, module loading, native ABI, and boot-time config issues can still fail at runtime. |
-| “The feature is done because all tasks are checked off” | `FEATURE_GO` also requires coverage, integration, and design alignment. |
-
-## Output Format
+spec.json の言語で返す。既に必要な証拠が揃っていれば、この照合のための重複実行は不要。
 
 ```md
 ## Verification Result
 - STATUS: VERIFIED | NOT_VERIFIED | MANUAL_VERIFY_REQUIRED
 - CLAIM_TYPE: TASK | FIX | TEST_OR_BUILD | FEATURE_GO
-- CLAIM: <exact claim>
-- EVIDENCE: <command/checklist and result>
-- GAPS: <scope/evidence mismatch or missing validation>
-- NOTES: <next action if not verified>
+- CLAIM: 正確な主張と範囲
+- EVIDENCE: コマンドまたは検査、結果、対象状態、再利用の根拠
+- GAPS: 未検証範囲、未解決指摘、仕様同期・承認の不足
+- NOTES: 次の具体的な行動
 ```
-</instructions>
+
+## 構造と確認対象の検査
+
+[OKF の共通手順](../kiro-spec-sync/references/okf-workflow.md) の `check` を対象範囲へ実行する。機械検査の成功と意味の検査を区別し、古いハッシュや承認を現在の状態の証拠にしない。読取専用の依頼では snapshot、index、状態更新を実行しない。

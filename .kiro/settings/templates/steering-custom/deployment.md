@@ -1,3 +1,13 @@
+---
+type: Project Policy
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # Deployment Standards
 
 [Purpose: safe, repeatable releases with clear environment and pipeline patterns]

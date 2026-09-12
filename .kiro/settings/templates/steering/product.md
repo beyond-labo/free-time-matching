@@ -1,3 +1,13 @@
+---
+type: Project Policy
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # Product Overview
 
 [Brief description of what this product does and who it serves]

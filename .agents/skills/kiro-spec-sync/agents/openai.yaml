@@ -1,0 +1,6 @@
+interface:
+  display_name: "Kiro Spec Sync"
+  short_description: "要件や設計の変更を関連文書へ反映し、古い承認と完了状態を再評価する"
+  default_prompt: "$kiro-spec-sync を使い、今回の変更を関連文書へ反映して承認と完了状態を確認してください。"
+policy:
+  allow_implicit_invocation: true

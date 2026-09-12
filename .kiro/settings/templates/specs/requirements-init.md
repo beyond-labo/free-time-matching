@@ -1,3 +1,13 @@
+---
+type: Requirements
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # Requirements Document
 
 ## Project Description (Input)

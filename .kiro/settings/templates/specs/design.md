@@ -1,3 +1,13 @@
+---
+type: Design
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # Design Document Template
 
 ---

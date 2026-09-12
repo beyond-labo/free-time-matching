@@ -1,85 +1,44 @@
-# Agentic SDLC and Spec-Driven Development
+# プロジェクトの作業方針
 
-Kiro-style Spec-Driven Development on an agentic SDLC
+## 判断と作業範囲
 
-## Project Memory
-Project memory keeps persistent guidance (steering, specs notes, component docs) so Codex honors your standards each run. Treat it as the long-lived source of truth for patterns, conventions, and decisions.
+- 応答は日本語、仕様文書は `spec.json.language` に従う。指定がない文書は日本語で書く。
+- ユーザーの最新の明示的な指示と既存の許可を尊重し、許可された範囲を最後まで進める。
+- 通常の実装判断や可逆的な整理は文脈から決める。製品の振る舞い、公開契約、データの扱いなどについて結果を左右する未決事項がある場合だけ質問する。
+- 仕様と実装の不一致は根拠を調べる。バグを正当化するために要件を書き換えない。
 
-- Use `.kiro/steering/` for project-wide policies: architecture principles, naming schemes, security constraints, tech stack decisions, api standards, etc.
-- Use local `AGENTS.md` files for feature or library context (e.g. `src/lib/payments/AGENTS.md`): describe domain assumptions, API contracts, or testing conventions specific to that folder. Codex auto-loads these when working in the matching path.
-- Specs notes stay with each spec (under `.kiro/specs/`) to guide specification-level workflows.
+## 文脈の読み込み
 
-## Project Context
+- `.kiro/steering/` は現行のプロジェクト方針、`.kiro/specs/` は機能の要件、設計、作業状態を置く場所とする。
+- 基本文書 `product.md`、`tech.md`、`structure.md` が存在すれば読み、追加文書と既存仕様は関連するものだけ読む。会話で確認済みでも変更された文書は読み直す。
+- 対象ディレクトリの `AGENTS.md` に従う。方針とスキルの監査では参照先も調べる。
+- 文書が存在しない場合は現状を調べて進める。無関係な仕様や steering を形式のためだけに新設しない。
 
-### Paths
-- Steering: `.kiro/steering/`
-- Specs: `.kiro/specs/`
+## スキルと開発経路
 
-### Steering vs Specification
+- スキルは `.agents/skills/kiro-*/SKILL.md` にある。明示されたスキル、または作業の判断や成果に具体的に役立つスキルを読む。
+- 小さな修正は直接実施する。既存仕様に影響する場合は同じ作業内で同期する。
+- 新機能や大きな契約変更は要件 → 設計 → タスク → 実装の順で進める。工程ごとの承認を、レビュー合格と区別する。
+- `-y`、`--auto`、自然言語での一括許可は指定された範囲に限って尊重する。仕様の生成許可は実装や外部公開の許可を含まない。
+- 入口は `$kiro-discovery`、単一仕様は `$kiro-spec-quick` または `$kiro-spec-init` → `$kiro-spec-requirements` → `$kiro-spec-design` → `$kiro-spec-tasks`、複数仕様は `$kiro-spec-batch`。
+- 実装は `$kiro-impl <feature> [tasks]`、確認は `$kiro-spec-status`、必要な検証は `$kiro-validate-gap`、`$kiro-validate-design`、`$kiro-validate-impl`。
 
-**Steering** (`.kiro/steering/`) - Guide AI with project-wide rules and context
-**Specs** (`.kiro/specs/`) - Formalize development process for individual features
+## 文書形式
 
-### Active Specifications
-- Check `.kiro/specs/` for active specifications
-- Use `$kiro-spec-status [feature-name]` to check progress
+- 知識文書は [OKF プロファイル](.kiro/settings/okf-profile.md) に従う。対象は specs と steering で、スキルや制御JSONの形式は維持する。
+- 出典と契約依存を区別し、承認の正本は spec.json に限定する。構造検査と意味の照合を両方行い、ハッシュ変更だけで承認を失効させない。
 
-## Development Guidelines
-- Think in English, generate responses in Japanese. All Markdown content written to project files (e.g., requirements.md, design.md, tasks.md, research.md, validation reports) MUST be written in the target language configured for this specification (see spec.json.language).
+## 現行文書を保つ
 
-## Minimal Workflow
-- Phase 0 (optional): `$kiro-steering`, `$kiro-steering-custom`
-- Discovery: `$kiro-discovery "idea"` — determines action path, writes brief.md + roadmap.md for multi-spec projects
-- Phase 1 (Specification):
-  - Single spec: `$kiro-spec-quick {feature} [--auto]` or step by step:
-    - `$kiro-spec-init "description"`
-    - `$kiro-spec-requirements {feature}`
-    - `$kiro-validate-gap {feature}` (optional: for existing codebase)
-    - `$kiro-spec-design {feature} [-y]`
-    - `$kiro-validate-design {feature}` (optional: design review)
-    - `$kiro-spec-tasks {feature} [-y]`
-  - Multi-spec: `$kiro-spec-batch` — creates all specs from roadmap.md in parallel by dependency wave
-- Phase 2 (Implementation): `$kiro-impl {feature} [tasks]`
-  - Without task numbers: autonomous mode (subagent per task + independent review + final validation)
-  - With task numbers: manual mode (selected tasks in main context, still reviewer-gated before completion)
-  - `$kiro-validate-impl {feature}` (standalone re-validation)
-- Progress check: `$kiro-spec-status {feature}` (use anytime)
+- 要件、設計、コード、依存関係、方針の変更時と、読込時に矛盾を発見したときは [kiro-spec-sync](.agents/skills/kiro-spec-sync/SKILL.md) を使う。読取専用の依頼では `--check` として報告する。
+- 新しい根拠を既存本文へ統合し、置き換わった記述を現行の指示として残さない。変更理由と参照元は既存の `research.md`、仕様に属さない場合は該当文書の短い履歴へ記録する。
+- 要件ID、契約名、ファイル参照を検索して影響先も更新する。目次や roadmap の一覧だけで影響なしと判断しない。
+- 意味の変わった仕様と下流成果物は承認と完了状態を再評価する。未同期事項がある成果物を実装可能、完了、最新と報告しない。
+- 過去の資料は履歴として保持できるが、現行文書から置換先を示す。機密情報や会話の全文を履歴へ転記しない。
 
-## Skills Structure
-Skills are located in `.agents/skills/kiro-*/SKILL.md`
-- Each skill is a directory with a `SKILL.md` file
-- Use `/skills` to inspect currently available skills
-- Invoke a skill directly with `$kiro-<skill-name>`
-- `kiro-review` — task-local adversarial review protocol used by reviewer subagents
-- `kiro-debug` — root-cause-first debug protocol used by debugger subagents
-- `kiro-verify-completion` — fresh-evidence gate before success or completion claims
-- **If there is even a 1% chance a skill applies to the current task, invoke it.** Do not skip skills because the task seems simple.
+## 分担と検証
 
-## Collaboration Modes (Optional)
-Enable collaboration modes in `~/.codex/config.toml` to let Codex choose focused execution modes for longer tasks:
-
-```toml
-[features]
-collaboration_modes = true
-```
-
-## Multi-Agent (Experimental)
-If multi-agent is available, use it to parallelize independent research and validation within skills. Enable in `~/.codex/config.toml`:
-
-```toml
-[features]
-multi_agent = true
-```
-
-Skills with "Parallel Research" sections list independent work items that benefit from sub-agent spawning when this feature is active.
-
-## Development Rules
-- 3-phase approval workflow: Requirements → Design → Tasks → Implementation
-- Human review required each phase; use `-y` only for intentional fast-track
-- Keep steering current and verify alignment with `$kiro-spec-status`
-- Follow the user's instructions precisely, and within that scope act autonomously: gather the necessary context and complete the requested work end-to-end in this run, asking questions only when essential information is missing or the instructions are critically ambiguous.
-
-## Steering Configuration
-- Load entire `.kiro/steering/` as project memory
-- Default files: `product.md`, `tech.md`, `structure.md`
-- Custom files are supported (managed via `$kiro-steering-custom`)
+- 独立した調査や実装を分担すると有益な場合にサブエージェントを使う。単なるファイル読込は分担せず、編集範囲と責任を明示する。
+- 契約変更、認証、データ移行、複雑な並行処理、複数仕様の統合は独立レビューを優先する。小さな変更に一律の別エージェントやコミットを要求しない。
+- テストは変更の受け入れ条件と回帰リスクに合わせる。同じコード、依存関係、設定、環境に対する確認済みの証拠は再利用できる。
+- 完了前に対象の検証結果と文書同期を確認する。コマンドの成功と仕様適合を分け、未実施の検証を成功と報告しない。

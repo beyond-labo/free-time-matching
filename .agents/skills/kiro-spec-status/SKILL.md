@@ -1,71 +1,24 @@
 ---
 name: kiro-spec-status
-description: Show specification status and progress
+description: 仕様の生成、承認、実装進捗と文書の同期状態を読み取り専用で確認する。
 ---
 
+# 仕様の状態確認
 
-# Specification Status
+`$kiro-spec-status [feature]`。
+未指定なら `.kiro/specs/` 内の仕様を一覧表示する。
+仕様が存在しない場合はその事実を返し、初期化しない。
 
-<background_information>
-- **Success Criteria**:
-  - Show current phase and completion status
-  - Identify next actions and blockers
-  - Provide clear visibility into progress
-  - Surface boundary readiness, upstream/downstream context, and likely revalidation needs when available
-</background_information>
+1. `spec.json` と現存する requirements、design、tasks、および関連する roadmap を読む。一覧表示ではメタデータから始め、詳細が必要な対象へ絞る。
+2. [kiro-spec-sync](../kiro-spec-sync/SKILL.md) の `--check` で、対象の差分、参照元、逆参照を点検する。既存の `current` や更新日だけで整合していると判定しない。
+3. 生成と承認、同期、実装完了を別々に報告する。要件や設計に根拠のない完成率を付けない。
+4. タスク進捗は番号の形によらず実行可能な末端だけを数える。集約用の親を二重計上せず、任意タスクは必須タスクと分ける。
+5. 未同期、失効すべき承認、再検証が必要な完了タスク、上流と下流の契約差異を対象パスと理由で示す。
 
-<instructions>
-## Execution Steps
+読取専用なので承認、チェックボックス、freshness を変更しない。
+未確認は `UNCHECKED`、差異ありは `NEEDS_SYNC`、対象を点検できた場合のみ `CURRENT` と報告する。
+状態を整えるだけの目的で承認や完了を付けない。
 
-### Step 1: Load Spec Context
-- Read `.kiro/specs/$1/spec.json` for metadata and phase status
-- Read `.kiro/specs/$1/brief.md` if it exists
-- Read existing files: `requirements.md`, `design.md`, `tasks.md` (if they exist)
-- Check `.kiro/specs/$1/` directory for available files
-- Read `.kiro/steering/roadmap.md` if it exists and this spec appears in it
+## 構造と確認対象の検査
 
-### Step 2: Analyze Status
-
-**Parse each phase**:
-- **Requirements**: Count requirements and acceptance criteria
-- **Design**: Check for architecture, components, diagrams, and whether boundary sections are present
-- **Tasks**: Count completed vs total tasks (parse `- [x]` vs `- [ ]`)
-- **Approvals**: Check approval status in spec.json
-- **Boundary context**:
-  - From brief.md: note `Boundary Candidates`, `Upstream / Downstream`, and `Existing Spec Touchpoints` if present
-  - From design.md: note `Boundary Commitments`, `Out of Boundary`, `Allowed Dependencies`, and `Revalidation Triggers` if present
-  - From roadmap.md: note upstream dependencies and whether this spec is adjacent to `Existing Spec Updates`
-- **Revalidation watchlist**:
-  - Identify downstream specs, neighboring existing-spec updates, or rollout-sensitive design notes that may need revalidation if this spec changes
-  - Call out when the current spec shape looks too broad and may want roadmap/design splitting instead of more local repair
-
-### Step 3: Generate Report
-
-Create report in the language specified in spec.json covering:
-1. **Current Phase & Progress**: Where the spec is in the workflow
-2. **Completion Status**: Percentage complete for each phase
-3. **Task Breakdown**: If tasks exist, show completed/remaining counts
-4. **Boundary Context**: Upstream/downstream, out-of-boundary, and allowed dependency notes when available
-5. **Revalidation Watchlist**: Downstream or adjacent work likely affected by changes to this spec
-6. **Next Actions**: What needs to be done next
-7. **Blockers**: Any issues preventing progress
-
-</instructions>
-
-## Safety & Fallback
-
-### Error Scenarios
-
-**Spec Not Found**:
-- **Message**: "No spec found for `$1`. Check available specs in `.kiro/specs/`"
-- **Action**: List available spec directories
-
-**Incomplete Spec**:
-- **Warning**: Identify which files are missing
-- **Suggested Action**: Point to next phase command
-
-### List All Specs
-
-To see all available specs:
-- Run with no argument or use wildcard
-- Shows all specs in `.kiro/specs/` with their status
+[OKF の共通手順](../kiro-spec-sync/references/okf-workflow.md) の `check` を対象範囲へ実行する。機械検査の成功と意味の検査を区別し、古いハッシュや承認を現在の状態の証拠にしない。読取専用の依頼では snapshot、index、状態更新を実行しない。

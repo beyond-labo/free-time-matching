@@ -1,50 +1,22 @@
-# Design Review Gate
+# 設計レビューゲート
 
-Before writing `design.md`, review the draft design and repair local issues until the design passes or a true spec gap is discovered.
+## 要件と契約
 
-## Requirements Coverage Review
+- 要件の数値 ID ごとに、実現する責務・契約・フロー・データ・運用判断が対応している。ID の出現だけでカバレッジ合格にしない。
+- 実装に影響する外部依存、前提設定、移行、観測性、安全性、性能条件が必要な範囲で具体化されている。
+- 入出力、エラー、状態遷移、統合点がタスクを作れる程度に決まっている。
+- 重要な採用判断は design 本文で読め、詳細な調査根拠は research に参照できる。
 
-- Every numeric requirement ID from `requirements.md` must appear in the design traceability mapping and be backed by one or more concrete components, contracts, flows, data models, or operational decisions.
-- Every requirement that introduces an external dependency, integration point, runtime prerequisite, migration concern, observability need, security constraint, or performance target must be reflected explicitly in `design.md`.
-- If coverage is missing because the design draft is incomplete, repair the draft and review again.
-- If coverage cannot be completed cleanly because requirements are ambiguous, contradictory, or underspecified, stop and return to the requirements phase instead of inventing design detail.
+## 責務と実行可能性
 
-## Architecture Readiness Review
+- 所有責務、対象外、許可する依存方向、下流の再検証条件が明確で、仮の記述だけで残っていない。
+- 共有データや統合の責務が曖昧でなく、下流の都合を上流に混入させていない。
+- File Structure Plan が具体的な作成・変更パスと責務を示し、境界の記述と一致する。自分たちが実装するコンポーネントには対応する配置がある。外部サービスやライブラリまで自前ファイルの作成を要求しない。
+- 隠れた前提がなく、並列実装を意図する場所の境界が分かる。仮想的な将来機能のためだけの抽象化を増やさない。
+- 複数責務がある場合は分割の利益と契約の影響を評価する。独立した責務を発見しただけで必ず新しい仕様を作らない。
 
-- Component boundaries must be explicit enough that implementation tasks can be assigned without guessing ownership.
-- Interfaces, contracts, state transitions, and integration boundaries must be concrete enough for implementation and validation.
-- Build-vs-adopt decisions that materially affect architecture must be captured in `design.md`, with deeper investigation left in `research.md` when present.
-- Runtime prerequisites, migrations, rollout constraints, validation hooks, and failure modes must be surfaced when they materially affect implementation order or risk.
+## 修正と判定
 
-## Boundary Readiness Review
+[kiro-spec-sync](../../kiro-spec-sync/SKILL.md) に従い、上流の不足は要件本文へ戻って許可範囲内で修正する。新しい製品判断だけ確認を待ち、設計詳細の捏造で穴埋めしない。必要なら roadmap と関係仕様も同期する。
 
-- The design must explicitly state what this spec owns.
-- The design must explicitly state what is out of boundary.
-- Allowed dependencies must be concrete enough that reviewers can detect boundary violations later.
-- If data, behavior, or integration responsibility appears shared across multiple areas without a clear seam, stop and repair the design.
-- If downstream assumptions are embedded in upstream components "for convenience," stop and repair the design.
-- If the boundary cannot be explained in a few direct bullets, it is probably still too vague for task generation.
-- If the design reveals multiple independent responsibility seams that could move separately, stop and split the spec or return to roadmap discovery instead of forcing them into one spec.
-
-## Executability Review
-
-- The design must be implementable as a sequence of bounded tasks without hidden prerequisites.
-- Parallel-safe boundaries should be visible where the architecture intends concurrent implementation.
-- Avoid speculative abstraction: remove components, adapters, or interfaces that exist only for hypothetical future scope.
-- If a section is too vague for tasks to reference directly, rewrite it before finalizing the design.
-
-## Mechanical Checks
-
-Before applying judgment, verify these mechanically:
-- **Requirements traceability**: Extract all numeric requirement IDs from `requirements.md`. Scan the design draft for each ID. Report any IDs not found in the design.
-- **Boundary section populated**: `Boundary Commitments`, `Out of Boundary`, `Allowed Dependencies`, and `Revalidation Triggers` must not be empty or placeholder-only.
-- **File Structure Plan populated**: The File Structure Plan section must contain concrete file paths (not just "TBD" or empty). Scan for placeholder text in that section.
-- **Boundary ↔ file structure alignment**: The File Structure Plan must reflect the stated responsibility boundary. If files imply broader ownership than the boundary section claims, report a mismatch.
-- **No orphan components**: Every component mentioned in the design must appear in the File Structure Plan with a file path. Scan for component names that have no corresponding file entry.
-
-## Review Loop
-
-- Run mechanical checks first, then judgment-based review.
-- If issues are local to the draft, repair the draft and re-run the review gate.
-- Keep the loop bounded: no more than 2 review-and-repair passes before escalating a real spec gap.
-- Write `design.md` only after the review gate passes.
+局所的な不足を直して影響部分を再レビューする。修正が進まない場合は具体的な問題を報告し、未解決の設計を合格扱いで保存しない。品質合格を承認の代わりにせず、変更された設計と下流の承認状態は sync で更新する。
