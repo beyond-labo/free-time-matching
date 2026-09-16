@@ -3,6 +3,16 @@ node_modules/
 dist/
 coverage/
 .DS_Store
+__pycache__/
+*.py[cod]
+*.ipa
+*.xcarchive
+*.p12
+*.mobileprovision
+*.p8
+fastlane/report.xml
+fastlane/screenshots/
+fastlane/test_output/
 .env
 .env.*
 !.env.example

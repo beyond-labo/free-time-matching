@@ -9,6 +9,9 @@ free-time-matching/
 │   │   ├── README.md
 │   │   └── package.json
 │   └── ios/
+│       ├── Himatch.xcodeproj/
+│       ├── Himatch/
+│       ├── HimatchTests/
 │       └── README.md
 ├── docs/
 │   ├── README.md
@@ -16,9 +19,16 @@ free-time-matching/
 │   ├── architecture/
 │   └── operations/
 ├── scripts/
+│   ├── ios/
+│   │   ├── test.sh
+│   │   ├── release.sh
+│   │   ├── validate_signing_assets.py
+│   │   └── tests/
 │   └── verify.mjs
 ├── .github/workflows/
-│   └── ci-repository.yml
+│   ├── ci-repository.yml
+│   ├── ci-ios.yml
+│   └── cd-ios-testflight.yml
 ├── .gitignore
 ├── package.json
 ├── pnpm-lock.yaml
@@ -28,7 +38,9 @@ free-time-matching/
 
 既存の AGENTS.md と Kiro 設定は維持します。
 Backend は private workspace として登録し、iOS は Node パッケージにしません。
-アプリやインフラの空ディレクトリは Git に保持しません。
+現在の iOS project は CI/CD の実経路を持つ最小アプリです。
+配布前検査は `validate_signing_assets.py` と実 crypto fixture test に分離し、実 Apple 資格情報を使わず回帰確認できます。
+製品機能やインフラの空ディレクトリは Git に保持しません。
 
 ## 実装時の配置規則
 
@@ -93,8 +105,10 @@ TCA の Store を囲う ViewModel は作成しません。
 ## 将来作成する成果物
 
 - Backend の公開契約：`apps/backend/openapi/openapi.yaml`。
-- iOS のプロジェクトとテスト：`apps/ios/Himatch.xcodeproj` と `HimatchTests/`。
 - IaC：選定後の `infra/`。
-- 契約生成、互換性チェック、アプリ CI、デプロイ：実行できる処理を実装してから追加。
+- 契約生成、互換性チェック、Backend CI とデプロイ：実行できる処理を実装してから追加。
+
+iOS の Xcode project、XCTest、Simulator CI、TestFlight upload は実装済みです。
+App Store review と公開の自動化は現在の配布境界に含めません。
 
 `packages/contracts`、共有ドメイン型、共有 DB 型は作成しません。
