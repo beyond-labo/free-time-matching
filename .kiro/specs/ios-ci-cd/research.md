@@ -22,6 +22,15 @@ sources:
   - id: apple-api-token
     resource: https://developer.apple.com/documentation/appstoreconnectapi/generating-tokens-for-api-requests
     title: Generating tokens for API requests
+  - id: apple-certificates
+    resource: https://developer.apple.com/help/account/certificates/certificates-overview
+    title: Certificates overview
+  - id: apple-csr
+    resource: https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request
+    title: Create a certificate signing request
+  - id: apple-keychain-export
+    resource: https://support.apple.com/guide/keychain-access/kyca35961/mac
+    title: Import and export keychain items using Keychain Access on Mac
 kiro:
   depends_on:
     - .kiro/specs/ios-ci-cd/requirements.md
@@ -47,6 +56,13 @@ kiro:
 - **Sources Consulted**: Apple の Upload builds、App Store Connect API、証明書ヘルプ（2026-09-16確認）。
 - **Findings**: iOS build は Xcode 26 以降が必要。`altool` と Transporter は引き続き upload をサポートし、API key による JWT 認証が可能。build string はアップロードごとに一意でなければならない。
 - **Implications**: Xcode 26.6 を固定し、workflow run number と attempt の組を build number にする。API private key は JWT の ES256 に対応する EC P-256 key であることを archive 前に検査する。App Store 公開は upload と分ける。
+
+### Apple Distribution 証明書の発行 UI
+
+- **Context**: Apple Developer Account の `Certificates` で `+` を押した後に表示される現行画面と、CI に読み込む `.p12` の作成手順を確認した。
+- **Sources Consulted**: Apple の Certificates overview、Create a certificate signing request、Keychain Access User Guide（2026-09-17確認）。
+- **Findings**: `Create a New Certificate` ページでは `Software` 欄の `Apple Distribution` を選んでから CSR を upload する。配布証明書を作成できるのは Account Holder または Admin である。CSR を作成した Mac の Keychain には対応する秘密鍵が保存され、証明書の取り込み後に証明書と秘密鍵を `.p12` として export できる。
+- **Implications**: 運用手順を現行画面の順序へ合わせ、CSR の入力項目、旧 `iOS Distribution` との区別、Keychain で秘密鍵を確認する失敗時の判断を明記する。CI の秘密情報名と署名方式は変更しない。
 
 ### GitHub の秘密と承認境界
 
@@ -99,6 +115,10 @@ kiro:
 - Python/OpenSSL の runner 同梱版が更新される — version をログへ残し、期限切れ、鍵不一致、RSA/P-384、壊れた key の実 fixture test で archive 前検査を再確認する。
 
 ## Change Log
+
+### 2026-09-17
+
+Apple Developer Account の現行証明書発行 UI と Keychain Access の一次資料を確認し、運用手順の画面遷移と `.p12` export 前の秘密鍵確認を更新した。CI/CD の要件、設計、秘密情報の契約に変更はない。
 
 ### 2026-09-16
 

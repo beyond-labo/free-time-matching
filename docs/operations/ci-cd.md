@@ -63,14 +63,24 @@ archive の前に、証明書と秘密鍵、証明書と profile の対応、有
 
 ページ: Apple Developer Account の `Certificates, Identifiers & Profiles` → `Certificates` → `+`。
 
-1. Keychain Access の `Certificate Assistant` → `Request a Certificate From a Certificate Authority` で CSR を作る。
-2. `Apple Distribution` を選び、CSR を upload して証明書を download する。
-3. 証明書を Keychain に取り込み、証明書と秘密鍵を `.p12` として export する。
-4. `.p12` に強い password を設定し、password manager に保存する。
-5. Terminal で `base64 -i distribution.p12 | pbcopy` を実行する。
+この操作には Account Holder または Admin role が必要です。
+
+1. Mac で Keychain Access を開き、`Keychain Access` → `Certificate Assistant` → `Request a Certificate From a Certificate Authority` を選ぶ。
+2. `User Email Address` に Apple Developer Account のメールアドレス、`Common Name` に鍵を識別できる名前を入力し、`CA Email Address` は空欄のままにする。
+3. `Saved to disk` を選び、CSR（`.certSigningRequest`）を保存する。
+4. Apple Developer Account で `+` を押した直後の `Create a New Certificate` ページを開き、`Software` 欄の `Apple Distribution` を選んで `Continue` を押す。
+   `iOS Distribution (App Store and Ad Hoc)` は Xcode 11 以前向けなので選ばない。
+5. 次のページで `Choose File` を押し、手順 3 の `.certSigningRequest` を選んで `Continue` を押す。
+6. 証明書の作成完了後に `Download` を押し、ダウンロードした `.cer` をダブルクリックして Keychain に取り込む。
+7. Keychain Access の `My Certificates` で `Apple Distribution: <Team Name> (<Team ID>)` を開き、配下に秘密鍵が表示されることを確認する。
+   秘密鍵がない場合は `.p12` を作成できないため、CSR を作成した Mac で export するか、この Mac で新しい CSR を作成して証明書を発行し直す。
+8. 証明書と配下の秘密鍵を選び、`File` → `Export Items` から Personal Information Exchange（`.p12`）として export する。
+9. `.p12` に強い password を設定し、password manager に保存する。
+10. Terminal で `base64 -i /path/to/distribution.p12 | pbcopy` を実行する。
 
 GitHub には Base64 文字列を `IOS_DISTRIBUTION_CERTIFICATE_BASE64`、password を `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` として登録します。
-証明書と秘密鍵は本人性を示す機密資産です。[Apple certificates overview](https://developer.apple.com/help/account/certificates/certificates-overview)
+証明書と秘密鍵は本人性を示す機密資産です。
+[Apple の証明書概要](https://developer.apple.com/help/account/certificates/certificates-overview)、[CSR の作成手順](https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request)、[Keychain item の export 手順](https://support.apple.com/guide/keychain-access/kyca35961/mac)
 
 ### 4. App Store provisioning profile
 
@@ -179,6 +189,10 @@ fastlane `match` は複数アプリ、extension、複数チームで署名資産
 target が増えたときは [fastlane match](https://docs.fastlane.tools/actions/match/) への移行を再評価します。
 
 ## 変更履歴
+
+### 2026-09-17
+
+Apple Developer Account の現行 `Create a New Certificate` 画面に合わせ、`Apple Distribution` の選択、CSR の upload、証明書の download、Keychain での秘密鍵確認と `.p12` export を画面遷移順に更新しました。
 
 ### 2026-09-16
 
