@@ -1,0 +1,22 @@
+name: Repository CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: repository-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  repository:
+    name: Repository validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Verify documents and workspace
+        run: node scripts/verify.mjs

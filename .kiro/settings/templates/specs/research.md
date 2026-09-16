@@ -1,4 +1,14 @@
-# Research & Design Decisions Template
+---
+type: Research
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
+# 調査と設計判断のテンプレート
 
 ---
 **Purpose**: Capture discovery findings, architectural investigations, and rationale that inform the technical design.
@@ -8,6 +18,13 @@
 - Document design decision trade-offs that are too detailed for `design.md`.
 - Provide references and evidence for future audits or reuse.
 ---
+
+## 更新時の規則
+
+現行の Summary と Design Decisions は新しい根拠に合わせて更新する。
+旧判断は Change Log で失効理由と置換先を示し、現行の指示として併記しない。
+変更記録には確認日、参照元、変更理由、影響先、未解決事項を必要な範囲で残す。
+機密情報や会話の全文は転記しない。
 
 ## Summary
 - **Feature**: `<feature-name>`
@@ -59,3 +76,8 @@ _Repeat the subsection for each decision._
 Provide canonical links and citations (official docs, standards, ADRs, internal guidelines).
 - [Title](https://example.com) — brief note on relevance
 - ...
+
+## Change Log
+
+意味のある変更ごとに、日付、変更元の根拠、旧判断からの変更、影響する文書と承認、残件を短く追記する。
+古い調査ログは履歴として維持し、現行結論への参照を付ける。

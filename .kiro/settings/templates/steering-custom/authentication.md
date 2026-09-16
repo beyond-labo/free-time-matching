@@ -1,3 +1,13 @@
+---
+type: Project Policy
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # Authentication & Authorization Standards
 
 [Purpose: unify auth model, token/session lifecycle, permission checks, and security]

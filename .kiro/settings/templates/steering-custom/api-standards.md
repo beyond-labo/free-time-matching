@@ -1,3 +1,13 @@
+---
+type: Project Policy
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # API Standards
 
 [Purpose: consistent API patterns for naming, structure, auth, versioning, and errors]

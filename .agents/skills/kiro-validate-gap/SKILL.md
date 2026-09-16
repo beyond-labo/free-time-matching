@@ -1,109 +1,26 @@
 ---
 name: kiro-validate-gap
-description: Analyze implementation gap between requirements and existing codebase
+description: 現行の要件と既存コードの差分を調べ、実装方針を選ぶための根拠を記録する。
 metadata:
   shared-rules: "gap-analysis.md"
 ---
 
+# 実装との差分調査
 
-# Implementation Gap Validation
+対象の `spec.json`、`requirements.md` と関連する steering を読む。
+[rules/gap-analysis.md](rules/gap-analysis.md) を調査の観点として使う。
+[kiro-spec-sync](../kiro-spec-sync/SKILL.md) の `--check` で要件の鮮度と根拠を確認する。
+未承認要件も調査できるが、その状態を報告する。
 
-<background_information>
-- **Mission**: Analyze the gap between requirements and existing codebase to inform implementation strategy
-- **Success Criteria**:
-  - Comprehensive understanding of existing codebase patterns and components
-  - Clear identification of missing capabilities and integration challenges
-  - Multiple viable implementation approaches evaluated
-  - Technical research needs identified for design phase
-</background_information>
+1. 関連コード、公開インターフェース、既存テストを確認し、再利用できる機能と不足を区別する。
+2. 依存先の仕様や互換性が不明な場合は、該当バージョンの一次資料を調べる。
+3. 実行可能な選択肢だけを比較し、前提、影響範囲、未確認事項を示す。単なる文書読込の分担は不要で、独立した大きな調査のみ分担する。
+4. `.kiro/specs/{feature}/research.md` の現行要約を更新し、調査日、根拠、旧判断の置換理由を変更記録へ残す。同じトピックの古い結論を現行要約に残さない。
+5. 依頼が変更を含む場合は sync で関連文書と状態を更新する。調査のみなら仕様変更の提案を分け、承認を変更しない。
 
-<instructions>
-## Core Task
-Analyze implementation gap for feature **$1** based on approved requirements and existing codebase.
+要件がない場合は、比較できない対象を示す。
+調査した範囲、記録先、設計へ渡す結論と残件を簡潔に報告する。
 
-## Execution Steps
+## 文書形式
 
-1. **Load Context**:
-   - Read `.kiro/specs/$1/spec.json` for language and metadata
-   - Read `.kiro/specs/$1/requirements.md` for requirements
-   - Core steering context: `product.md`, `tech.md`, `structure.md`
-   - Additional steering files only when directly relevant to the feature's domain rules, integrations, runtime prerequisites, compliance/security constraints, or existing product boundaries
-   - Relevant local agent skills or playbooks only when they clearly match the feature's host environment or use case and provide analysis-relevant context
-
-2. **Read Analysis Guidelines**:
-   - Read `rules/gap-analysis.md` from this skill's directory for comprehensive analysis framework
-
-#### Parallel Research
-
-The following research areas are independent and can be executed in parallel:
-1. **Codebase analysis**: Existing implementations, architecture patterns, integration points, extension possibilities
-2. **External dependency research**: Dependency compatibility, version constraints, known integration challenges (when needed)
-3. **Context loading**: Requirements, core steering, task-relevant extra steering, relevant local agent skills/playbooks, and gap-analysis rules
-
-If multi-agent is enabled, spawn sub-agents for each area above. Otherwise execute sequentially.
-
-After all parallel research completes, synthesize findings for gap analysis.
-
-3. **Execute Gap Analysis**:
-   - Follow gap-analysis.md framework for thorough investigation
-   - Analyze existing codebase using Grep and Read tools
-   - Use WebSearch/WebFetch for external dependency research if needed
-   - Evaluate multiple implementation approaches (extend/new/hybrid)
-   - Use language specified in spec.json for output
-
-4. **Generate Analysis Document**:
-   - Create comprehensive gap analysis following the output guidelines in gap-analysis.md
-   - Present multiple viable options with trade-offs
-   - Flag areas requiring further research
-
-5. **Write Gap Analysis to Disk**:
-
-   **Write the gap analysis to disk so it survives session boundaries and can be referenced during design phase.**
-
-   - Save the gap analysis to `.kiro/specs/$1/research.md`
-   - If the file already exists, append the new analysis (separated by a horizontal rule `---`) rather than overwriting previous research
-   - Verify the file was written by reading it back
-
-## Important Constraints
-- **Information over Decisions**: Provide analysis and options, not final implementation choices
-- **Multiple Options**: Present viable alternatives when applicable
-- **Thorough Investigation**: Use tools to deeply understand existing codebase
-- **Explicit Gaps**: Clearly flag areas needing research or investigation
-- **Context Discipline**: Start with core steering and expand only with analysis-relevant steering or use-case-aligned local agent skills/playbooks
-</instructions>
-
-## Tool Guidance
-- **Read first**: Load spec, core steering, relevant local playbooks/agent skills, and rules before analysis
-- **Grep extensively**: Search codebase for patterns, conventions, and integration points
-- **WebSearch/WebFetch**: Research external dependencies and best practices when needed
-- **Write last**: Generate analysis only after complete investigation
-
-## Output Description
-Provide output in the language specified in spec.json with:
-
-1. **Analysis Summary**: Brief overview (3-5 bullets) of scope, challenges, and recommendations
-2. **Document Status**: Confirm analysis approach used
-3. **Next Steps**: Guide user on proceeding to design phase
-
-**Format Requirements**:
-- Use Markdown headings for clarity
-- Keep summary concise (under 300 words)
-- Detailed analysis follows gap-analysis.md output guidelines
-
-## Safety & Fallback
-
-### Error Scenarios
-- **Missing Requirements**: If requirements.md doesn't exist, stop with message: "Run `$kiro-spec-requirements $1` first to generate requirements"
-- **Requirements Not Approved**: If requirements not approved, warn user but proceed (gap analysis can inform requirement revisions)
-- **Empty Steering Directory**: Warn user that project context is missing and may affect analysis quality
-- **Complex Integration Unclear**: Flag for comprehensive research in design phase rather than blocking
-- **Language Undefined**: Default to English (`en`) if spec.json doesn't specify language
-
-### Next Phase: Design Generation
-
-**If Gap Analysis Complete**:
-- Review gap analysis insights
-- Run `$kiro-spec-design $1` to create technical design document
-- Or `$kiro-spec-design $1 -y` to auto-approve requirements and proceed directly
-
-**Note**: Gap analysis is optional but recommended for brownfield projects to inform design decisions.
+生成と更新には [OKF の共通手順](../kiro-spec-sync/references/okf-workflow.md) を使う。本文のIDと構造を保ち、工程終了時に対象文書と影響先を検査する。初期化だけの場合は未確認状態を維持し、未実施の意味検査を記録しない。

@@ -1,205 +1,58 @@
 ---
 name: kiro-validate-impl
-description: Validate feature-level integration after all tasks are implemented. Checks cross-task consistency, full test suite, and overall spec coverage.
+description: 実装後の機能について要件充足・設計整合・タスク間統合と検証証拠を確認する。対象タスク指定時は範囲を限定する。
 ---
 
+# kiro-validate-impl
 
-# Implementation Integration Validation
+同期の初期確認には `kiro-spec-sync --check`（読み取り専用）を使い、変更権限がある場合だけ同期を実行する。`spec.json.freshness` が欠落している既存仕様は `unchecked` として対象範囲を調べ、欠落だけで承認を消去しない。`current` は文書整合のみを表し、承認・実装完了の代わりにならない。完了対象に `pending` が残る場合は影響を解決し、本文の意味も照合する。
 
-<background_information>
-Individual tasks have already been reviewed by the per-task reviewer during implementation. Your job is to catch problems that only become visible when looking across all tasks together.
+## 対象と準備
 
-Boundary terminology continuity:
-- discovery identifies `Boundary Candidates`
-- design fixes `Boundary Commitments`
-- tasks constrain execution with `_Boundary:_`
-- feature validation checks for cross-task `Boundary Violations`
+指定 feature と任意のタスク ID を対象にする。未指定なら会話から対象を特定し、候補が複数なら勝手に全仕様へ広げない。`spec.json`、要件・設計・タスク、関係する steering と実装を確認する。
 
-- **Success Criteria**:
-  - All tasks marked `[x]` in tasks.md
-  - Full test suite passes (not just per-task tests)
-  - Cross-task integration works (data flows between components, interfaces match)
-  - Requirements coverage is complete across all tasks (no gaps between tasks)
-  - Design structure is reflected end-to-end (not just per-component)
-  - No orphaned code, conflicting implementations, integration seams, or boundary spillover
+[kiro-spec-sync](../kiro-spec-sync/SKILL.md) を参照し、仕様が現行の判断を表し、意味変更に必要な承認と関連タスクの再検証が反映されているか確認する。検証は既定で読み取り専用とし、同期の不足は対象本文と影響先を具体的に報告する。実装・修正も依頼されている場合は同期を実施してから検証する。
 
-**What This Skill Does NOT Do**: Per-task checks are the reviewer's responsibility during `$kiro-impl`. This skill does NOT re-check individual task acceptance criteria, per-file reality checks, or single-task spec alignment.
+開始点からのコミット済み・未コミット・staged・未追跡の変更を含め、レビュー済みの範囲を確認する。既存の無関係な変更と区別する。単体タスクの確認を機械的に繰り返さず、未検証範囲と結合部分を中心に見る。
 
-This skill's main question is: when the completed tasks are viewed together, do they still respect the designed boundary seams and dependency direction?
-</background_information>
+## 統合検証
 
-<instructions>
-## Execution Steps
+- リポジトリの scripts / manifests、task runner、CI、統合テスト設定から検証コマンドを取得する。機能全体なら既定のテスト一式、必要なビルド、実生成物の起動・利用可能性を示す smoke を確認する。文書のみなど不適用の検証は理由を示す。
+- [kiro-verify-completion](../kiro-verify-completion/SKILL.md) に従い、同じ対象状態の実行証拠を再利用する。新しい変更、失敗、未検証の統合点がある場合に必要なコマンドを実行する。
+- 要件の元の節番号を、実装・テスト・完了タスクへ対応付ける。チェックボックスだけで充足とせず、複数タスクにまたがる要件と異常系を確認する。
+- コンポーネント間のデータ形式、API、エラー、共有状態、スキーマ・設定を照合する。設計の責務・対象外・依存方向・再検証トリガーと実装を比較する。
+- 上流に混入した下流固有処理、隠れた依存、重複実装、未接続コード、契約違反を調べる。発火した再検証トリガーについて関連仕様・統合点の検証を確認する。
+- 未完了・再オープン・`_Blocked:_` のタスクと重要指摘が対象の受け入れ条件へ与える影響を確認する。
 
-### 1. Detect Validation Target
+複雑な機能で独立した検証が有用なら、要件充足・設計整合・統合契約の調査をサブエージェントへ分担してよい。コマンド実行の所有者を決め、同じテストの重複実行や共有実行環境の競合を避ける。
 
-**If no arguments provided** (`$1` empty):
-- Parse conversation history for `$kiro-impl <feature> [tasks]` commands
-- Extract feature names and task numbers from each execution
-- Aggregate all implemented tasks by feature
-- Report detected implementations (e.g., "user-auth: 1.1, 1.2, 1.3")
-- If no history found, scan `.kiro/specs/` for features with completed tasks `[x]`
+## 判定と修正
 
-**If feature provided** (`$1` present, `$2` empty):
-- Use specified feature
-- Detect all completed tasks `[x]` in `.kiro/specs/$1/tasks.md`
+`GO` は対象範囲の必要検証と仕様同期・承認が揃い、重要な未解決事項がない場合だけ返す。指定タスクの `GO` は機能全体の完了を意味しない。
 
-**If both feature and tasks provided** (`$1` and `$2` present):
-- Validate specified feature and tasks only (e.g., `user-auth 1.1,1.2`)
+具体的な欠陥や未解決の仕様・承認・証拠不足には `NO-GO`、必要な外部環境や手動検証を利用できない場合は `MANUAL_VERIFY_REQUIRED`。単なる検証成功からデプロイ許可を推測しない。
 
-#### Sub-agent Dispatch (parallel)
+不具合は `LOCAL` / `UPSTREAM` / `UNCLEAR` に分類する。上流不具合は所有仕様と修正後に再検証する依存先を示す。修正も依頼されていれば承認済み範囲を自律的に修正し、変更に影響する検証をやり直す。
 
-The following validation dimensions are independent and can be dispatched as **sub-agents**. The agent should decide the optimal decomposition based on feature scope — split, merge, or skip sub-agents as appropriate. Each sub-agent returns a **structured findings summary** to keep the main context clean for GO/NO-GO synthesis.
+## 報告
 
-**Typical validation dimensions** (adjust as appropriate):
-- **Test execution**: Run the complete test suite, report pass/fail with details
-- **Requirements coverage**: Build requirements → implementation matrix, report gaps
-- **Design alignment**: Verify architecture matches design.md, report drift and dependency violations
-- **Cross-task integration**: Verify data flows, API contracts, shared state consistency
+`GO` 前に `kiro-verify-completion` で主張と証拠を照合する。spec.json の言語で返す。
 
-If multi-agent is not available, run checks sequentially in main context.
-
-After all checks complete, synthesize findings for GO/NO-GO/MANUAL_VERIFY_REQUIRED assessment.
-
-### 2. Load Context
-
-For each detected feature:
-- Read `.kiro/specs/<feature>/spec.json` for metadata
-- Read `.kiro/specs/<feature>/requirements.md` for requirements
-- Read `.kiro/specs/<feature>/design.md` for design structure
-- Read `.kiro/specs/<feature>/tasks.md` for task list and Implementation Notes
-- Core steering context: `product.md`, `tech.md`, `structure.md`
-- Additional steering files only when directly relevant to the validated boundaries, runtime prerequisites, integrations, domain rules, security/performance constraints, or team conventions that affect the GO/NO-GO call
-
-**Discover canonical validation commands**:
-- Inspect repository-local sources of truth in this order: project scripts/manifests (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, app manifests), task runners (`Makefile`, `justfile`), CI/workflow files, existing e2e/integration configs, then `README*`
-- Derive a feature-level validation set for this repo: `TEST_COMMANDS`, `BUILD_COMMANDS`, and `SMOKE_COMMANDS`
-- Prefer commands already used by repo automation over ad hoc shell pipelines
-- For `SMOKE_COMMANDS`, choose the lightest trustworthy runtime-liveness check for the app shape (for example: root URL load, Electron launch, CLI `--help`, service health endpoint, mobile simulator/e2e harness if one already exists)
-- If multiple candidates exist, prefer the command with the smallest setup cost that still exercises the real built artifact
-
-### 3. Execute Integration Validation
-
-#### Mechanical Checks (run commands, use results)
-
-**A. Full Test Suite**
-- Run the discovered canonical full-test command. Use the exit code.
-- If tests fail → NO-GO. No judgment needed.
-- If the canonical test command cannot be identified → `MANUAL_VERIFY_REQUIRED`
-
-**B. Residual TBD/TODO/FIXME**
-- Run: `grep -rn "TBD\|TODO\|FIXME\|HACK\|XXX" <files-in-feature-boundary>`
-- If matches found that were introduced by this feature → flag as Warning
-
-**C. Residual Hardcoded Secrets**
-- Run: `grep -rn "password\s*=\|api_key\s*=\|secret\s*=\|token\s*=" <files-in-feature-boundary>` (case-insensitive)
-- If matches found that aren't environment variable references → flag as Critical
-
-**D. Runtime Liveness (Smoke Boot)**
-- Run the discovered canonical smoke command that proves the built artifact actually starts and reaches its first usable state.
-- Examples if relevant: open the root URL in a headless browser and require zero boot-time console errors; launch Electron and wait for the main process ready signal and first renderer load; run a CLI with `--help`; start a service and hit its health endpoint.
-- If boot produces a runtime crash, unhandled exception, module-load failure, native ABI mismatch, or missing required env/config → NO-GO.
-- If no trustworthy smoke command can be identified, or the required runtime environment is unavailable → `MANUAL_VERIFY_REQUIRED`
-
-#### Judgment Checks (read code, compare to spec)
-
-**E. Cross-Task Integration**
-- Identify where tasks share interfaces, data models, or API contracts
-- Verify that Task A's output format matches Task B's expected input
-- Check for conflicting assumptions between tasks (naming conventions, error codes, data shapes)
-- Verify shared state (database schemas, config, environment) is consistent across tasks
-- Verify integration work happens at the intended seams rather than by leaking one boundary's behavior into another
-
-**F. Requirements Coverage Gaps**
-- Map every requirement section to at least one completed task
-- Identify requirements that no single task fully covers (cross-cutting requirements)
-- Identify requirements partially covered by multiple tasks but not fully by any
-- Use the original section numbering from `requirements.md`; do NOT invent `REQ-*` aliases
-
-**G. Design End-to-End Alignment**
-- Verify the overall component graph matches design.md
-- Check that integration patterns (event flow, API boundaries, dependency injection) work as designed
-- Verify dependency direction follows design.md's architecture (no upward imports)
-- Verify File Structure Plan matches the actual file layout
-- Identify any architectural drift from the original design
-- Use the original section numbering from `design.md`
-
-**G.5 Boundary Audit**
-- Compare completed work against the design's `Boundary Commitments`, `Out of Boundary`, `Allowed Dependencies`, and `Revalidation Triggers`
-- Identify cross-task spillover where one area quietly absorbed another boundary's responsibility
-- Identify downstream-specific workarounds embedded upstream "to make integration easier"
-- Identify new hidden dependencies or shared ownership that were not declared in the design
-- If a revalidation trigger fired, verify the affected adjacent specs or integration points were actually re-checked
-
-**H. Blocked Tasks & Implementation Notes**
-- Check for any tasks still marked `_Blocked:_` — report why and assess impact on feature completeness
-- Review `## Implementation Notes` in tasks.md for cross-cutting insights that need attention
-
-### 4. Generate Report
-
-Before returning `GO`, apply the `kiro-verify-completion` protocol to the feature-level claim. Tests alone are insufficient: include full-suite, runtime liveness, coverage, integration, design-alignment, and blocked-task status in the evidence.
-
-Classify concrete failures by ownership before writing remediation:
-- `LOCAL` if the defect belongs to the feature being validated
-- `UPSTREAM` if the root cause belongs to a dependency, foundation, shared platform, or earlier spec
-- `UNCLEAR` if ownership cannot be established from the available evidence
-
-If ownership is `UPSTREAM`, do not collapse the issue into local remediation for this feature. Name the owning upstream spec and explain which dependent specs should be revalidated after that upstream fix lands.
-
-Provide summary in the language specified in spec.json:
-
-```
+```md
 ## Validation Report
 - DECISION: GO | NO-GO | MANUAL_VERIFY_REQUIRED
-- MECHANICAL_RESULTS:
-  - Tests: PASS | FAIL (command and exit code)
-  - TBD/TODO grep: CLEAN | <count> matches
-  - Secrets grep: CLEAN | <count> matches
-  - Smoke boot: PASS | FAIL | MANUAL_REQUIRED
-- INTEGRATION:
-  - Cross-task contracts: <status>
-  - Shared state consistency: <status>
-  - Boundary audit: <status>
-- COVERAGE:
-  - Requirements mapped: <X/Y sections covered>
-  - Coverage gaps: <list of uncovered requirement sections>
-- DESIGN:
-  - Architecture drift: <findings>
-  - Dependency direction: <violations if any>
-  - File Structure Plan vs actual: <match/mismatch>
+- SCOPE: 機能全体または指定タスク
+- MECHANICAL_RESULTS: テスト・ビルド・smoke の結果、対象状態、再利用または不適用の理由
+- INTEGRATION: 契約・共有状態・責務境界の整合性
+- COVERAGE: 要件節と実装・検証の対応、未充足箇所
+- DESIGN: 現行設計との整合性、関連仕様の再検証
+- SPEC_SYNC: 本文と承認の状態、残る矛盾
 - OWNERSHIP: LOCAL | UPSTREAM | UNCLEAR
-- UPSTREAM_SPEC: <feature-name | N/A>
-- BLOCKED_TASKS: <list and impact assessment>
-- REMEDIATION: <if NO-GO: specific, actionable steps to fix each issue>
+- UPSTREAM_SPEC: 関係する所有仕様
+- BLOCKED_TASKS: 未完了・再オープン・blocked とその影響
+- REMEDIATION: 未合格の場合の具体的修正または不足検証
 ```
 
-If NO-GO, REMEDIATION is mandatory — identify the exact issue and what needs to change.
+## 構造と確認対象の検査
 
-## Important Constraints
-- **Strict Final Gate**: Return `GO` only when all integration checks passed; return `NO-GO` for concrete failures and `MANUAL_VERIFY_REQUIRED` when mandatory validation could not be completed
-- **Boundary integrity over convenience**: Do not return `GO` if the feature only works by smearing responsibilities across boundaries, even when tests pass
-</instructions>
-
-## Safety & Fallback
-
-### Error Scenarios
-- **No Implementation Found**: If no `$kiro-impl` in history and no `[x]` tasks, report "No implementations detected"
-- **Test Command Unknown**: Return `MANUAL_VERIFY_REQUIRED` and explain which validation command is missing; do not return `GO`
-- **Missing Spec Files**: Stop with error if spec.json/requirements.md/design.md missing
-
-### Next Steps Guidance
-
-**If GO Decision**:
-- Feature validated end-to-end and ready for deployment or next feature
-
-**If NO-GO Decision**:
-- Address integration issues listed
-- Re-run `$kiro-impl <feature> [tasks]` for targeted fixes
-- Re-validate with `$kiro-validate-impl [feature]`
-
-**Session Interrupted**:
-- Safe to re-run — validation is read-only and idempotent
-
-**If MANUAL_VERIFY_REQUIRED**:
-- Do not treat the feature as complete
-- Provide the exact missing validation step or environment prerequisite
+[OKF の共通手順](../kiro-spec-sync/references/okf-workflow.md) の `check` を対象範囲へ実行する。機械検査の成功と意味の検査を区別し、古いハッシュや承認を現在の状態の証拠にしない。読取専用の依頼では snapshot、index、状態更新を実行しない。

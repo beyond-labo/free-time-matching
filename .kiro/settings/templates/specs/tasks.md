@@ -1,3 +1,13 @@
+---
+type: Implementation Plan
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # Implementation Plan
 
 ## Task Format Template
@@ -6,7 +16,7 @@ Use whichever pattern fits the work breakdown:
 
 ### Major task only
 - [ ] {{NUMBER}}. {{TASK_DESCRIPTION}}{{PARALLEL_MARK}}
-  - {{DETAIL_ITEM_1}} *(Include details only when needed. If the task stands alone, omit bullet items.)*
+  - {{DETAIL_ITEM_1}} *(単独タスクにも観測可能な完了条件を記述する。)*
   - _Requirements: {{REQUIREMENT_IDS}}_
 
 ### Major + Sub-task structure

@@ -1,222 +1,58 @@
-# Task Generation Rules
+# タスク生成規則
 
-## Core Principles
+## 実行単位
 
-### 1. Natural Language Descriptions
-Focus on capabilities and outcomes, not code structure.
+- タスクは実現する振る舞い・成果を自然言語で記述する。内部契約とパスの詳細は design を参照し、必要なときだけタスクにも示す。
+- 時間や詳細行数を固定しない。責務の凝集性、依存、検証可能な成果で分割する。小さすぎる帳簿的な作業はまとめ、独立した複数責務は分ける。
+- 最大2階層とし、実行対象は子を持たない実行可能な末端タスク。単独の親番号 `1.` も実行可能。子が1つだけなら親へ昇格してよい。
+- コンテナ専用の親には子の詳細を複写しない。親の完了は必要な子の完了から集計する。
+- 各実行タスクに少なくとも1つの観測可能な完了条件を書く。既存の設定を改めて作るタスクは不要だが、実際に不足する前提作業は隠さない。
 
-**Describe**:
-- What functionality to achieve
-- Business logic and behavior
-- Features and capabilities
-- Domain language and concepts
-- Data relationships and workflows
+## 順序・依存・境界
 
-**Avoid**:
-- File paths and directory structure
-- Function/method names and signatures
-- Type definitions and interfaces
-- Class names and API contracts
-- Specific data structures
+- 番号順は既定の逐次実行順。環境前提から機能、統合、検証へつながる順にしつつ、機能単位で検証可能な構成を選ぶ。全ての仕様に一律の4工程を作らない。
+- 非自明な依存や別グループの依存を `_Depends: 1.2, 2.3_` に記す。`(P)` は直前の同列タスクとの並列候補であり、前提タスクを飛ばす許可ではない。
+- 各タスクを設計の責務へ対応させる。`_Boundary: ComponentName_` は並列候補で必須、他は不明瞭なときに付ける。複数境界を横断する場合は統合タスクと明示する。
+- `(P)` はデータ依存・共有ファイル競合・未充足の承認依存がなく、必要な前提作業の完了後に実行できる場合だけ使う。詳細は `tasks-parallel-analysis.md`。
 
-**Rationale**: Implementation details (files, methods, types) are defined in design.md. Tasks describe the functional work to be done.
+## 要件と同期
 
-### 2. Task Ordering Principle
-
-**Order implies dependency**: Task N implicitly depends on all tasks before it. This is the primary dependency mechanism.
-
-**Tasks must follow this phase order**:
-1. **Foundation**: Environment setup, test infrastructure, shared utilities, database schema, configuration
-2. **Core**: Primary feature implementation (parallel-capable tasks grouped here)
-3. **Integration**: Wiring components together, cross-boundary connections
-4. **Validation**: E2E tests, edge cases, regression checks
-
-**Rationale**: Foundation work unblocks everything else. Placing setup tasks early prevents downstream blocking. Core tasks can often run in parallel because foundation is already complete.
-
-### 3. Task Integration & Progression
-
-**Every task must**:
-- Build on previous outputs (no orphaned code)
-- Connect to the overall system (no hanging features)
-- Progress incrementally (no big jumps in complexity)
-- Respect architecture boundaries defined in design.md (Architecture Pattern & Boundary Map)
-- Honor interface contracts documented in design.md
-- Use major task summaries sparingly—omit detail bullets if the work is fully captured by child tasks.
-
-**End with integration tasks** to wire everything together.
-
-### 4. Dependency Declaration
-
-**Default**: Sequential ordering handles most dependencies (task N depends on tasks before it).
-
-**Explicit declaration required when**:
-- A task depends on a specific task in a different major-task group (cross-boundary)
-- The dependency is non-obvious from ordering alone
-- A task can skip ahead of its position (declared via `(P)`) but still needs specific prior work
-
-**Format**: `_Depends: 1.2, 2.3_` — placed alongside `_Requirements:_` in task detail sections.
-
-**Do not over-annotate**: If a task simply depends on the task directly before it, ordering alone is sufficient.
-
-### 5. Boundary Scope
-
-**Each task should declare its component boundary** using design.md component/module names:
-- `_Boundary: AuthService_` or `_Boundary: API Layer, UserRepository_`
-- Helps validate parallel safety: tasks with non-overlapping boundaries are parallel candidates
-- Helps agents understand scope: what to touch and what not to touch
-
-**When to use**: Required for tasks marked `(P)` to validate parallel safety. Omit for sequential tasks where scope is obvious from the description.
-
-**Boundary rule**:
-- Each executable task should stay within a single responsibility boundary
-- If work must cross boundaries, make it an explicit integration task rather than a normal implementation task
-- Do not hide cross-boundary coordination inside a task that appears local
-
-### 6. Flexible Task Sizing
-
-**Guidelines**:
-- **Major tasks**: As many sub-tasks as logically needed (group by cohesion)
-- **Sub-tasks**: 1-3 hours each, 3-10 details per sub-task
-- Balance between too granular and too broad
-
-**Don't force arbitrary numbers** - let logical grouping determine structure.
-
-### 7. Requirements Mapping
-
-**End each task detail section with**:
-- `_Requirements: X.X, Y.Y_` listing **only numeric requirement IDs** (comma-separated). Never append descriptive text, parentheses, translations, or free-form labels.
-- For cross-cutting requirements, list every relevant requirement ID. All requirements MUST have numeric IDs in requirements.md. If an ID is missing, stop and correct requirements.md before generating tasks.
-- Reference components/interfaces from design.md when helpful (e.g., `_Contracts: AuthService API`)
-
-### 7.5 Observable Completion
-
-**Each executable task must include at least one detail bullet that describes the observable completed state**:
-- Phrase it as a deliverable, runtime behavior, persisted state, UI state, endpoint behavior, test result, or integration outcome
-- Avoid vague bullets like "implement support", "wire things up", or "handle logic" unless paired with a concrete observable result
-- Prefer making one detail bullet clearly answer: "What will be true when this task is done?"
-- Keep this within the existing task body; do not add extra bookkeeping fields
-
-### 8. Code-Only Focus
-
-**Include ONLY**:
-- Coding tasks (implementation)
-- Testing tasks (unit, integration, E2E)
-- Technical setup tasks (infrastructure, configuration)
-
-**Exclude**:
-- Deployment tasks
-- Documentation tasks
-- User testing
-- Marketing/business activities
+- `_Requirements: 1.1, 2.3_` は requirements に存在する数値 ID のみ。設計と同じ ID を参照する。改番する場合は関連文書の参照も更新し、既存 ID と完了記録を無意味に作り直さない。
+- 実装に必要な検証、設定、移行、仕様・運用文書の更新を含める。文書更新を一律に除外しない。配備など実行許可が別途必要な作業は生成と実行の許可を区別する。
+- [kiro-spec-sync](../../kiro-spec-sync/SKILL.md) に従い、古い要件や設計を現在の本文へ同期する。依頼範囲で決定済みの不整合は自律的に修正し、新しい製品判断に依存する確定だけ保留する。
+- 完了済みタスクは影響を判定する。変更された成果・契約・検証に関係するものを再オープンし、無関係なチェックは維持する。
 
 ## Task Plan Review Gate
 
-Before writing `tasks.md`, review the draft task plan and repair local issues until the plan passes or a true spec gap is discovered.
+一度の統合レビューで次を確認する。
 
-### Coverage Review
+1. 全ての対象要件 ID、設計の契約・責務・統合点・必要な前提と検証項目にタスクが対応している。
+2. 各末端タスクに実行可能な成果と完了条件がある。
+3. 依存・番号順・並列候補が整合し、共有ファイルの競合や隠れた前提がない。
+4. 要件・設計・タスクの本文に矛盾がなく、意味変更の承認失効と完了タスクの再評価が反映されている。
 
-- Every requirement ID from `requirements.md` must appear in at least one task.
-- Every design component, interface/contract, integration point, runtime prerequisite, and validation concern from `design.md` must be represented by at least one task.
-- If coverage is missing because the task plan is incomplete, repair the draft tasks and review again.
-- If coverage cannot be added cleanly because requirements or design are ambiguous, contradictory, or underspecified, stop and return to the requirements/design phase instead of papering over the gap in `tasks.md`.
+局所的な不足は直して影響箇所を再確認する。上流の不足を無関係なタスクで隠さず sync へ戻る。同じ検証対象への独立 sanity review を重複して要求しない。複雑な計画の独立レビューもこのゲートを使う。修正が進まない場合は残る問題と必要な判断を報告し、合格扱いで保存しない。
 
-### Executability Review
+## 形式
 
-- Every sub-task must be executable as written, usually within 1-3 hours.
-- Every sub-task must produce a verifiable deliverable (behavior, artifact, endpoint, UI state, config, migration, test, or integration result).
-- Every executable sub-task must include at least one detail bullet that states the observable completion condition.
-- Split tasks that combine multiple independently verifiable outcomes.
-- Split tasks that combine multiple responsibility boundaries unless they are explicit integration tasks.
-- If many tasks require broad `_Boundary:_` scopes or repeated cross-boundary coordination, stop and return to design or roadmap decomposition instead of forcing the spec through task generation.
-- Merge or collapse tasks that are too small, bookkeeping-only, or not meaningful execution units.
-- Make implicit prerequisites explicit as preceding tasks.
-- Re-check `_Depends:_`, `_Boundary:_`, and `(P)` markers after edits so concurrency claims still match the design boundaries and dependency graph.
-
-### Review Loop
-
-- Run the review gate on the draft task plan before writing `tasks.md`.
-- If issues are task-plan-local, repair the draft and re-run the review gate.
-- Keep the loop bounded: no more than 2 review-and-repair passes before escalating a real spec gap.
-- Write `tasks.md` only after the review gate passes.
-
-### Optional Test Coverage Tasks
-
-- When the design already guarantees functional coverage and rapid MVP delivery is prioritized, mark purely test-oriented follow-up work (e.g., baseline rendering/unit tests) as **optional** using the `- [ ]*` checkbox form.
-- Only apply the optional marker when the sub-task directly references acceptance criteria from requirements.md in its detail bullets.
-- Never mark implementation work or integration-critical verification as optional—reserve `*` for auxiliary/deferrable test coverage that can be revisited post-MVP.
-
-## Task Hierarchy Rules
-
-### Maximum 2 Levels
-- **Level 1**: Major tasks (1, 2, 3, 4...)
-- **Level 2**: Sub-tasks (1.1, 1.2, 2.1, 2.2...)
-- **No deeper nesting** (no 1.1.1)
-- If a major task would contain only a single actionable item, collapse the structure and promote the sub-task to the major level (e.g., replace `1.1` with `1.`).
-- When a major task exists purely as a container, keep the checkbox description concise and avoid duplicating detailed bullets—reserve specifics for its sub-tasks.
-
-### Sequential Numbering
-- Major tasks MUST increment: 1, 2, 3, 4, 5...
-- Sub-tasks reset per major task: 1.1, 1.2, then 2.1, 2.2...
-- Never repeat major task numbers
-
-### Parallel Analysis (default)
-- Assume parallel analysis is enabled unless explicitly disabled (e.g. `--sequential` flag).
-- `(P)` means: this task has no dependency on its immediately preceding peers and can run concurrently with them.
-- Identify tasks that can run concurrently when **all** conditions hold:
-  - No data dependency on other pending tasks
-  - No shared file or resource contention
-  - No prerequisite review/approval from another task
-  - `_Boundary:_` annotations confirm non-overlapping component scopes
-- Foundation-phase tasks (see Task Ordering Principle) are rarely `(P)` — they establish shared prerequisites.
-- Core-phase tasks are the primary candidates for `(P)` since foundation is already complete.
-- Validate that identified parallel tasks operate within separate boundaries defined in the Architecture Pattern & Boundary Map.
-- Confirm API/event contracts from design.md do not overlap in ways that cause conflicts.
-- `(P)` tasks with cross-boundary dependencies must declare `_Depends: X.X_` explicitly.
-- Append `(P)` immediately after the task number for each parallel-capable task:
-  - Example: `- [ ] 2.1 (P) Build background worker`
-  - Apply to both major tasks and sub-tasks when appropriate.
-- If sequential mode is requested, omit `(P)` markers entirely.
-- Group parallel tasks logically (same parent when possible) and highlight any ordering caveats in detail bullets.
-- Explicitly call out dependencies that prevent `(P)` even when tasks look similar.
-
-### Checkbox Format
 ```markdown
-- [ ] 1. Foundation: environment and test infrastructure setup
-- [ ] 1.1 Sub-task description
-  - Detail item 1
-  - Detail item 2
-  - Observable completion condition
-  - _Requirements: X.X_
+- [ ] 1. 単独で実行できる成果
+  - 観測可能な完了条件
+  - _Requirements: 1.1_
 
-- [ ] 2. Core feature A
-- [ ] 2.1 (P) Sub-task description
-  - Detail items...
-  - Observable completion condition
-  - _Requirements: Y.Y_
-  - _Boundary: AuthService_
-
-- [ ] 2.2 (P) Sub-task description
-  - Detail items...
-  - Observable completion condition
-  - _Requirements: Z.Z_
-  - _Boundary: UserRepository_
-
-- [ ] 3. Integration and wiring
-- [ ] 3.1 Sub-task description
-  - Detail items...
-  - Observable completion condition
-  - _Depends: 2.1, 2.2_
-  - _Requirements: W.W_
+- [ ] 2. 複数の実行単位をまとめるグループ
+- [ ] 2.1 最初の成果 (P)
+  - 観測可能な完了条件
+  - _Requirements: 2.1_
+  - _Boundary: ComponentA_
+  - _Depends: 1_
+- [ ] 2.2 独立した成果 (P)
+  - 観測可能な完了条件
+  - _Requirements: 2.2_
+  - _Boundary: ComponentB_
+  - _Depends: 1_
 ```
 
-## Requirements Coverage
+新規の番号は重複させず、子は各親の下で連番にする。既存更新では外部参照を壊す改番を避ける。`--sequential` では `(P)` を付けない。
 
-**Mandatory Check**:
-- ALL requirements from requirements.md MUST be covered
-- Cross-reference every requirement ID with task mappings
-- If gaps found: Return to requirements or design phase
-- No requirement should be left without corresponding tasks
-
-Use `N.M`-style numeric requirement IDs where `N` is the top-level requirement number from requirements.md (for example, Requirement 1 → 1.1, 1.2; Requirement 2 → 2.1, 2.2), and `M` is a local index within that requirement group.
-
-Document any intentionally deferred requirements with rationale.
+`- [ ]*` は延期が許可された追加的なテストだけに使う。受け入れ条件を満たすために必要な実装・統合・検証は任意扱いにしない。延期の理由と対象を記録する。

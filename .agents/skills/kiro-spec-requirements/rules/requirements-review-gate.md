@@ -1,51 +1,23 @@
-# Requirements Review Gate
+# 要件レビューゲート
 
-Before writing `requirements.md`, review the draft requirements and repair local issues until the draft passes or a true scope ambiguity is discovered.
+## 確認対象
 
-## Boundary Continuity
+- 主な利用フロー、対象範囲、対象外、主要な失敗条件、利用者や運用者から観測できる境界条件が受け入れ条件に含まれる。
+- 関連機能へ期待することと、この仕様が所有しない振る舞いが必要な範囲で明確である。
+- 今回の範囲にある業務規則・セキュリティ・プライバシー・運用条件が反映されている。無関係な条件を網羅するために範囲を拡張しない。
+- `ears-format.md` に従う。常時成立する要件を含め、適切な EARS パターンかを文意で判断する。When/If 等の特定の英単語がないことだけで不合格にしない。
+- 各要件に数値 ID と検証できる受け入れ条件がある。既存参照を壊す改番や、同じ義務の重複を避ける。
+- 「高速」「安全」などは根拠がある具体的な条件にする。数値目標を根拠なく追加しない。
+- 技術選択や内部構造は設計へ分ける。ただし外部互換性など要件として明示された技術制約は勝手に除外しない。
 
-Use boundary terminology consistently across phases without turning requirements into design:
+## 工程間の連続性
 
-- **Discovery** identifies `Boundary Candidates`
-- **Requirements** make inclusion, exclusion, and adjacent expectations explicit when scope could be misread
-- **Design** turns those into `Boundary Commitments`
-- **Tasks** use `_Boundary:_` to constrain executable work
+Discovery の `Boundary Candidates` を要件の包含・除外・隣接期待へ整理し、設計の `Boundary Commitments`、タスクの `_Boundary:_` へつなげる。要件の段階では実装上の所有ファイルを規定しない。
 
-Requirements should clarify the feature boundary in user- or operator-observable terms, not in architecture ownership or implementation detail.
+[kiro-spec-sync](../../kiro-spec-sync/SKILL.md) で古い前提と最新の決定を照合し、本文と参照先を更新する。矛盾を履歴への追記だけで残さない。
 
-## Scope and Coverage Review
+## 判定
 
-- The draft must cover the feature's core user journeys, major scope boundaries, primary error cases, and meaningful edge conditions that are visible to the user or operator.
-- If the feature touches adjacent systems, specs, or workflows, the draft must make clear what this feature expects from them and what it does not own when that distinction affects user-visible behavior or operator expectations.
-- Business/domain rules, compliance constraints, security/privacy expectations, and operational constraints that materially shape user-visible behavior must be reflected explicitly when they are in scope.
-- If coverage is missing because the draft is incomplete, repair the draft and review again.
-- If coverage cannot be completed cleanly because the project description or steering context is ambiguous, contradictory, or underspecified, stop and ask the user to clarify instead of guessing.
+局所的な不足を修正して影響部分を再確認し、合格した現行本文を保存する。修正が進まなければ原因と不足する証拠を整理する。繰り返し回数だけを理由に通常判断をユーザーへ返さない。既存の許可から解決できない新しい製品判断に限り、その要件の確定を保留して質問する。
 
-## EARS and Testability Review
-
-- Every acceptance criterion must follow the EARS rules defined in `ears-format.md`.
-- Every requirement must be testable, observable, and specific enough that later design and validation can verify it.
-- Remove implementation details that belong in `design.md` rather than `requirements.md`.
-- Requirement headings must use numeric IDs only; do not mix numeric and alphabetic labels.
-
-## Structure and Quality Review
-
-- Group related behaviors into coherent requirement areas without duplicating the same obligation across multiple sections.
-- Make inclusion/exclusion boundaries explicit when the feature scope could otherwise be misread.
-- Keep boundary statements lightweight and observable: describe feature responsibility and adjacent expectations without prescribing components, layers, or internal ownership.
-- Ensure non-functional expectations remain user-observable or operator-observable; move technology choices and internal architecture detail out of requirements.
-- Normalize vague language such as "fast", "robust", or "secure" into concrete user-visible expectations whenever the source material supports it.
-
-## Mechanical Checks
-
-Before applying judgment, verify these mechanically:
-- **Numeric IDs present**: Every requirement heading has a numeric ID (1, 1.1, 2, etc.). Scan the draft for headings without IDs.
-- **Acceptance criteria exist**: Every requirement has at least one EARS-format acceptance criterion. Scan for requirements with no "When/If/While/Where" acceptance statements.
-- **No implementation language**: Scan for technology-specific terms (database names, framework names, API patterns) that belong in design, not requirements. Flag any found.
-
-## Review Loop
-
-- Run mechanical checks first, then judgment-based review.
-- If issues are local to the draft, repair the draft and re-run the review gate.
-- Keep the loop bounded: no more than 2 review-and-repair passes before escalating a real ambiguity back to the user.
-- Write `requirements.md` only after the review gate passes.
+品質合格とユーザー承認は別の状態である。意味変更による承認失効と下流の同期は sync に従う。

@@ -5,188 +5,38 @@ metadata:
   shared-rules: "tasks-generation.md, tasks-parallel-analysis.md"
 ---
 
+# 実装タスクの生成・更新
 
-# Implementation Tasks Generator
+要件と設計を、責務・依存関係・検証できる成果で区切った実行単位へ変換する。
 
-<background_information>
-- **Success Criteria**:
-  - All requirements mapped to specific tasks
-  - Tasks properly sized (1-3 hours each)
-  - Clear task progression with proper hierarchy
-  - Natural language descriptions focused on capabilities
-  - A lightweight task-plan sanity review confirms the task graph is executable before `tasks.md` is written
-</background_information>
+## 準備
 
-<instructions>
-## Execution Steps
+- `.kiro/specs/$1/` の `spec.json`、`requirements.md`、`design.md`、存在する `tasks.md` と関連 research を読む。steering は基本3文書と関連文書に限定する。
+- [kiro-spec-sync](../kiro-spec-sync/SKILL.md) に従って、変更の影響と承認の有効性を確認する。
+- 要件と設計の承認を確認する。`-y` は今回の許可範囲で要件・設計・生成後のタスクを自動承認する。未解決の製品判断や品質不合格を承認で飛び越えない。
+- `rules/tasks-generation.md`、`.kiro/settings/templates/specs/tasks.md` を読む。`--sequential` がなければ `rules/tasks-parallel-analysis.md` も使う。ファイル読込だけのエージェント分担はしない。
 
-### Step 1: Load Context
+## 生成とレビュー
 
-**Read all necessary context**:
-- `.kiro/specs/$1/spec.json`, `requirements.md`, `design.md`
-- `.kiro/specs/$1/tasks.md` (if exists, for merge mode)
-- Core steering context: `product.md`, `tech.md`, `structure.md`
-- Additional steering files only when directly relevant to requirements coverage, design boundaries, runtime prerequisites, or team conventions that affect task executability
+1. 数値要件 ID、設計の責務・契約、実際に不足する前提設定と検証項目をタスクへ対応させる。記述は spec.json.language に従う。
+2. 各実行タスクに観測可能な完了条件を書く。時間や詳細行数で固定せず、独立して検証できる成果と責務で分割する。子が1つなら親に昇格してよい。実行対象は番号の深さではなく、子を持たない実行可能な末端タスクである。
+3. `_Requirements:_` に数値 ID、必要な `_Depends:_` と `_Boundary:_` を付ける。`(P)` は依存と共有ファイルの競合がない場合だけ使う。
+4. 既存の完了チェックを無条件に複写しない。意味変更の影響を受ける成果は sync に従って再オープンし、無関係な完了状態と参照可能な ID を維持する。
+5. tasks-generation の Task Plan Review Gate で網羅性と依存グラフを一度に確認する。独立した sanity review を重複して必須化しない。複数境界・複雑な並列化・重要な契約変更がある場合は独立レビュアーへこのゲートを任せる。単純な計画は主担当が確認する。
+6. 局所的な計画不足を直して影響部分を再確認する。上流の矛盾は sync で要件・設計の本文へ戻って修正する。新しい製品判断が必要な部分だけ質問し、架空のタスクで穴埋めしない。
 
-**Validate approvals**:
-- If `-y` flag provided: Auto-approve requirements and design in spec.json. Tasks approval is also handled automatically in Step 4.
-- Otherwise: Verify both approved (stop if not, see Safety & Fallback)
-- Determine sequential mode based on presence of `--sequential`
+## 保存・承認
 
-### Step 2: Generate Implementation Tasks
+- 合格した `tasks.md` を保存し、`approvals.tasks.generated: true`、`updated_at` を更新する。新規生成は `phase: tasks-generated`、既存更新は sync の phase 規約に従う。
+- 意味変更時の承認失効、ready の無効化、完了タスクの扱いは sync に従う。生成しただけで要件・設計を承認済みに変更しない。
+- `-y` または上位 quick/batch の明示許可があれば、その範囲の品質合格したタスクを承認する。それ以外は成果物を提示してタスク承認を待つ。既に承認された同一内容への再確認は不要。
+- 最終同期と承認反映後に sync の条件で `ready_for_implementation` を必ず再計算する。
+- タスク承認は実装開始、commit、push などの外部操作の許可を意味しない。実装はユーザーの依頼範囲に従う。
 
-**Load generation rules and template**:
-- Read `rules/tasks-generation.md` from this skill's directory for principles
-- If `sequential` is false: Read `rules/tasks-parallel-analysis.md` from this skill's directory for parallel judgement criteria
-- Read `.kiro/settings/templates/specs/tasks.md` for format (supports `(P)` markers)
+変更したタスク、再オープンした範囲、検証結果、未承認工程と次の `$kiro-impl $1` を簡潔に伝える。
 
-#### Parallel Research
+各工程の最終反映では sync で現存文書の整合を確認し、`freshness.status` と未同期の `pending` を更新する。`current` は文書整合の状態であり、承認や実装 GO を意味しない。旧仕様に freshness がなくても一律に承認を消去せず、今回の対象から確認する。
 
-The following research areas are independent and can be executed in parallel:
-1. **Context loading**: Spec documents (requirements.md, design.md), steering files
-2. **Rules loading**: tasks-generation.md, tasks-parallel-analysis.md, tasks template
+## 文書形式
 
-If multi-agent is enabled, spawn sub-agents for each area above. Otherwise execute sequentially.
-
-After all parallel research completes, synthesize findings before generating tasks.
-
-**Generate task list following all rules**:
-- Use language specified in spec.json
-- Map all requirements to tasks
-- When documenting requirement coverage, list numeric requirement IDs only (comma-separated) without descriptive suffixes, parentheses, translations, or free-form labels
-- Ensure all design components included
-- Verify task progression is logical and incremental
-- Ensure each executable sub-task includes at least one detail bullet that states what "done" looks like in observable terms
-- Keep normal implementation tasks within a single responsibility boundary; if work crosses boundaries, make it an explicit integration task
-- Collapse single-subtask structures by promoting them to major tasks and avoid duplicating details on container-only major tasks (use template patterns accordingly)
-- Apply `(P)` markers to tasks that satisfy parallel criteria (omit markers when sequential mode requested)
-- Mark optional test coverage subtasks with `- [ ]*` only when they strictly cover acceptance criteria already satisfied by core implementation and can be deferred post-MVP
-- If existing tasks.md found, merge with new content
-
-### Step 3: Review Task Plan
-
-- Keep the draft task plan in working memory; do NOT write `tasks.md` yet
-- Run the `Task Plan Review Gate` from `rules/tasks-generation.md`
-- Review coverage:
-  - Every requirement ID appears in at least one task
-  - Every design component, contract, integration point, runtime prerequisite, and validation concern is represented
-- Review executability:
-  - Each sub-task is an executable 1-3 hour work unit
-  - Each sub-task has a verifiable deliverable
-  - Each executable sub-task includes an observable completion bullet
-  - No implicit prerequisites remain hidden
-  - `_Depends:_`, `_Boundary:_`, and `(P)` markers still match the dependency graph and architecture boundaries
-- If issues are task-plan-local, repair the draft and re-run the review gate before writing
-- Keep the review bounded to at most 2 repair passes
-- If review exposes a real requirements/design gap or contradiction, stop and send the user back to requirements/design instead of inventing filler tasks
-
-### Step 3.5: Run Task-Graph Sanity Review
-
-Before writing `tasks.md`, run one lightweight independent sanity review of the task graph.
-
-- If fresh subagent dispatch is available, spawn one fresh review subagent for this step. Otherwise perform the same review in the current context.
-- Provide only file paths, the draft task plan, and merge context if an existing `tasks.md` is being updated. The reviewer should read `requirements.md`, `design.md`, and the task-generation rules directly instead of relying on a parent-synthesized coverage summary.
-- Check only:
-  - hidden prerequisites or missing setup tasks
-  - dependency or ordering mistakes
-  - boundary overlap or ambiguous ownership between tasks
-  - tasks that are too large, too vague, cross boundaries without being explicit integration tasks, or are missing a verifiable deliverable
-  - contradictions introduced between requirements, design, and the task graph
-- Return one verdict:
-  - `PASS`
-  - `NEEDS_FIXES`
-  - `RETURN_TO_DESIGN`
-- If `NEEDS_FIXES`, repair the draft once and re-run the sanity review one time.
-- If `RETURN_TO_DESIGN`, stop without writing `tasks.md` and point back to the exact gap in requirements/design.
-- Keep this bounded. Do not turn it into a second full planning cycle.
-
-### Step 4: Finalize
-
-**Write tasks.md**:
-- Create/update `.kiro/specs/$1/tasks.md`
-- Update spec.json metadata:
-  - Set `phase: "tasks-generated"`
-  - Set `approvals.tasks.generated: true, approved: false`
-  - Set `approvals.requirements.approved: true`
-  - Set `approvals.design.approved: true`
-  - Update `updated_at` timestamp
-
-**Approval**:
-- If auto-approve flag (`-y`) is provided:
-  - Set `approvals.tasks.approved: true` in spec.json
-  - Display task summary (task count, major groups, parallel markers)
-  - Respond: "Tasks generated and auto-approved. Start implementation with `$kiro-impl $1`"
-- Otherwise (interactive):
-  - Display a summary of the generated tasks (task count, major groups, parallel markers)
-  - Ask the user: "Tasks generated. Approve and proceed to implementation?"
-  - If the user approves:
-    - Set `approvals.tasks.approved: true` in spec.json
-    - Respond: "Tasks approved. Start implementation with `$kiro-impl $1`"
-  - If the user wants changes:
-    - Keep `approvals.tasks.approved: false`
-    - Respond with guidance on what to adjust and re-run
-
-## Critical Constraints
-- **Task Integration**: Every task must connect to the system (no orphaned work)
-- **Boundary annotations**: Required for `(P)` tasks, recommended for all (`_Boundary: ComponentName_`)
-- **Explicit dependencies**: Cross-boundary non-obvious dependencies declared with `_Depends: X.X_`
-- **Executable deliverable granularity**: Each task must produce a verifiable deliverable (file, endpoint, UI component, config). Infrastructure tasks (project scaffolding, manifest, host integration, build config) must be explicit — never assume they exist
-- **Observable done state**: Each executable sub-task must include at least one detail bullet that makes the completed state visible without adding new bookkeeping fields
-- **No implicit prerequisites**: If a task requires a runtime, SDK, framework setup, or config file, that setup must be a separate preceding task
-</instructions>
-
-## Output Description
-
-Provide brief summary in the language specified in spec.json:
-
-1. **Status**: Confirm tasks generated at `.kiro/specs/$1/tasks.md`
-2. **Task Summary**: 
-   - Total: X major tasks, Y sub-tasks
-   - All Z requirements covered
-   - Average task size: 1-3 hours per sub-task
-3. **Quality Validation**:
-   - ✅ All requirements mapped to tasks
-   - ✅ Design coverage and runtime prerequisites reviewed
-   - ✅ Task dependencies verified
-   - ✅ Task plan review gate passed
-   - ✅ Independent task-graph sanity review passed
-   - ✅ Testing tasks included
-4. **Next Action**: Review tasks and proceed when ready
-
-**Format**: Concise (under 200 words)
-
-## Safety & Fallback
-
-### Error Scenarios
-
-**Requirements or Design Not Approved**:
-- **Stop Execution**: Cannot proceed without approved requirements and design
-- **User Message**: "Requirements and design must be approved before task generation"
-- **Suggested Action**: "Run `$kiro-spec-tasks $1 -y` to auto-approve both and proceed"
-
-**Missing Requirements or Design**:
-- **Stop Execution**: Both documents must exist
-- **User Message**: "Missing requirements.md or design.md at `.kiro/specs/$1/`"
-- **Suggested Action**: "Complete requirements and design phases first"
-
-**Incomplete Requirements Coverage**:
-- **Warning**: "Not all requirements mapped to tasks. Review coverage."
-- **User Action Required**: Confirm intentional gaps or regenerate tasks
-
-**Spec Gap Found During Task Review**:
-- **Stop Execution**: Do not write a patched-over `tasks.md`
-- **User Message**: "Requirements/design do not provide enough clear coverage to generate an executable task plan"
-- **Suggested Action**: "Refine requirements.md or design.md, then re-run `$kiro-spec-tasks $1`"
-
-**Template/Rules Missing**:
-- **User Message**: "Template or rules files missing in `.kiro/settings/`"
-- **Fallback**: Use inline basic structure with warning
-- **Suggested Action**: "Check repository setup or restore template files"
-- **Missing Numeric Requirement IDs**:
-  - **Stop Execution**: All requirements in requirements.md MUST have numeric IDs. If any requirement lacks a numeric ID, stop and request that requirements.md be fixed before generating tasks.
-
-### Next Phase: Implementation
-
-Tasks are approved in Step 4 via user confirmation. Once approved:
-- Autonomous implementation: `$kiro-impl $1`
-- Specific tasks only: `$kiro-impl $1 1.1,1.2`
+生成と更新には [OKF の共通手順](../kiro-spec-sync/references/okf-workflow.md) を使う。本文のIDと構造を保ち、工程終了時に対象文書と影響先を検査する。初期化だけの場合は未確認状態を維持し、未実施の意味検査を記録しない。

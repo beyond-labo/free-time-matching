@@ -64,7 +64,7 @@ Conduct comprehensive research and analysis to ensure the technical design is ba
 ## Research Guidelines
 
 ### When to Search
-**Always search for**:
+**今回の判断や依存契約の確認に必要な項目を調査する**:
 - External API documentation and updates
 - Security best practices for authentication/authorization
 - Performance optimization techniques for identified bottlenecks

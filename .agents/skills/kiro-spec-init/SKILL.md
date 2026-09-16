@@ -3,49 +3,18 @@ name: kiro-spec-init
 description: Initialize a new specification with detailed project description
 ---
 
+# 仕様の初期化
 
-# Spec Initialization
+説明または feature 名から仕様の置き場所を確定し、初期ファイルを作る。
 
-<instructions>
-## Core Task
-Generate a unique feature name from the project description ($ARGUMENTS) and initialize the specification structure.
+1. `.kiro/specs/` の既存仕様、対象の `brief.md`、関連する steering を確認する。同じ責務の仕様があればその仕様を再利用する。既存の `spec.json` や本文を初期テンプレートで上書きしない。
+2. 既存仕様の更新なら [kiro-spec-sync](../kiro-spec-sync/SKILL.md) を読み、更新範囲を特定する。初期化は不要と報告し、許可された後続工程へ進む。単なる名前の衝突を理由に `-2` を作らない。別の責務であることが確認できた新規仕様だけ別名にする。
+3. 新規仕様では誰の問題か、現状、望む変化を会話・brief・既存文書からまとめる。製品の振る舞いや範囲が未決定で、既存文脈から解決できないときだけ質問する。通常の命名や記述上の判断は自律的に行う。
+4. `.kiro/settings/templates/specs/init.json` と `requirements-init.md` を読み、feature 名・ISO 8601 時刻・説明を置換して `.kiro/specs/<feature>/spec.json` と `requirements.md` を作る。`brief.md` だけの既存ディレクトリはそのまま利用する。言語は明示された指定、既存プロジェクト設定、ユーザー入力の順で決め、不明なら `ja` とする。
+5. 書き戻した JSON と本文を確認する。初期化では要件本体・設計・タスクを生成しない。
 
-## Execution Steps
-1. **Check for Brief**: If `.kiro/specs/{feature-name}/brief.md` exists (created by `$kiro-discovery`), read it. The brief contains problem, approach, scope, and constraints from the discovery session. Use this to pre-fill the project description and skip clarification questions that the brief already answers.
-2. **Clarify Intent**: The Project Description in requirements.md must contain three elements: (a) who has the problem, (b) current situation, (c) what should change. If a brief.md exists and covers these, skip to step 3. Otherwise, ask the user to clarify before proceeding. Ask as many questions as needed; do not fill in gaps with your own assumptions.
-3. **Check Uniqueness**: Verify `.kiro/specs/` for naming conflicts. If the directory already exists with only `brief.md` (no `spec.json`), use that directory (discovery created it).
-4. **Create Directory**: `.kiro/specs/[feature-name]/` (skip if already exists from discovery)
-5. **Initialize Files Using Templates**:
-   - Read `.kiro/settings/templates/specs/init.json`
-   - Read `.kiro/settings/templates/specs/requirements-init.md`
-   - Replace placeholders:
-     - `{{FEATURE_NAME}}` → generated feature name
-     - `{{TIMESTAMP}}` → current ISO 8601 timestamp
-     - `{{PROJECT_DESCRIPTION}}` → from brief.md if available, otherwise $ARGUMENTS
-     - `ja` → language code (detect from user's input language, default to `en`)
-   - Write `spec.json` and `requirements.md` to spec directory
+テンプレートがない場合は不足パスを報告し、既存メタデータを推測で置換しない。結果は feature 名、作成または再利用したファイル、次の `$kiro-spec-requirements <feature>` を簡潔に伝える。上位ワークフローが後続生成を許可している場合はそこで継続する。
 
-## Important Constraints
-- Do NOT generate requirements, design, or tasks. This skill only creates spec.json and requirements.md.
-</instructions>
+## 文書形式
 
-## Output Description
-Provide output in the language specified in `spec.json` with the following structure:
-
-1. **Generated Feature Name**: `feature-name` format with 1-2 sentence rationale
-2. **Project Summary**: Brief summary (1 sentence)
-3. **Created Files**: Bullet list with full paths
-4. **Next Step**: Command block showing `$kiro-spec-requirements <feature-name>`
-
-**Format Requirements**:
-- Use Markdown headings (##, ###)
-- Wrap commands in code blocks
-- Keep total output concise (under 250 words)
-- Use clear, professional language per `spec.json.language`
-
-## Safety & Fallback
-- **Ambiguous Feature Name**: If feature name generation is unclear, propose 2-3 options and ask user to select
-- **Template Missing**: If template files don't exist in `.kiro/settings/templates/specs/`, report error with specific missing file path and suggest checking repository setup
-- **Directory Conflict**: If feature name already exists, append numeric suffix (e.g., `feature-name-2`) and notify user of automatic conflict resolution
-- **Write Failure**: Report error with specific path and suggest checking permissions or disk space
-
+生成と更新には [OKF の共通手順](../kiro-spec-sync/references/okf-workflow.md) を使う。本文のIDと構造を保ち、工程終了時に対象文書と影響先を検査する。初期化だけの場合は未確認状態を維持し、未実施の意味検査を記録しない。

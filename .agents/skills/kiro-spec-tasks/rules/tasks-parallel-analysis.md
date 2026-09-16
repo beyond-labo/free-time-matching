@@ -1,41 +1,15 @@
-# Parallel Task Analysis Rules
+# 並列タスクの判定
 
-## Purpose
-Provide a consistent way to identify implementation tasks that can be safely executed in parallel while generating `tasks.md`.
+`(P)` は直前の同列タスクと並列実行できる候補を示す。前提タスクの完了や承認を省略する指定ではない。
 
-## Relationship to Task Ordering
+次をすべて満たす場合だけ付ける。
 
-`(P)` means: this task has no dependency on its immediately preceding peers and can run concurrently with them. The Task Ordering Principle (see tasks-generation.md) ensures Foundation-phase tasks run first, making Core-phase tasks the primary `(P)` candidates.
+- 並列に実行する相手との入出力依存がない。
+- 同じファイルや可変の共有資源を競合して変更しない。
+- 必要な設定・契約・先行レビューが、実行時点で満たされる。
+- `_Boundary:_` で所有する責務が分かれ、個別に成果を検証できる。
+- 別グループの前提があれば `_Depends:_` に明記されている。
 
-## When to Consider Tasks Parallel
-Only mark a task as parallel-capable when **all** of the following are true:
+形式は `- [ ] 2.1 (P) 成果`。子を持たない実行可能な親にも使える。コンテナ専用の親には付けず子で判定する。`--sequential` では付けない。チェックボックスの中には入れない。
 
-1. **No data dependency** on pending tasks.
-2. **No conflicting files or shared mutable resources** are touched.
-3. **No prerequisite review/approval** from another task is required beforehand.
-4. **Foundation work complete**: Environment/setup work needed by this task is already satisfied by earlier Foundation-phase tasks.
-5. **Non-overlapping boundaries**: `_Boundary:_` annotations confirm tasks operate on separate components.
-
-## Marking Convention
-- Append `(P)` immediately after the numeric identifier for each qualifying task.
-  - Example: `- [ ] 2.1 (P) Build background worker for emails`
-- Apply `(P)` to both major tasks and sub-tasks when appropriate.
-- If sequential execution is requested (e.g. via `--sequential` flag), omit `(P)` markers entirely.
-- Keep `(P)` **outside** of checkbox brackets to avoid confusion with completion state.
-
-## Grouping & Ordering Guidelines
-- Group parallel tasks under the same parent whenever the work belongs to the same theme.
-- List obvious prerequisites or caveats in the detail bullets (e.g., "Requires schema migration from 1.2").
-- When two tasks look similar but are not parallel-safe, call out the blocking dependency explicitly.
-- Skip marking container-only major tasks (those without their own actionable detail bullets) with `(P)`—evaluate parallel execution at the sub-task level instead.
-
-## Quality Checklist
-Before marking a task with `(P)`, ensure you have:
-
-- Verified that running this task concurrently will not create merge or deployment conflicts.
-- Confirmed `_Boundary:_` annotations show non-overlapping component scopes.
-- Captured any shared state expectations in the detail bullets.
-- Confirmed that the implementation can be tested independently.
-- Added `_Depends: X.X_` if this `(P)` task still requires specific prior work from a different major-task group.
-
-If any check fails, **do not** mark the task with `(P)` and explain the dependency in the task details.
+同じテーマの並列候補を近くにまとめる。基盤・機能・統合を固定のフェーズとして新設する必要はない。判定できない競合があれば並列扱いにせず、依存の理由を書く。変更後はマーカーと実際の依存を再確認する。

@@ -1,6 +1,6 @@
 interface:
   display_name: "Implementation"
-  short_description: "Implement approved tasks using TDD with subagent dispatch"
+  short_description: "Implement approved tasks with spec sync and scoped validation"
 
 policy:
   allow_implicit_invocation: false

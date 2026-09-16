@@ -1,3 +1,13 @@
+---
+type: Project Policy
+title: "{{TITLE}}"
+description: "{{DESCRIPTION}}"
+status: draft
+sources: []
+kiro:
+  depends_on: []
+---
+
 # Error Handling Standards
 
 [Purpose: unify how errors are classified, shaped, propagated, logged, and monitored]

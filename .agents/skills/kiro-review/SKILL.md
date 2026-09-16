@@ -1,171 +1,45 @@
 ---
 name: kiro-review
-description: Review a task implementation against approved specs, task boundaries, and verification evidence. Use after an implementer finishes a task, after remediation, or before accepting a task as complete.
+description: 実装差分を現行の承認済み仕様・責務境界・検証証拠に照らしてレビューする。実装後、修正後、タスク受け入れ時に使う。
 ---
 
 # kiro-review
 
-<background_information>
-This skill performs task-local adversarial review. It verifies that the implementation is real, complete, bounded, aligned with approved requirements and design, and supported by mechanical verification evidence.
+実装者の要約だけで判断せず、要件・設計の該当本文と実際の変更を読む。元の仕様節番号を使う。レビュー合格は人間による仕様変更の承認を代替しない。
 
-Boundary terminology continuity:
-- discovery identifies `Boundary Candidates`
-- design fixes `Boundary Commitments`
-- tasks constrain execution with `_Boundary:_`
-- review rejects concrete `Boundary Violations`
-</background_information>
+同期の初期確認には `kiro-spec-sync --check`（読み取り専用）を使い、変更権限がある場合だけ同期を実行する。`spec.json.freshness` が欠落している既存仕様は `unchecked` として対象範囲を調べ、欠落だけで承認を消去しない。`current` は文書整合のみを表し、承認・実装完了の代わりにならない。完了対象に `pending` が残る場合は影響を解決し、本文の意味も照合する。
 
-<instructions>
-## When to Use
+## 差分と仕様の基準
 
-- After an implementer reports `READY_FOR_REVIEW`
-- After remediation for a rejected review
-- Before marking a task `[x]`
-- Before accepting a task into feature-level validation
+- 作業開始時の HEAD と既存変更の記録を受け取り、開始点からのコミット済み差分、`git diff`、`git diff --cached`、`git status --porcelain` と未追跡ファイルの内容を確認する。既存変更を今回の変更と混同しない。
+- 開始点が不明な場合は履歴と対象ファイルからレビュー対象を特定する。差分が空だから変更なしとは判断せず、対象を特定できない場合はレビューの制限として扱う。
+- 古い仕様、実装との矛盾、関連仕様への影響を見つけたら [kiro-spec-sync](../kiro-spec-sync/SKILL.md) に従う。読み取り専用レビューでは具体的な同期対象を報告し、所有者が本文・履歴・承認状態を更新した後に再確認する。実装不具合の正当化のために仕様を変えない。
 
-Do not use this skill to invent missing requirements or silently reinterpret the spec.
+## 確認する内容
 
-## Inputs
+- 受け入れ条件が正常系と必要な失敗系で満たされ、実装が未完成の stub や仮実装に留まっていないか。TODO 等は検索の手掛かりであり、文字列があるだけで却下しない。
+- 公開契約、データ形式、認証・権限、機密情報の扱いに欠陥がないか。秘密らしいパターンは文脈を調べ、ダミー値と実資格情報を区別する。実秘密を報告へ転載しない。
+- `_Boundary:_`、設計の責務・対象外・依存方向に適合し、上流への下流固有処理の混入や隠れた結合がないか。境界外の関連修正は理由と同期状態を確認する。
+- テストが受け入れ条件を検証し、実装の欠落や破損を検出できるか。バグ修正では再現テストを確認し、RED を取得できない場合は代替検証の妥当性を見る。非行動変更に RED を要求しない。
+- 変更に関連する回帰テスト・静的解析・必要な実行確認の証拠があるか。型だけの import の値利用、module 形式、native ABI、生成物や起動時設定は該当する変更で調べる。
 
-Provide:
-- Task ID and exact task text from `tasks.md`
-- Relevant requirement section numbers
-- Relevant design section numbers
-- Spec file paths (`requirements.md`, `design.md`, optionally `tasks.md`)
-- The implementer's status report
-- The task `_Boundary:_` scope constraints
-- Validation commands discovered by the controller
-- Relevant steering excerpts when applicable
-- Relevant `## Implementation Notes` entries when applicable
+[kiro-verify-completion](../kiro-verify-completion/SKILL.md) の証拠再利用条件を使い、同じ状態のコマンドを機械的に再実行しない。独立レビューはコード・仕様・証拠を自分で評価することであり、全テストの重複実行を意味しない。不足する範囲と疑義のある結果を検証する。既存の無関係な失敗は今回の回帰と分け、機能完了を妨げる影響があるか明示する。
 
-## Outputs
+## 報告
 
-Return one of:
-- `APPROVED`
-- `REJECTED`
-
-Also return:
-- Mechanical results
-- Findings with severity
-- Required remediation
-- One-sentence summary
-
-Use the language specified in `spec.json`.
-
-## First Action
-
-Run `git diff` to inspect the actual code changes. If the diff is large or ambiguous, read the changed files directly. Do not trust the implementer report as source of truth.
-
-## Core Principle
-
-Read the spec yourself. Read the diff yourself. Verify mechanically where possible. Reject on concrete failures rather than interpretive optimism.
-The main review question is not just "does it work?" but "does it stay inside the approved responsibility boundary without hiding new coupling?"
-
-## Mechanical Checks
-
-Run these checks and use the result as primary signal.
-
-### 1. Regression Safety
-- Run the project's canonical test suite using the validation commands discovered by the controller.
-- If tests fail, reject.
-
-### 2. No Residual Placeholder Markers
-- Check changed files for `TBD`, `TODO`, `FIXME`, `HACK`, `XXX`.
-- Reject if new placeholder markers were introduced without explicit task justification.
-
-### 3. No Hardcoded Secrets
-- Check changed files for hardcoded secrets or credentials.
-- Reject if concrete secret patterns are introduced.
-
-### 4. Boundary Respect
-- Compare changed files against the task `_Boundary:_` scope.
-- Reject if the change spills outside the approved boundary without explicit justification.
-- Reject if the implementation introduces hidden cross-boundary coordination inside what should be a local task.
-
-### 5. RED Phase Evidence
-- For behavioral tasks, verify that the implementer status report includes `RED_PHASE_OUTPUT`.
-- Reject if RED evidence is missing, empty, or unrelated to the task's acceptance criteria.
-
-### 6. Runtime-Sensitive Static Checks
-- If the project already has lint or equivalent static analysis for the touched stack, run the relevant command for the task boundary.
-- Pay attention to patterns that can survive typecheck/build yet fail at runtime: type-only imports used as values, missing namespace value imports for qualified-name access, unresolved globals, and newly introduced runtime-sensitive dependencies without matching boot/runtime handling.
-- If no project lint command exists, perform a targeted diff-based spot check in the changed files for those patterns.
-- Reject on concrete findings that create a realistic boot-time or module-load failure.
-
-## Judgment Checks
-
-### 7. Reality Check
-- Confirm the implementation is real production code, not a placeholder, stub, fake path, or deferred-work shell.
-
-### 8. Acceptance Criteria Coverage
-- Read the task description and confirm all aspects are implemented, not only the primary happy path.
-
-### 9. Requirements Alignment
-- Read the referenced sections in `requirements.md`.
-- Confirm each requirement is satisfied by concrete observable behavior.
-- Use original section numbers only.
-
-### 10. Design Alignment
-- Read the referenced sections in `design.md`.
-- Confirm the implementation uses the prescribed structures, interfaces, and dependency direction.
-- Reject silent substitutions for design-mandated choices.
-
-### 10.5 Boundary Audit
-- Compare the implementation against the design's boundary commitments and out-of-boundary statements.
-- Reject if downstream-specific behavior is pushed into an upstream boundary for convenience.
-- Reject if the implementation creates new hidden dependencies, shared ownership, or undeclared coupling across adjacent boundaries.
-- Reject if a task that is not an explicit integration task now behaves like one.
-
-### 11. Test Quality
-- Confirm tests prove the required behavior rather than only scaffolding.
-- Confirm tests would fail if the implementation were removed or broken.
-
-### 12. Error Handling
-- Confirm relevant failure paths are handled and not silently swallowed.
-
-## Severity Model
-
-Use:
-- `Critical` for broken functionality, invalid verification, data loss, security risk, or major scope violation
-- `Important` for required fixes before acceptance
-- `Suggestion` for non-blocking improvements
-- `FYI` for informational notes
-
-## Stop / Escalate
-
-Escalate instead of papering over the issue when:
-- The approved spec is ambiguous in a correctness-critical way
-- The design conflicts with what is technically possible
-- Required evidence cannot be gathered
-- The implementation only works by silently deviating from approved scope
-- Boundary ownership cannot be determined cleanly from requirements, design, and task scope
-
-## Common Rationalizations
-
-| Rationalization | Reality |
-|---|---|
-| “Tests pass, so approve” | Passing tests do not prove spec compliance or boundary respect. |
-| “The extra behavior is useful” | Extra behavior outside approved scope is still drift. |
-| “The implementer said RED was done” | RED must be evidenced, not asserted. |
-| “This gap is small enough to let through” | Real gaps must be rejected or escalated. |
-
-## Output Format
+spec.json の言語で次を返す。`Critical` / `Important` は受け入れ前の修正が必要、`Suggestion` / `FYI` は非ブロッキングとする。具体的な欠陥、未承認の意味変更、必要な証拠不足があれば `REJECTED`。提案だけなら `APPROVED` にできる。
 
 ```md
 ## Review Verdict
 - VERDICT: APPROVED | REJECTED
-- TASK: <task-id>
-- MECHANICAL_RESULTS:
-  - Tests: PASS | FAIL (command and exit code)
-  - TBD/TODO grep: CLEAN | <count> matches
-  - Secrets grep: CLEAN | <count> matches
-  - Static checks: PASS | FAIL | SPOT_CHECKED
-  - Boundary: WITHIN | <files outside boundary>
-  - Boundary audit: CLEAN | <spillover / hidden dependency findings>
-  - RED phase: VERIFIED | MISSING | N/A
-- FINDINGS:
-  1. <specific finding with exact files/spec refs>
-- REMEDIATION: <mandatory if REJECTED>
-- SUMMARY: <one sentence>
+- TASK: 対象 ID
+- MECHANICAL_RESULTS: コマンド・結果・状態、再利用した証拠と対象範囲
+- FINDINGS: 重要度、具体的なファイルと仕様節、影響
+- SPEC_SYNC: 同期・承認状態、残る矛盾
+- REMEDIATION: REJECTED の場合の具体的修正または不足検証
+- SUMMARY: 判断と制限
 ```
-</instructions>
+
+## 構造と確認対象の検査
+
+[OKF の共通手順](../kiro-spec-sync/references/okf-workflow.md) の `check` を対象範囲へ実行する。機械検査の成功と意味の検査を区別し、古いハッシュや承認を現在の状態の証拠にしない。読取専用の依頼では snapshot、index、状態更新を実行しない。
