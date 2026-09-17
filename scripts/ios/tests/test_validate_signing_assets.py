@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import os
 import plistlib
 import subprocess
@@ -34,6 +35,8 @@ class SigningAssetValidationTests(unittest.TestCase):
         cls.api_p384_key = cls.directory / "api-p384.p8"
         cls.api_rsa_key = cls.directory / "api-rsa.p8"
         cls.invalid_api_key = cls.directory / "invalid-api.p8"
+        cls.legacy_pkcs12 = cls.directory / "legacy-distribution.p12"
+        cls.pkcs12_password = "test-password"
 
         cls.run_openssl(
             "req", "-x509", "-newkey", "rsa:2048", "-nodes",
@@ -64,6 +67,13 @@ class SigningAssetValidationTests(unittest.TestCase):
         cls.run_openssl(
             "genpkey", "-algorithm", "EC", "-pkeyopt", "ec_paramgen_curve:P-256",
             "-out", cls.api_p256_key,
+        )
+        cls.run_openssl(
+            "pkcs12", "-export", "-legacy",
+            "-inkey", cls.distribution_private_key,
+            "-in", cls.certificate_pem,
+            "-out", cls.legacy_pkcs12,
+            "-passout", f"pass:{cls.pkcs12_password}",
         )
         cls.run_openssl(
             "genpkey", "-algorithm", "EC", "-pkeyopt", "ec_paramgen_curve:P-384",
@@ -167,6 +177,63 @@ class SigningAssetValidationTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("must be a UUID", result.stderr)
+
+    def test_release_can_extract_legacy_pkcs12_before_profile_validation(self) -> None:
+        fake_bin = self.directory / "fake-bin"
+        fake_bin.mkdir(exist_ok=True)
+        fake_security = fake_bin / "security"
+        fake_security.write_text(
+            "#!/bin/bash\n"
+            "if [[ \"$1\" == \"cms\" ]]; then\n"
+            "  cat \"$FAKE_PROFILE_PLIST\"\n"
+            "  exit 0\n"
+            "fi\n"
+            "exit 1\n",
+            encoding="utf-8",
+        )
+        fake_security.chmod(0o755)
+
+        invalid_profile = self.directory / "invalid-profile.plist"
+        with invalid_profile.open("wb") as profile_file:
+            plistlib.dump({}, profile_file)
+
+        fake_home = self.directory / "home"
+        fake_runner_temp = self.directory / "runner-temp"
+        fake_home.mkdir(exist_ok=True)
+        fake_runner_temp.mkdir(exist_ok=True)
+        environment = os.environ | {
+            "APPLE_TEAM_ID": self.team_id,
+            "IOS_BUNDLE_ID": self.bundle_id,
+            "IOS_MARKETING_VERSION": "1.0.0",
+            "IOS_BUILD_NUMBER": "1",
+            "IOS_DISTRIBUTION_CERTIFICATE_BASE64": base64.b64encode(
+                self.legacy_pkcs12.read_bytes()
+            ).decode("ascii"),
+            "IOS_DISTRIBUTION_CERTIFICATE_PASSWORD": self.pkcs12_password,
+            "IOS_PROVISIONING_PROFILE_BASE64": base64.b64encode(b"placeholder").decode("ascii"),
+            "APP_STORE_CONNECT_KEY_ID": "ABCDEF1234",
+            "APP_STORE_CONNECT_ISSUER_ID": "12345678-1234-1234-1234-123456789abc",
+            "APP_STORE_CONNECT_PRIVATE_KEY_BASE64": base64.b64encode(
+                self.api_p256_key.read_bytes()
+            ).decode("ascii"),
+            "FAKE_PROFILE_PLIST": str(invalid_profile),
+            "HOME": str(fake_home),
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+            "RUNNER_TEMP": str(fake_runner_temp),
+        }
+
+        result = subprocess.run(
+            ["bash", str(SCRIPT_DIR / "release.sh")],
+            capture_output=True,
+            text=True,
+            env=environment,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Provisioning profile UUID is invalid", result.stderr)
+        self.assertNotIn("RC2-40-CBC", result.stderr)
+        self.assertNotIn("inner_evp_generic_fetch:unsupported", result.stderr)
 
 
 if __name__ == "__main__":
