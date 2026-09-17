@@ -4,7 +4,7 @@
 
 SwiftUI と TCA を Presentation に使用し、業務の処理と外部接続を Clean Architecture の依存方向で分離します。
 これはこのプロジェクトの組み合わせ方であり、TCA 公式が要求するディレクトリ構成ではありません。
-TCA の依存追加とアプリ実装はまだ行いません。
+CI/CD 経路を成立させる最小 SwiftUI アプリは存在しますが、TCA の依存追加と製品機能の実装はまだ行いません。
 
 TCA は State、Action、Reducer、Effect、Store によって状態変化と副作用を扱います。
 Store は状態と Action の処理を駆動し、Reducer が遷移と実行する Effect を定義します。

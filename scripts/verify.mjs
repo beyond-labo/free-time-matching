@@ -39,5 +39,36 @@ assert.equal(readJSON("apps/backend/package.json").name, "@himatch/backend");
 const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
 assert.equal(workspace.trim(), "packages:\n  - apps/backend");
 assert.ok(statSync(join(root, "apps/backend")).isDirectory());
+
+const requiredIOSFiles = [
+  "apps/ios/Himatch.xcodeproj/project.pbxproj",
+  "apps/ios/Himatch.xcodeproj/xcshareddata/xcschemes/Himatch.xcscheme",
+  "apps/ios/Himatch/HimatchApp.swift",
+  "apps/ios/HimatchTests/HimatchTests.swift",
+  "scripts/ios/test.sh",
+  "scripts/ios/release.sh",
+  "scripts/ios/validate_signing_assets.py",
+  "scripts/ios/tests/test_validate_signing_assets.py",
+  ".github/workflows/ci-ios.yml",
+  ".github/workflows/cd-ios-testflight.yml",
+];
+for (const path of requiredIOSFiles) {
+  assert.ok(existsSync(join(root, path)), `iOS CI/CD の必須ファイルがありません: ${path}`);
+}
+
+const iosCI = readFileSync(join(root, ".github/workflows/ci-ios.yml"), "utf8");
+assert.match(iosCI, /runs-on: macos-26/);
+assert.doesNotMatch(iosCI, /secrets\./, "pull request CI は配布 secret を参照できません");
+assert.doesNotMatch(iosCI, /^\s+paths:/m, "required iOS check は path filter で skip できません");
+const iosCD = readFileSync(join(root, ".github/workflows/cd-ios-testflight.yml"), "utf8");
+assert.match(iosCD, /environment: testflight/);
+assert.match(iosCD, /APP_STORE_CONNECT_PRIVATE_KEY_BASE64/);
+assert.match(iosCD, /needs: test/);
+
+const gitignore = readFileSync(join(root, ".gitignore"), "utf8");
+for (const pattern of ["*.ipa", "*.xcarchive", "*.p12", "*.mobileprovision", "*.p8"]) {
+  assert.ok(gitignore.split("\n").includes(pattern), `秘密・配布成果物の ignore がありません: ${pattern}`);
+}
 console.log(`JSON ${jsonCount} 件、ローカル文書リンク ${linkCount} 件、workspace 登録: OK`);
-console.log("アプリのビルド、テスト、API 互換性は未検証です。");
+console.log("iOS CI/CD 構成: OK");
+console.log("iOS の build/test は scripts/ios/test.sh、API 互換性は公開契約実装後に検証します。");

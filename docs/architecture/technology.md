@@ -12,18 +12,18 @@ Backend の内部型を共有せず、Backend 所有の OpenAPI を公開契約�
 | 項目 | 方針 | 現在の状態 |
 | --- | --- | --- |
 | Backend | TypeScript、Clean Architecture | workspace 登録のみ |
-| iOS | SwiftUI、TCA＋Clean Architecture | 方針決定。ライブラリとアプリは未導入 |
+| iOS | Swift 6、SwiftUI、最低 iOS 17。TCA＋Clean Architecture | CI/CD 用の最小アプリと XCTest を導入。TCA と製品機能は未導入 |
 | パッケージ管理 | Backend は pnpm、iOS の依存は Swift Package Manager | pnpm の登録のみ |
 | API | Backend の HTTP スキーマから OpenAPI を生成 | 未実装 |
 | 利用側 | 固定した契約からクライアントを生成 | 生成ツールは未選定 |
 | DB | DynamoDB を想定した例が提示されている | 採用とキー設計は未確定 |
 | 非同期処理 | Outbox、SQS、通知 Worker を想定 | 実行基盤と配信保証は未設計 |
 | IaC | 選定したツールで環境を管理 | ツールと公開先は未選定 |
-| CI | 現存する文書と設定を検証 | リポジトリ検証のみ |
+| CI/CD | GitHub Actions、macOS 26、Xcode 26.6 | iOS Simulator build/test と TestFlight upload を導入。Backend はリポジトリ検証のみ |
 
-HTTP フレームワーク、スキーマライブラリ、生成ツール、テストツール、各バージョンは実装開始時に固定します。
+HTTP フレームワーク、スキーマライブラリ、生成ツール、Backend のテストツール、TCA のバージョンは実装開始時に固定します。
 TCA の採用方針と具体的なリリースバージョンの選定を分けます。
-最低 iOS、Xcode / Swift、TCA の互換性を確認してから依存を導入します。
+最低 iOS 17、Xcode 26.6、Swift 6 を現在の build 境界とし、TCA の互換性を確認してから依存を導入します。
 提示されたエントリーポイント名だけで Lambda や API Gateway の採用を確定しません。
 
 ## 層名と役割名
