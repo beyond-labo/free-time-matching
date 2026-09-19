@@ -51,7 +51,7 @@ sources:
     title: GitHub Actions secure use
 generated:
   by: Codex
-  at: 2026-09-19T14:52:00+09:00
+  at: 2026-09-19T20:58:49+09:00
 kiro:
   depends_on:
     - apps/backend/package.json
@@ -66,11 +66,11 @@ kiro:
 ## Problem
 
 Backend は private pnpm workspace として登録されているだけで、HTTP 実行基盤、テスト、OpenAPI 生成、Cloudflare 構成、Backend CI/CD は未実装である。
-既存方針は Backend と iOS の独立リリース、Backend 所有の OpenAPI、Clean Architecture の依存方向を要求しているため、Cloudflare 固有型や Hono を Domain / Application へ流入させずに実行可能な検証・配布経路を作る必要がある。[^local-technology-policy][^local-api-contract-policy]
+既存方針は Backend、iOS、Android の独立リリース、Backend 所有の OpenAPI、Clean Architecture の依存方向を要求しているため、Cloudflare 固有型や Hono を Domain / Application へ流入させずに実行可能な検証・配布経路を作る必要がある。[^local-technology-policy][^local-api-contract-policy]
 
 ## Current State
 
-- GitHub Actions は repository 検査、iOS CI、TestFlight 配布を所有している。
+- GitHub Actions は repository 検査、iOS CI / TestFlight 配布、Android CI / Google Play internal 配布を所有している。
 - `apps/backend/package.json` には依存、script、TypeScript 設定がない。
 - `apps/backend/openapi/openapi.yaml`、Wrangler 設定、Cloudflare resource、Backend workflow は存在しない。
 - DB、認証、非同期処理、公開 domain は未決定である。
@@ -89,7 +89,7 @@ Backend は private pnpm workspace として登録されているだけで、HTT
 ### 採用案
 
 GitHub Actions を CI/CD の正本とし、lockfile に固定した Wrangler CLI から Cloudflare Workers を配布する。
-Cloudflare の Workers Builds も利用可能だが、この repository では既存の required checks、GitHub Environment、iOS と独立した tag 命名、OpenAPI 差分検査を GitHub Actions 上で一貫して扱う方を優先する。
+Cloudflare の Workers Builds も利用可能だが、この repository では既存の required checks、GitHub Environment、モバイルアプリと独立した tag 命名、OpenAPI 差分検査を GitHub Actions 上で一貫して扱う方を優先する。
 Cloudflare は非対話 CI からの配布に account ID と API token を要求し、権限を対象 account / zone に絞ることを推奨している。[^cloudflare-github-actions]
 
 長寿命の Cloudflare infrastructure は Terraform で管理し、`infra/cloudflare/` を正本にする。
@@ -315,6 +315,7 @@ GitHub は public repository の self-hosted runner を原則使用しないこ�
 ## Out of Boundary
 
 - iOS CI/CD と TestFlight 資格情報。
+- Android CI/CD と Google Play 資格情報。
 - Feature の Domain / Application 要件。
 - Cloudflare 外の consumer が購読する event contract。
 
@@ -330,19 +331,19 @@ GitHub は public repository の self-hosted runner を原則使用しないこ�
 ### Downstream
 
 - 最初の Backend feature と HTTP schema。
-- iOS の生成 client と Adapter test。
+- iOS / Android の生成 client と Adapter test。
 - DB / queue / notification Worker の resource provisioning と migration。
 - custom domain、WAF、rate limit、monitoring / alerting。
 
 ## Existing Spec Touchpoints
 
-- **Adjacent:** `.kiro/specs/ios-ci-cd/`。trigger 命名と Environment 分離の考え方を共有するが、release と秘密情報は独立する。
+- **Adjacent:** `.kiro/specs/ios-ci-cd/` と `.kiro/specs/android-ci-cd/`。trigger 命名と Environment 分離の考え方を共有するが、release と秘密情報は独立する。
 - **Extends:** 現時点で Backend CI/CD を所有する既存 spec はないため、新規 `backend-ci-cd` 仕様とする。
 - **Policy impact if adopted:** `docs/architecture/technology.md` の HTTP framework / Terraform / CI-CD 現在状態、`docs/architecture/package-structure.md` の `infra/cloudflare/`、`docs/operations/ci-cd.md` と `docs/operations/development.md` を更新する。
 
 ## Constraints
 
-- Backend と iOS を独立して build / release できること。
+- Backend、iOS、Android を独立して build / release できること。
 - Domain / Application は Hono、Cloudflare SDK、HTTP schema、DB record に依存しないこと。
 - OpenAPI は Backend の HTTP schema から決定的に生成し、生成物を commit すること。
 - PR CI は deploy credential と runtime secret を持たないこと。
