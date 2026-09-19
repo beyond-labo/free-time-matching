@@ -4,20 +4,22 @@
 
 | Workflow | Trigger | 処理 | 秘密情報 |
 |---|---|---|---|
-| `Repository CI` | pull request、main push、手動 | JSON、workspace、文書リンク、iOS CI/CD 構成を検査 | 使用しない |
+| `Repository CI` | pull request、main push、手動 | JSON、workspace、文書リンク、iOS/Android CI/CD構成を検査 | 使用しない |
 | `iOS CI` | すべての pull request、main push、手動 | Xcode 26.6 で signing preflight の単体テスト、Simulator build、XCTest | 使用しない |
 | `iOS TestFlight` | `ios-vX.Y.Z` tag、手動 | 同じテスト後、署名、IPA export、App Store Connect upload | `testflight` Environment のみ |
+| `Android CI` | すべてのpull request、main push、手動 | JDK 21、Gradle 9.6.0でlint、JVM単体テスト、debug build | 使用しない |
+| `Android Google Play` | `android-vX.Y.Z` tag、手動 | 同じ検証後、upload keyでAAB署名、internal trackへcommit | `play-internal` Environmentのみ |
 
-iOS と Backend は独立してリリースします。
+iOS、Android、Backendは独立してリリースします。
 TestFlight への build upload までを自動化し、App Store の metadata 登録、審査提出、公開判断は自動化しません。
-Backend OpenAPI、TCA、Mapper、UseCase は未実装のため、それらの生成差分やテストは現在の workflow に含めません。
+Backend OpenAPI、TCA、モバイルの製品機能は未実装のため、それらの生成差分やテストは現在のworkflowに含めません。
 
 CI は `macos-26` と `/Applications/Xcode_26.6.app` を固定します。
 同 image に収録された Python 3.14 系と OpenSSL 3.6 系を signing preflight に使い、version を workflow log へ残します。
 Apple は 2026 年時点の iOS build upload に Xcode 26 以降を要求し、GitHub の macOS 26 image は Xcode 26.6 を収録しています。
 [Apple の upload 要件](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds)、[GitHub runner image](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md)
 
-## リリース方法
+## iOS TestFlightリリース方法
 
 通常は検証済み commit に `ios-vX.Y.Z` 形式の annotated tag を作り、push します。
 
@@ -34,7 +36,24 @@ build number は GitHub の run number と run attempt から生成するため�
 archive の前に、証明書と秘密鍵、証明書と profile の対応、有効期限、Team/Bundle ID、API private key の形式と ES256 用 EC P-256 curve を検査し、一時 keychain と profile、API key を終了時に削除します。
 成功した IPA は GitHub Artifact に 14 日だけ保持します。
 
-## 初回セットアップで人が行う作業
+## Android Google Play internal trackリリース方法
+
+検証済みcommitに`android-vX.Y.Z`形式のannotated tagを作り、pushします。
+
+```sh
+git tag -a android-v0.1.0 -m "Android 0.1.0"
+git push origin android-v0.1.0
+```
+
+手動実行ではGitHubの`Actions` → `Android Google Play` → `Run workflow`を開き、`version_name`に`X.Y.Z`を入力します。
+versionCodeは`run_number * 100 + run_attempt`で生成し、再実行でも増加します。
+
+release jobは`play-internal` Environmentの保護を通過した後だけsecretsを読みます。
+一時keystoreとservice account JSONを作成し、alias/passwordを`keytool`で検査して署名済みAABを生成します。
+Node.js 24の標準`crypto`/`fetch`でOAuth tokenを取得し、Google Play Developer APIのedit作成、bundle upload、internal track更新、commitを順に実行します。
+一時ファイルは成功・失敗にかかわらず削除し、成功したAABはGitHub Artifactに14日だけ保持します。
+
+## iOS初回セットアップで人が行う作業
 
 リポジトリから Apple と GitHub の管理画面を変更することはありません。
 以下は上から順に一度だけ実施します。
@@ -124,7 +143,7 @@ Team Key はアプリ単位に制限されないため Admin role を避け、�
 
 1. `testflight` という名前で Environment を作る。
 2. `Deployment branches and tags` を設定できる場合は `ios-v*` tag に制限する。手動実行も使う場合は repository policy に合わせて対象 branch を許可する。
-3. 利用プランで可能なら `Required reviewers` を設定し、`Prevent self-review` を有効にする。
+3. `Required reviewers` は `hiiragi589` のみとし、本人によるリリースも可能にするため `Prevent self-review` は無効にする。`Allow administrators to bypass configured protection rules` は無効にする。
 4. 同じ Environment の `Environment variables` と `Environment secrets` に下表を登録する。
 
 | 種類 | 名前 | 値 |
@@ -148,10 +167,10 @@ private repository の契約プランで Environment secrets を利用できな�
 
 ページ: GitHub repository の `Settings` → `Rules` → `Rulesets`。
 
-1. main を対象とする branch ruleset を作成する。
-2. pull request を必須にする。
-3. status checks に `Repository validation` と `iOS build and test` を追加する。
-4. workflow と `scripts/ios/` の変更に code review を要求する。
+1. main を対象とする branch ruleset `Protect main` を作成する。
+2. pull request を必須にし、`free-time-matching-approvers` Team の承認を全ファイルに1件要求する。このTeamには `hiiragi589` だけを登録する。
+3. `hiiragi589` には pull request 経由だけの bypass を付与し、自分の pull request を直接 push へ切り替えずに自己マージできるようにする。
+4. status checks に `Repository validation` と `iOS build and test` を追加する。
 
 `iOS TestFlight` は配布操作であり、merge の required check にはしません。
 `iOS CI` は path filter を使わずすべての pull request で起動するため、非 iOS 変更でも required check が Pending のまま残りません。
@@ -169,6 +188,96 @@ private repository の契約プランで Environment secrets を利用できな�
 upload の成功は Apple 側の processing 完了や App Store 公開を意味しません。
 [TestFlight](https://developer.apple.com/testflight/)
 
+## Android初回セットアップで人が行う作業
+
+### 1. Google Play Developer accountとapp
+
+ページ: [Google Play Console](https://play.google.com/console/)の`All apps` → `Create app`。
+
+1. developer accountの本人確認、契約、支払い情報などDashboardに表示される必須設定を完了する。
+2. default language、app name、app/game、free/paid、contact email、declarationを入力する。
+3. 一意なpackage nameを決める。作成・初回upload後は変更できない契約として扱う。
+4. 値をGitHub Environment variable `ANDROID_PACKAGE_NAME`に登録する。
+
+repositoryの`com.example.himatch`は署名不要CI用の既定値で、配布時はこのvariableで上書きします。
+[Create and set up your app](https://support.google.com/googleplay/android-developer/answer/9859152)
+
+### 2. upload keyとkeystore
+
+JDK 21の`keytool`でPlay App Signing用のupload keyを作ります。
+
+```sh
+keytool -genkeypair -v \
+  -keystore himatch-upload.jks \
+  -alias himatch-upload \
+  -keyalg RSA -keysize 4096 -validity 10000
+```
+
+keystore password、alias、key passwordをpassword managerへ保存します。
+Linuxでは`base64 -w 0 himatch-upload.jks`、macOSでは`base64 -i himatch-upload.jks | pbcopy`でBase64文字列を作成します。
+GitHub Environment secretsへ次を登録します。
+
+| 種類 | 名前 | 値 |
+|---|---|---|
+| Secret | `ANDROID_KEYSTORE_BASE64` | `.jks`のBase64 |
+| Secret | `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| Secret | `ANDROID_KEY_ALIAS` | `himatch-upload`などのalias |
+| Secret | `ANDROID_KEY_PASSWORD` | private key password |
+
+private keyをrepository、issue、workflow logへ保存しません。
+[Play App Signing](https://developer.android.com/studio/publish/app-signing)
+
+### 3. 初回internal releaseとPlay App Signing
+
+ページ: Play Consoleの対象app → `Test and release` → `Testing` → `Internal testing` → `Create new release`。
+
+1. Play App Signingの規約に同意し、Google生成のapp signing keyを使う。
+2. `ANDROID_PACKAGE_NAME`と同じapplication IDで、手順2のupload keyを使って署名したAABを最初のreleaseへuploadする。
+3. release nameとnotesを入力し、internal trackへreleaseする。
+4. `Testers`でemail listまたはGoogle Groupを登録し、opt-in linkを確認する。
+
+Google Play Developer APIはappとtrackが初期化された後の更新に使います。初回AABがAPIで拒否される場合は、この手順をPlay Consoleで完了してからworkflowを実行します。
+[Prepare and roll out a release](https://support.google.com/googleplay/android-developer/answer/9859348)
+
+### 4. Google Play Developer API service account
+
+ページ: Google Cloud ConsoleとPlay Consoleの`Users and permissions`。
+
+1. 専用Google Cloud projectを作成し、`Google Play Android Developer API`をenableにする。
+2. 配布専用service accountを作成し、JSON keyを一度だけdownloadする。
+3. Play Consoleの`Users and permissions` → `Invite new users`でservice account emailを招待する。
+4. 対象appだけへ`Release apps to testing tracks`権限を付け、productionやfinancial権限は付けない。
+5. Linuxでは`base64 -w 0 service-account.json`、macOSでは`base64 -i service-account.json | pbcopy`でBase64文字列を作成する。
+
+GitHub Environment secret `ANDROID_PLAY_SERVICE_ACCOUNT_JSON_BASE64`へ登録します。
+Google Cloud projectとPlay developer accountのlink操作は不要です。
+[Google Play Developer API — Getting Started](https://developers.google.com/android-publisher/getting_started)
+
+### 5. GitHub Environmentとmain Ruleset
+
+ページ: GitHub repositoryの`Settings` → `Environments` → `New environment`。
+
+1. `play-internal`を作る。
+2. `Deployment branches and tags`を`android-v*` tagへ制限し、手動実行に使うbranchもrepository policyに合わせて許可する。
+3. `Required reviewers`は`hiiragi589`のみとし、本人によるリリースも可能にするため`Prevent self-review`は無効にする。管理者による保護ルールのbypassは無効にする。
+4. Environment variable `ANDROID_PACKAGE_NAME`と、手順2・4のsecretsを登録する。
+5. main Rulesetのrequired status checksへ`Android build and test`を追加する。
+6. `.github/workflows/`と`scripts/android/`の変更にcode reviewを要求する。
+
+同名のrepository/organization secretsへ複製しません。private repositoryの契約planでEnvironment secretsを利用できない場合は、repository secretsへ代替せず、利用可能なplanまたは別の承認付き配布基盤を用意するまでworkflowを実行しません。
+
+## GitHub Actionsと外部ユーザーの境界
+
+repositoryはpublicだが、元repositoryの手動workflow実行にはwrite権限が必要です。`beyond-labo`外のcollaboratorは登録せず、外部forkからのpull request workflowは`all_external_contributors`として、組織メンバーが承認するまで実行しません。fork自身のActions実行は制御対象外ですが、元repositoryのEnvironment secretsは渡りません。
+
+配布jobはさらにEnvironmentで保護します。`testflight`は`main` branchと`ios-v*` tag、`play-internal`は`main` branchと`android-v*` tagだけを許可し、いずれも`hiiragi589`の承認を必要とします。`Prevent self-review`は無効なので、`hiiragi589`が起動した配布は本人が承認できます。他のwrite権限者が起動した配布は`hiiragi589`の承認が必要です。
+
+### 6. internal trackの確認
+
+workflow完了後、Play Consoleの`Test and release` → `Testing` → `Internal testing`でversionCodeとrelease statusを確認します。
+testerはopt-in linkから参加し、Play Store経由でinstallします。internal testingはproduction公開ではなく、検索からは見つかりません。
+[Set up an internal test](https://support.google.com/googleplay/android-developer/answer/9845334)
+
 ## 更新・失敗時の復旧
 
 - **証明書または profile が期限切れ**: Apple Developer で再発行し、対応する Environment secrets を同時に更新する。古い証明書を revoke する前に他アプリへの影響を確認する。
@@ -176,6 +285,10 @@ upload の成功は Apple 側の processing 完了や App Store 公開を意味�
 - **Bundle ID または Team ID 不一致**: workflow を再試行せず、profile と GitHub variables の組合せを修正する。
 - **upload 後の build 不具合**: TestFlight で当該 build を tester group から外す。修正版は同じ marketing version と新しい build number で再配布する。upload 済み binary は上書きしない。
 - **App Store 公開後の不具合**: この pipeline は公開ロールバックを所有しない。App Store Connect で販売停止または phased release の pause を判断し、修正版を新しい build として配布する。
+- **Android upload keyの紛失・漏えい**: Play Consoleの`App integrity`からupload key resetを申請し、新しいkeystore secretsを同時に更新する。Google管理のapp signing keyは影響を受けない。
+- **Play service account keyの漏えい**: Google Cloud IAMでkeyを直ちに無効化・削除し、新しいkeyのEnvironment secretへ置き換える。不要になったservice accountのPlay Console権限も削除する。
+- **Android package name不一致**: workflowを再試行せず、Play Console appと`ANDROID_PACKAGE_NAME`の組合せを修正する。公開済みappのpackage nameを変更しない。
+- **internal buildの不具合**: internal trackへ修正版を新しいversionCodeで配布する。このpipelineはproduction rollbackを所有しない。
 
 資格情報をログや issue に貼らず、GitHub の secret scan だけに依存せず定期的に不要 key を削除・ローテーションします。
 
@@ -189,6 +302,10 @@ fastlane `match` は複数アプリ、extension、複数チームで署名資産
 target が増えたときは [fastlane match](https://docs.fastlane.tools/actions/match/) への移行を再評価します。
 
 ## 変更履歴
+
+### 2026-09-18
+
+AndroidのJDK 21 build、Gradle/Compose検証、upload key署名、Google Play Developer APIによるinternal track配布、Environment境界と外部設定手順を追加しました。
 
 ### 2026-09-17
 
