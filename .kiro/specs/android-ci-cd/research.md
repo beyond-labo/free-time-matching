@@ -102,6 +102,8 @@ kiro:
 
 `play-internal` Environmentを作成し、`hiiragi589`の1名承認、self-review許可、管理者bypass禁止、`main` / `android-v*`のref制限を設定した。外部 contributor のpull request workflowは組織メンバー承認まで実行せず、main rulesetは同ユーザーだけの承認Teamを必須とする。本人にはpull request経由だけのbypassを設定した。要件とworkflow契約は変更しない。
 
+GitHub Actionsの実行で `sdkmanager` がPATHに存在しないことを確認し、CI/CD両workflowのSDK導入を `ANDROID_HOME` 配下の明示パスへ変更した。Android SDK、build、配布の契約に変更はない。
+
 ### 2026-09-18
 
 ユーザー依頼を起点にAndroidとGoogleの一次資料を確認し、API 36、AGP 9.4.0、Gradle 9.6.0、JDK 21 build runtime/toolchain、Java/Kotlin 17 target、AGP内蔵Kotlin 2.2.10、Compose BOM 2026.08.00、Play internal track配布を採用した。
