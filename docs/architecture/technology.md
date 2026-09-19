@@ -2,7 +2,7 @@
 
 ## アプリケーション境界
 
-iOS と Backend は独立してビルド、リリース、更新します。
+iOS、Android、Backendは独立してビルド、リリース、更新します。
 同じ PR で変更できても同時リリースを必須にしません。
 Backend の内部型を共有せず、Backend 所有の OpenAPI を公開契約として利用します。
 ドメインモデルは各アプリケーションが所有します。
@@ -13,13 +13,14 @@ Backend の内部型を共有せず、Backend 所有の OpenAPI を公開契約�
 | --- | --- | --- |
 | Backend | TypeScript、Clean Architecture | workspace 登録のみ |
 | iOS | Swift 6、SwiftUI、最低 iOS 17。TCA＋Clean Architecture | CI/CD 用の最小アプリと XCTest を導入。TCA と製品機能は未導入 |
-| パッケージ管理 | Backend は pnpm、iOS の依存は Swift Package Manager | pnpm の登録のみ |
+| Android | AGP 9.4.0、AGP内蔵Kotlin 2.2.10、Jetpack Compose、最低API 26。Clean Architecture | CI/CD用の最小アプリとJVM単体テストを導入。製品機能は未導入 |
+| パッケージ管理 | Backend はpnpm、iOSはSwift Package Manager、AndroidはGradle Wrapper | AndroidはGradle 9.6.0とCompose BOM 2026.08.00を固定 |
 | API | Backend の HTTP スキーマから OpenAPI を生成 | 未実装 |
 | 利用側 | 固定した契約からクライアントを生成 | 生成ツールは未選定 |
 | DB | DynamoDB を想定した例が提示されている | 採用とキー設計は未確定 |
 | 非同期処理 | Outbox、SQS、通知 Worker を想定 | 実行基盤と配信保証は未設計 |
 | IaC | 選定したツールで環境を管理 | ツールと公開先は未選定 |
-| CI/CD | GitHub Actions、macOS 26、Xcode 26.6 | iOS Simulator build/test と TestFlight upload を導入。Backend はリポジトリ検証のみ |
+| CI/CD | GitHub Actions | iOS Simulator build/testとTestFlight upload、JDK 21上のAndroid lint/test/buildとPlay internal uploadを導入。Backendはリポジトリ検証のみ |
 
 HTTP フレームワーク、スキーマライブラリ、生成ツール、Backend のテストツール、TCA のバージョンは実装開始時に固定します。
 TCA の採用方針と具体的なリリースバージョンの選定を分けます。
@@ -70,6 +71,11 @@ Clean Architecture の依存規則と、境界を越えるデータを内側に�
 
 [iOS の設計](ios-architecture.md)に、TCA と MVVM の対応、DTO 変換、依存注入、テスト方針を定めます。
 TCA の State と Reducer は Presentation に置き、Domain と Application から TCA を参照しません。
+
+## Android
+
+[Androidの設計](android-architecture.md)に、Composeと機能配置、依存方向、テスト境界を定めます。
+Gradle/CIはLTSのJDK 21で実行し、Android向けJava/Kotlin bytecodeは17に固定します。compileSdk 37とtargetSdk 36を分離し、ライブラリのcompile要件とGoogle Playのruntime behavior opt-inを混同しません。
 
 ## 過剰な共通化を避ける
 

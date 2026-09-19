@@ -9,7 +9,7 @@ node scripts/verify.mjs
 ```
 
 外部依存のインストールは不要です。
-JSON、workspace の登録、ローカル文書リンク、iOS CI/CD 構成を確認します。
+JSON、workspaceの登録、ローカル文書リンク、iOS/Android CI/CD構成を確認します。
 Backend のテスト、API 互換性はまだ検証しません。
 `pnpm-lock.yaml` はルートと Backend の空の依存一覧です。
 
@@ -47,3 +47,25 @@ CI と App Store upload の build 環境は Xcode 26.6 に固定します。
 
 TCA の導入方針は採用済みですが、ライブラリの互換性と実装は未検証です。
 現在の SwiftUI 画面と AppIcon は CI/CD 経路を検証する最小成果物で、製品機能ではありません。
+
+## Androidのbuildとtest
+
+JDK 21、Android SDK Platform 37、Build Tools 36.0.0を用意し、リポジトリルートで実行します。
+
+```sh
+bash scripts/android/test.sh
+```
+
+Gradle Wrapper 9.6.0がlint、JVM単体テスト、debug APK buildを実行します。
+AGPは9.4.0、AGP内蔵Kotlinは2.2.10、Compose BOMは2026.08.00、minSdkは26、compileSdkは37、targetSdkは36です。
+JDK 21はbuild runtime/toolchainで、Android向けJava/Kotlin bytecode targetは17です。
+
+## Androidの実装開始
+
+1. 最初の製品機能の要件と状態管理方針を確定する。
+2. 機能に必要なDomain、Application、Presentation、Infrastructureだけを作成する。
+3. Compose UIからApplicationのuse caseへ接続し、DomainからAndroid/Composeを参照しない。
+4. Backend公開契約と生成toolを固定し、外部DTOの変換を機能内へ閉じ込める。
+5. JVM単体テストを基本にし、実際のUI受け入れ条件が生じたらCompose/端末testを追加する。
+
+現在のCompose画面とlauncher iconはCI/CD経路を検証する最小成果物で、製品機能ではありません。
