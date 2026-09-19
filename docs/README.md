@@ -10,6 +10,7 @@
 | [製品の範囲](product/overview.md) | 添付から読み取れる機能と未確定の要件 |
 | [技術方針](architecture/technology.md) | 採用方針、依存方向、未決事項 |
 | [iOS の設計](architecture/ios-architecture.md) | TCA、MVVM との関係、DTO 変換、依存注入 |
+| [Android の設計](architecture/android-architecture.md) | Compose、機能配置、依存方向、テスト境界 |
 | [パッケージ構成](architecture/package-structure.md) | 配置と所有責任、実装の状態 |
 | [API 契約](architecture/api-contracts.md) | OpenAPI の生成、配布、互換性 |
 | [構成の見直し結果](architecture/review-notes.md) | 層名、DTO 変換、予約ファイル削除の決定 |
@@ -23,4 +24,4 @@
 添付にないフレームワーク、クラウド設定、バージョン、料金、機能要件は補完して確定しません。
 
 機能実装へ進む際は、AGENTS.md に従って要件、設計、タスクを作成し、各段階をレビューします。
-iOS CI/CD の仕様は `.kiro/specs/ios-ci-cd/` にあり、製品機能の仕様と TCA 実装はまだありません。
+iOS CI/CDの仕様は`.kiro/specs/ios-ci-cd/`、Android CI/CDの仕様は`.kiro/specs/android-ci-cd/`にあります。製品機能の仕様とモバイルの機能architecture実装はまだありません。

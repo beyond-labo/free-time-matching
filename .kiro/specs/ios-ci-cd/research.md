@@ -69,7 +69,7 @@ kiro:
 - **Context**: pull request と配布資格情報を分離する必要がある。
 - **Sources Consulted**: GitHub Deployments and environments、Secure use reference（2026-09-16確認）。
 - **Findings**: Environment secret はその Environment を参照する job だけが利用でき、required reviewer 設定時は承認前に利用できない。プランと private repository の組合せにより required reviewer が利用できない場合がある。
-- **Implications**: `testflight` Environment を必須の登録先にする。required reviewer は利用可能なプランで推奨し、workflow 自体も tag/manual trigger と concurrency で誤配布を抑える。
+- **Implications**: `testflight` Environment を必須の登録先にする。required reviewer は `hiiragi589` に限定し、本人によるリリースのため self-review は許可する一方、管理者 bypass は禁止する。許可 ref は `main` と `ios-v*` に限定し、workflow 自体も tag/manual trigger と concurrency で誤配布を抑える。
 
 ### GitHub required check と path filter
 
@@ -115,6 +115,10 @@ kiro:
 - Python/OpenSSL の runner 同梱版が更新される — version をログへ残し、期限切れ、鍵不一致、RSA/P-384、壊れた key の実 fixture test で archive 前検査を再確認する。
 
 ## Change Log
+
+### 2026-09-19
+
+GitHub の実設定を確認し、外部 collaborator が存在しないこと、外部 contributor の pull request workflow が組織メンバー承認まで実行されないことを確認した。`testflight` は `hiiragi589` の1名承認、self-review許可、管理者bypass禁止、`main` / `ios-v*` のref制限へ更新した。main rulesetは同ユーザーだけの承認Teamを必須とし、本人にはpull request経由だけのbypassを設定した。要件とworkflow契約は変更しない。
 
 ### 2026-09-17
 
