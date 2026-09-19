@@ -31,6 +31,9 @@ sources:
   - id: apple-keychain-export
     resource: https://support.apple.com/guide/keychain-access/kyca35961/mac
     title: Import and export keychain items using Keychain Access on Mac
+  - id: openssl-pkcs12
+    resource: https://docs.openssl.org/3.6/man1/openssl-pkcs12/
+    title: openssl-pkcs12
 kiro:
   depends_on:
     - .kiro/specs/ios-ci-cd/requirements.md
@@ -84,6 +87,13 @@ kiro:
 - **Findings**: `macos-26` は Xcode 26.6 を `/Applications/Xcode_26.6.app` に含み、Python 3.14 系と OpenSSL 3.6 系も収録する。
 - **Implications**: runner と `DEVELOPER_DIR` の両方を固定し、Xcode、Python、OpenSSL の version をログへ残す。runner image 更新時は signing preflight の実 crypto fixture を再実行する。
 
+### Keychain export の legacy PKCS#12 互換性
+
+- **Context**: Keychain Access から export した配布証明書を OpenSSL 3.6 で展開した際、`RC2-40-CBC` を取得できず TestFlight workflow が archive 前に失敗した。
+- **Sources Consulted**: OpenSSL 3.6 の `openssl-pkcs12` マニュアル（2026-09-18確認）。
+- **Findings**: OpenSSL 3 は legacy provider を既定で読み込まず、RC2で暗号化された旧形式の PKCS#12 を読み込む場合は `-legacy` が必要である。
+- **Implications**: `release.sh` の証明書と秘密鍵の両方の展開で `-legacy` を指定する。RC2形式の fixture を実際に生成し、展開後の署名素材検証まで到達する回帰テストを維持する。
+
 ## Architecture Pattern Evaluation
 
 | Option | Strengths | Risks / Limitations | Decision |
@@ -119,6 +129,10 @@ kiro:
 ### 2026-09-19
 
 GitHub の実設定を確認し、外部 collaborator が存在しないこと、外部 contributor の pull request workflow が組織メンバー承認まで実行されないことを確認した。`testflight` は `hiiragi589` の1名承認、self-review許可、管理者bypass禁止、`main` / `ios-v*` のref制限へ更新した。main rulesetは同ユーザーだけの承認Teamを必須とし、本人にはpull request経由だけのbypassを設定した。要件とworkflow契約は変更しない。
+
+### 2026-09-18
+
+Keychain Access が export した legacy PKCS#12 と OpenSSL 3.6 の互換性問題を修正し、RC2形式の実 fixture による回帰テストを追加した。CI/CD の要件、設計責務、秘密情報の契約に変更はない。
 
 ### 2026-09-17
 

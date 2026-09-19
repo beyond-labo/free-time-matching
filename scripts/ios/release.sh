@@ -88,12 +88,14 @@ printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY_BASE64" | base64 -D > "$api_private_
 
 security cms -D -i "$profile_path" > "$profile_plist"
 openssl pkcs12 \
+  -legacy \
   -in "$certificate_path" \
   -clcerts \
   -nokeys \
   -passin env:IOS_DISTRIBUTION_CERTIFICATE_PASSWORD \
   -out "$certificate_pem"
 openssl pkcs12 \
+  -legacy \
   -in "$certificate_path" \
   -nocerts \
   -nodes \
