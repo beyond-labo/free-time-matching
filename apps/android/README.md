@@ -10,3 +10,5 @@ bash scripts/android/test.sh
 ```
 
 Gradle Wrapperは`apps/android/gradlew`にあり、AGP 9.4.0、Gradle 9.6.0、AGP内蔵Kotlin 2.2.10、Compose BOM 2026.08.00を固定しています。Gradleとcompiler toolchainはJDK 21で実行し、Android向けのJava/Kotlin bytecode targetは17に固定します。
+
+upload key、Google Play Developer API、internal trackの初回設定は[Android CI/CD運用手順](../../docs/operations/android-ci-cd.md)を参照してください。

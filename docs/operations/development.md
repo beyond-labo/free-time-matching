@@ -8,10 +8,41 @@ Node.js を用意して、リポジトリルートで実行します。
 node scripts/verify.mjs
 ```
 
-外部依存のインストールは不要です。
-JSON、workspaceの登録、ローカル文書リンク、iOS/Android CI/CD構成を確認します。
-Backend のテスト、API 互換性はまだ検証しません。
-`pnpm-lock.yaml` はルートと Backend の空の依存一覧です。
+JSON、workspaceの登録、ローカル文書リンク、iOS/Android/Backend CI/CD構成、BackendとTerraformの必須ファイル、credential非公開契約を確認します。
+
+## Backend の build と test
+
+Node.js と pnpm を用意し、リポジトリルートで実行します。
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --dir apps/backend types
+pnpm --dir apps/backend typecheck
+pnpm --dir apps/backend test
+pnpm --dir apps/backend build
+```
+
+`types` は Wrangler が `apps/backend/worker-configuration.d.ts` を生成します。
+`test` は Cloudflare Workers Runtime 相当で `GET /healthz` の status、JSON content type、固定 payload、内部情報非公開、未定義 route の 404 を確認します。
+`build` は `wrangler deploy --dry-run --outdir dist` の bundle 検査で、実 Cloudflare deploy は行いません。
+
+Backend の現在の実装範囲は最小 Worker と health 契約です。
+Terraform環境scaffoldとGitHub Actions CI/CDは実装済みですが、実apply/deployにはR2 bucket、Cloudflare token、GitHub Environmentの外部bootstrapが必要です。
+OpenAPI生成、認証、DB、業務APIは後続仕様です。
+
+## Cloudflare Terraform のローカル検証
+
+Terraform 1.15.1を用意し、資格情報なしで各rootを検証します。
+
+```sh
+terraform fmt -check -recursive infra/cloudflare
+terraform -chdir=infra/cloudflare/environments/staging init -backend=false
+terraform -chdir=infra/cloudflare/environments/staging validate
+terraform -chdir=infra/cloudflare/environments/production init -backend=false
+terraform -chdir=infra/cloudflare/environments/production validate
+```
+
+remote stateの初期化、Environment variables/secrets、実行順序は[Cloudflare infra](../../infra/cloudflare/README.md)と[Backend CI/CD運用手順](backend-ci-cd.md)を参照してください。
 
 ## iOS の build と test
 
@@ -29,12 +60,11 @@ CI と App Store upload の build 環境は Xcode 26.6 に固定します。
 
 ## Backend の実装開始
 
-1. 承認済み仕様と HTTP 実行基盤、スキーマ、テストツールを確認する。
-2. Node.js、pnpm、TypeScript の版を決め、依存とコンパイラ設定を追加する。
-3. 最初の機能に必要な Domain、Application、Presentation、Infrastructure を作成する。
-4. 起動処理で機能の Handler を登録する。
-5. HTTP スキーマから OpenAPI を生成し、実装との整合性を検証する。
-6. 型チェック、テスト、ビルドが実行できた段階でアプリ CI を追加する。
+1. 承認済み仕様と HTTP 実行基盤、テストツールを確認する。
+2. `apps/backend/package.json` と lockfile の固定依存を使い、`pnpm install --frozen-lockfile` を実行する。
+3. 機能に必要な層だけを作成し、`EntryPoint` と `Composition` で route を登録する。
+4. `pnpm --dir apps/backend typecheck`、`test`、`build` を実行する。
+5. OpenAPI、認証、DBなどの公開契約や永続resourceは、対応仕様と承認ができてから追加する。
 
 ## iOS の実装開始
 

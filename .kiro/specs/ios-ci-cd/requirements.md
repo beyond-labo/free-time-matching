@@ -9,7 +9,7 @@ sources:
     title: GitHub ActionsでiOSアプリを自動ビルド＆App Storeへ自動アップロードする完全ガイド
 kiro:
   depends_on:
-    - docs/operations/ci-cd.md
+    - docs/operations/ios-ci-cd.md
     - docs/architecture/technology.md
 ---
 

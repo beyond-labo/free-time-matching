@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "himatch-backend",
+  "main": "src/EntryPoint/index.ts",
+  "compatibility_date": "2026-09-20",
+  "workers_dev": false,
+  "env": {
+    "staging": {
+      "name": "himatch-backend-staging",
+      "workers_dev": false,
+      "routes": [
+        {
+          "pattern": "api-staging.beyond-labo.com",
+          "custom_domain": true
+        }
+      ]
+    },
+    "production": {
+      "name": "himatch-backend-production",
+      "workers_dev": false,
+      "routes": [
+        {
+          "pattern": "api.beyond-labo.com",
+          "custom_domain": true
+        }
+      ]
+    }
+  }
+}

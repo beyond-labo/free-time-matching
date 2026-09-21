@@ -16,6 +16,9 @@ sources:
   - id: cloudflare-environments
     resource: https://developers.cloudflare.com/workers/wrangler/environments/
     title: Cloudflare Workers Wrangler environments
+  - id: cloudflare-custom-domains
+    resource: https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
+    title: Cloudflare Workers Custom Domains
   - id: cloudflare-testing
     resource: https://developers.cloudflare.com/workers/testing/
     title: Cloudflare Workers testing
@@ -58,7 +61,7 @@ kiro:
     - docs/architecture/api-contracts.md
     - docs/architecture/package-structure.md
     - docs/architecture/technology.md
-    - docs/operations/ci-cd.md
+    - docs/operations/backend-ci-cd.md
 ---
 
 # Backend CI/CD 構成案
@@ -73,7 +76,8 @@ Backend は private pnpm workspace として登録されているだけで、HTT
 - GitHub Actions は repository 検査、iOS CI / TestFlight 配布、Android CI / Google Play internal 配布を所有している。
 - `apps/backend/package.json` には依存、script、TypeScript 設定がない。
 - `apps/backend/openapi/openapi.yaml`、Wrangler 設定、Cloudflare resource、Backend workflow は存在しない。
-- DB、認証、非同期処理、公開 domain は未決定である。
+- DB、認証、非同期処理は未決定である。
+- 公開 API は `beyond-labo.com` 配下の Cloudflare Workers Custom Domain で提供する。
 - IaC は Terraform を採用し、実装時に `infra/cloudflare/` へ環境別の Cloudflare 構成を置く。
 
 ## Desired Outcome
@@ -96,8 +100,13 @@ Cloudflare は非対話 CI からの配布に account ID と API token を要求
 Terraform は resource lifecycle と state を所有し、Wrangler は Worker の code、version、deployment と Worker 固有設定を所有する。
 Cloudflare は一部 resource を Terraform、別の resource を他の tool で管理する構成を許容する一方、同じ resource を複数 tool で管理しないよう求めている。[^cloudflare-terraform-best-practices]
 
-Wrangler の `staging` / `production` 環境を使い、`himatch-api-staging` と `himatch-api-production` のような別 Worker を作る。
+Wrangler の `staging` / `production` 環境を使い、`himatch-backend-staging` と `himatch-backend-production` の別 Worker を作る。
 Wrangler environment は環境ごとに別 Worker を生成し、secret は継承されないため、設定と資格情報の誤混入を避けられる。[^cloudflare-environments]
+
+Worker が API の origin であるため、通常の Workers Route ではなく Custom Domain を採用する。
+`staging` は `api-staging.beyond-labo.com`、`production` は `api.beyond-labo.com` とし、`apps/backend/wrangler.jsonc` の各 environment に `routes[].custom_domain: true` を定義する。
+正式な Custom Domain へ移行した後は `workers_dev: false` とし、意図しない `workers.dev` 二重公開を防ぐ。
+Cloudflare が Custom Domain に対応する DNS レコードと TLS 証明書を自動作成するため、Wrangler が Custom Domain、DNS、証明書の一連の設定を所有し、Terraform は同じ DNS、Route、Custom Domain resource を定義しない。[^cloudflare-custom-domains]
 
 Hono は受信 HTTP と route composition に限定する。
 Cloudflare bindings は `wrangler types --env-interface CloudflareBindings` で生成し、EntryPoint、Composition、Infrastructure の adapter からだけ参照する。
@@ -128,16 +137,16 @@ flowchart LR
     Gate --> Staging[GitHub Environment: staging]
     Staging --> TFStage[Terraform plan / apply staging]
     TFStage --> StageDeploy[Wrangler deploy staging]
-    StageDeploy --> StageWorker[Cloudflare Worker staging]
-    StageWorker --> StageSmoke[health / contract smoke]
+    StageDeploy --> StageWorker[Cloudflare Worker staging<br/>api-staging.beyond-labo.com]
+    StageWorker --> StageSmoke[有限 retry health / contract smoke]
 
     Tag[backend-vX.Y.Z or manual] --> ProdGate[同じ Backend verify]
     ProdGate --> TFProd[read-only Terraform plan production]
     TFProd --> Approval[GitHub Environment: production]
     Approval --> TFApply[plan 再計算 / Terraform apply production]
     TFApply --> ProdDeploy[Wrangler deploy production]
-    ProdDeploy --> ProdWorker[Cloudflare Worker production]
-    ProdWorker --> ProdSmoke[health / contract smoke]
+    ProdDeploy --> ProdWorker[Cloudflare Worker production<br/>api.beyond-labo.com]
+    ProdWorker --> ProdSmoke[有限 retry health / contract smoke]
 ```
 
 ### Terraform boundary
@@ -167,12 +176,12 @@ Cloudflare provider と Terraform の version は制約を定義し、`.terrafor
 
 | 所有者 | 管理対象 | 管理しない対象 |
 | --- | --- | --- |
-| Terraform | D1 / KV / R2 / Queue 等の長寿命 resource、Access / WAF / rate limit 等の account・zone policy、Worker custom domain と競合しない DNS | Hono bundle、Worker version、deployment |
-| Wrangler | Worker code、version、deployment、bindings、route / custom domain / trigger、Worker 観測設定 | Terraform state を持つ長寿命 resource の作成・削除 |
+| Terraform | D1 / KV / R2 / Queue 等の長寿命 resource、Access / WAF / rate limit 等の account・zone policy、Wrangler の Custom Domain と競合しない DNS | Hono bundle、Worker version、deployment、`api-staging` / `api` の DNS、Route、Custom Domain |
+| Wrangler | Worker code、version、deployment、bindings、Custom Domain、対応 DNS / TLS 証明書、trigger、Worker 観測設定 | Terraform state を持つ長寿命 resource の作成・削除 |
 | GitHub Actions | 検証順、Environment approval、Terraform / Wrangler の起動 | Cloudflare resource の手動複製 |
 
-route、custom domain、bindings、DNS record など両 tool の操作が競合し得る項目も、一項目につき一方だけを正本にする。
-たとえば Wrangler が Worker custom domain と対応する DNS record を所有するなら、Terraform は同じ record を宣言しない。
+Route、Custom Domain、bindings、DNS record など両 tool の操作が競合し得る項目も、一項目につき一方だけを正本にする。
+この構成では Wrangler が Custom Domain と Cloudflare の自動 DNS / TLS 設定を所有するため、Terraform へ同じ DNS、Route、Custom Domain resource を追加しない。
 Terraform output から Wrangler が必要とする非機密 resource identifier を渡す方法は design で固定し、secret を生成 config や artifact に含めない。
 
 ### Runtime boundary
@@ -225,7 +234,9 @@ credential が必要な `terraform plan` は trusted branch / protected Environm
 ### 2. Staging CD
 
 `main` push を trigger とし、Backend CI と同じ verify を成功させてから `staging` Environment に進み、その資格情報で staging state に対する Terraform plan / apply を行う。
-lockfile に固定した Wrangler で `wrangler deploy --env staging` を実行し、stable staging URL の `/healthz` と代表的な read-only contract を smoke test する。
+lockfile に固定した Wrangler で `wrangler deploy --env staging` を実行し、`https://api-staging.beyond-labo.com/healthz` と代表的な read-only contract を smoke test する。
+Custom Domain の DNS レコードと TLS 証明書は Cloudflare が自動作成するため、初回 deploy 直後は反映待ちとして扱う。
+smoke は 5 秒 timeout、最大 12 回、5 秒間隔の有限 retry とし、最終的に失敗した場合だけ job を失敗させる。
 同一 staging Worker への deploy は `concurrency` で直列化し、新しい main commit が来た場合は未開始 run を置き換える。
 
 ### 3. Production CD
@@ -234,7 +245,8 @@ lockfile に固定した Wrangler で `wrangler deploy --env staging` を実行�
 tag の commit が `main` に含まれること、同じ commit の verify が成功することを確認し、read-only credential で production Terraform plan の非機密な要約を作る。
 要約を確認してから required reviewer を設定した `production` Environment に進む。
 承認後は saved plan artifact を再利用せず、production state lock の下で plan を再計算して apply し、続けて `wrangler deploy --env production` を行う。
-deploy 後に `/healthz` と read-only smoke test を行い、commit SHA、Terraform run、Worker version、deployment URL、実行者を job summary に残す。
+deploy 後に `https://api.beyond-labo.com/healthz` と read-only smoke test を行い、commit SHA、Terraform run、Worker version、deployment URL、実行者を job summary に残す。
+production の `production-plan` Environment には `BACKEND_HEALTH_URL` を登録せず、production apply/deploy 用の `production` Environment だけに登録する。
 
 Worker version は code、assets、bindings、compatibility 設定を含むが、KV / R2 / D1 / Durable Objects 等の状態変更は version に含まれない。[^cloudflare-versions]
 そのため rollback は code rollback と data rollback を分け、破壊的 schema migration と同じ release で旧 code を実行不能にしない。
@@ -244,9 +256,10 @@ Cloudflare の rollback は以前の Worker version を即時に 100% traffic �
 
 | 対象 | 正本 | 方針 |
 | --- | --- | --- |
-| Worker name、entry point、compatibility date、非機密 bindings | `apps/backend/wrangler.jsonc` | review 可能にし、dashboard の手編集を通常経路にしない |
+| Worker name、entry point、compatibility date、非機密 bindings、Custom Domain、`workers_dev` | `apps/backend/wrangler.jsonc` | review 可能にし、Dashboard の手編集を通常経路にしない |
 | Wrangler / Hono / TypeScript / test tool version | `apps/backend/package.json` と `pnpm-lock.yaml` | CI で固定版を使用する |
-| Cloudflare account ID / API token | GitHub Environment `staging` / `production-plan` / `production` | Terraform read、Terraform apply、Worker deploy の権限を用途別に分け、対象 account / zone に限定する |
+| Cloudflare account ID / API token | GitHub Environment `staging` / `production-plan` / `production` | 初回発行時は Workers product-level Admin、通常運用は product-level Editor とし、`beyond-labo.com` だけに Zone > Workers Routes > Edit を追加する。Custom Domain は per-Worker role 非対応であり、DNS Write は不要とする |
+| Custom Domain health URL | `staging` / `production` の GitHub Environment `vars` | staging は `https://api-staging.beyond-labo.com`、production は `https://api.beyond-labo.com`。`production-plan` には登録しない |
 | application runtime secret | Cloudflare Worker secret、環境別 | 値を repository と `wrangler.jsonc` に保存しない。GitHub から毎 deploy で再注入しない |
 | local secret | gitignore 済み `.dev.vars*` | sample は名前だけを記載し、実値を含めない |
 | OpenAPI | Backend HTTP schema が正本、YAML は commit 済み生成物 | CI で再生成差分と互換性を確認する |
@@ -298,7 +311,7 @@ GitHub は public repository の self-hosted runner を原則使用しないこ�
 
 - 認証・認可方式と provider 選定。
 - DB、cache、queue、object storage の選定と schema。
-- custom domain、DNS、WAF、rate limit の具体値。
+- 任意の追加 DNS レコード、WAF、rate limit の具体値。
 - Cloudflare account / zone の初期 bootstrap と課金 plan 選定。
 - 製品 API の endpoint、DTO、認可規則。
 - production gradual deployment の自動化。
@@ -333,13 +346,13 @@ GitHub は public repository の self-hosted runner を原則使用しないこ�
 - 最初の Backend feature と HTTP schema。
 - iOS / Android の生成 client と Adapter test。
 - DB / queue / notification Worker の resource provisioning と migration。
-- custom domain、WAF、rate limit、monitoring / alerting。
+- 追加の WAF、rate limit、monitoring / alerting。
 
 ## Existing Spec Touchpoints
 
 - **Adjacent:** `.kiro/specs/ios-ci-cd/` と `.kiro/specs/android-ci-cd/`。trigger 命名と Environment 分離の考え方を共有するが、release と秘密情報は独立する。
 - **Extends:** 現時点で Backend CI/CD を所有する既存 spec はないため、新規 `backend-ci-cd` 仕様とする。
-- **Policy impact if adopted:** `docs/architecture/technology.md` の HTTP framework / Terraform / CI-CD 現在状態、`docs/architecture/package-structure.md` の `infra/cloudflare/`、`docs/operations/ci-cd.md` と `docs/operations/development.md` を更新する。
+- **Policy impact if adopted:** `docs/architecture/technology.md` の HTTP framework / Terraform / CI-CD 現在状態、`docs/architecture/package-structure.md` の `infra/cloudflare/`、`docs/operations/backend-ci-cd.md` と `docs/operations/development.md` を更新する。
 
 ## Constraints
 
@@ -355,7 +368,9 @@ GitHub は public repository の self-hosted runner を原則使用しないこ�
 
 ## Open Decisions Before Requirements
 
-1. Cloudflare account / zone、staging / production の custom domain と課金 plan。Cloudflare は強い分離が必要な環境に別 account / domain を推奨している。[^cloudflare-terraform-best-practices]
+1. Cloudflare の初回 bootstrap credential、GitHub Environment、state backend、課金 plan。
+   `beyond-labo.com` zone は Worker を配布する Cloudflare account 内に存在し、Active であることを初回 preflight で確認する。
+   異なる account にある場合は、zone の移管または Worker を zone 所有 account に配置する方針を決めるまで実装を進めない。
 2. remote state backend。暗号化、locking、versioning、環境別 access control を満たすものから選ぶ。
 3. Terraform と Wrangler 間で非機密 resource identifier を渡す契約。
 4. production Environment の reviewer と緊急 apply / deploy 権限。
@@ -367,12 +382,13 @@ GitHub は public repository の self-hosted runner を原則使用しないこ�
 ## Recommended Next Step
 
 この brief を入力に `$kiro-spec-quick backend-ci-cd` で requirements、design、tasks を生成する。
-実装順は `infra/cloudflare/` の state / provider 基盤、runtime の最小 `/healthz`、CI、staging infrastructure / deploy、production infrastructure / deploy、OpenAPI 生成・互換性 gate とする。
+実装順は `infra/cloudflare/` の state / provider 基盤、runtime の最小 `/healthz`、CI、Custom Domain の preflight と staging infrastructure / deploy、production infrastructure / deploy、OpenAPI 生成・互換性 gate とする。
 Cloudflare account、state backend、bootstrap credential の作成は repository 内の通常 apply と分けて runbook 化する。
 
 [^local-technology-policy]: [技術方針](../../../docs/architecture/technology.md)
 [^local-api-contract-policy]: [API 契約](../../../docs/architecture/api-contracts.md)
 [^cloudflare-github-actions]: [Cloudflare Workers: GitHub Actions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)（2026-09-19 確認）
+[^cloudflare-custom-domains]: [Cloudflare Workers: Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)（2026-09-20 確認）
 [^cloudflare-environments]: [Cloudflare Workers: Environments](https://developers.cloudflare.com/workers/wrangler/environments/)（2026-09-19 確認）
 [^cloudflare-testing]: [Cloudflare Workers: Testing](https://developers.cloudflare.com/workers/testing/)（2026-09-19 確認）
 [^cloudflare-versions]: [Cloudflare Workers: Versions and deployments](https://developers.cloudflare.com/workers/versions-and-deployments/)（2026-09-19 確認）

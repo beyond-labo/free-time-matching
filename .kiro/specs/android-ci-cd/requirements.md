@@ -9,7 +9,7 @@ sources:
     title: AndroidアプリとCI/CDの整備依頼
 kiro:
   depends_on:
-    - docs/operations/ci-cd.md
+    - docs/operations/android-ci-cd.md
     - docs/architecture/technology.md
 ---
 
