@@ -116,6 +116,8 @@ Swift package への分割は、実際にビルド境界を強制する必要が
 
 ## 検証方針
 
+iOS の単体・Reducer・統合テストは Swift Testing で記述します。`xcodebuild test` と `HimatchTests` target は実行境界として維持しますが、テストコードでは XCTest を import せず、`XCTestCase` を継承しません。
+
 - Domain：業務上の不変条件。
 - Application：差し替えた Port に対する処理と失敗の扱い。
 - Infrastructure：DTO の変換、不正値、未知値、通信エラーの翻訳。

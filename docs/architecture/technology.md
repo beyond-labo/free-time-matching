@@ -12,7 +12,7 @@ Backend の内部型を共有せず、Backend 所有の OpenAPI を公開契約�
 | 項目 | 方針 | 現在の状態 |
 | --- | --- | --- |
 | Backend | TypeScript、Hono、Cloudflare Workers、Clean Architecture | `apps/backend` に最小Worker、`GET /healthz`、Workers Runtimeテスト、staging/production配布設定を導入。実deployは外部bootstrap待ち |
-| iOS | Swift 6、SwiftUI、最低 iOS 17。TCA＋Clean Architecture | CI/CD 用の最小アプリと XCTest を導入。TCA と製品機能は未導入 |
+| iOS | Swift 6、SwiftUI、最低 iOS 17。TCA＋Clean Architecture。テストは Swift Testing | TCA 1.26.1 と初版プロトタイプを導入。iOS テストでは XCTest を使用しない |
 | Android | AGP 9.4.0、AGP内蔵Kotlin 2.2.10、Jetpack Compose、最低API 26。Clean Architecture | CI/CD用の最小アプリとJVM単体テストを導入。製品機能は未導入 |
 | パッケージ管理 | Backend はpnpm、iOSはSwift Package Manager、AndroidはGradle Wrapper | AndroidはGradle 9.6.0とCompose BOM 2026.08.00を固定 |
 | API | Backend の HTTP スキーマから OpenAPI を生成 | 未実装 |
@@ -28,7 +28,7 @@ Workerのscript/version/deployment/bindingとCustom DomainはWrangler、将来�
 `api-staging.beyond-labo.com`と`api.beyond-labo.com`に対応するDNS、Workers Route、Custom Domain、TLS証明書はTerraformへ重複定義しません。
 初期Terraform scaffoldはstateと所有境界だけを確定し、D1/KV/R2/Queue/DNS/WAFを推測して作成しません。
 TCA の採用方針と具体的なリリースバージョンの選定を分けます。
-最低 iOS 17、Xcode 26.6、Swift 6 を現在の build 境界とし、TCA の互換性を確認してから依存を導入します。
+最低 iOS 17、Xcode 26.6、Swift 6 を現在の build 境界とし、TCA 1.26.1 を Swift Package Manager で固定します。
 提示されたエントリーポイント名だけで Lambda や API Gateway の採用を確定しません。
 
 ## 層名と役割名

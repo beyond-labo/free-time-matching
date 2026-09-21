@@ -156,6 +156,8 @@ mkdir -p "$EXPORT_PATH"
 xcodebuild archive \
   -project "$PROJECT_PATH" \
   -scheme "$SCHEME" \
+  -onlyUsePackageVersionsFromResolvedFile \
+  -skipMacroValidation \
   -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE_PATH" \

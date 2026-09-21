@@ -31,8 +31,8 @@
       "apps/backend/package.json": "174ed4d62be2966937791a3116fa51348942c00c4e195a8c8190b44744b0aaff",
       "apps/backend/wrangler.jsonc": "02d0839b84aec545bd1ef698ac7ca8a3f0fa6f651472f21bfc86f88b19ba0c5c",
       "docs/architecture/api-contracts.md": "6964da399f767ac2bd92f34cfe83aa221186dbfdb8ab6155f3d652e7129c0b57",
-      "docs/architecture/package-structure.md": "33a0a928a7b1504d39ffeeb3a1bada8e323a40250768f0765a374aa4a15cfdca",
-      "docs/architecture/technology.md": "79b9ea429ab572b696f1cf6369ee997391b94fa723a21c97392c0315fa218aa1",
+      "docs/architecture/package-structure.md": "4344bd39c94cf6f3e60186206b9ba4b0ebe1795677ad5aa79a6efde86fba60f9",
+      "docs/architecture/technology.md": "748c05d6ff1cfd684b18208ebd16271bef0572fdf14384bf077329c4cf7cb9ad",
       "docs/operations/backend-ci-cd.md": "a0c00ee7a06fd36a37f84ce0be9dc619258281b484f2a1e1a27d5983d12f24bc",
       "docs/operations/development.md": "41438e23079efc4f5dbbf3b83588499a126927649ec795e1f73a5608b8d6dc25"
     }

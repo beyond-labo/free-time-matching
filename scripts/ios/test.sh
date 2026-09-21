@@ -34,11 +34,24 @@ else
 fi
 
 rm -rf "$RESULT_BUNDLE"
-xcodebuild test \
+xcodebuild -quiet test \
   -project "$PROJECT_PATH" \
   -scheme "$SCHEME" \
+  -onlyUsePackageVersionsFromResolvedFile \
+  -skipMacroValidation \
   -configuration Debug \
   -destination "$destination" \
   -derivedDataPath "$DERIVED_DATA" \
   -resultBundlePath "$RESULT_BUNDLE" \
   CODE_SIGNING_ALLOWED=NO
+
+TEST_SUMMARY="$DERIVED_DATA/test-summary.json"
+xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE" > "$TEST_SUMMARY"
+python3 -c 'import json, sys
+summary = json.load(open(sys.argv[1], encoding="utf-8"))
+count = int(summary.get("totalTestCount", 0))
+failed = int(summary.get("failedTests", 0))
+result = summary.get("result")
+if count <= 0 or failed != 0 or result != "Passed":
+    raise SystemExit(f"Swift Testing result is invalid: total={count}, failed={failed}, result={result}")
+print(f"Swift Testing: {count} passed")' "$TEST_SUMMARY"

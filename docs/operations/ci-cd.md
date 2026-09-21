@@ -19,8 +19,8 @@ Backend、iOS、Androidは、検証とリリースを独立して実行します
 | `Backend CI` | pull request、`main` push、手動、再利用呼び出し | BackendとTerraformを検証 | 使用しない |
 | `Backend CD (staging)` | `main` push | Terraform apply、Worker deploy、health smoke | `staging` Environmentのみ |
 | `Backend CD (production)` | `backend-vX.Y.Z` tag、手動 | preflight、承認、Terraform apply、Worker deploy、health smoke | `production-plan`と`production` Environment |
-| `iOS CI` | pull request、`main` push、手動 | signing preflight、Simulator build、XCTest | 使用しない |
-| `iOS TestFlight` | `ios-vX.Y.Z` tag、手動 | 署名、IPA export、App Store Connect upload | `testflight` Environmentのみ |
+| `iOS CI` | pull request、`main` push、手動 | signing preflight、Simulator build、Swift Testing | 使用しない |
+| `iOS TestFlight` | `ios-vX.Y.Z` tag、手動 | 同じテスト後、署名、IPA export、App Store Connect upload | `testflight` Environmentのみ |
 | `Android CI` | pull request、`main` push、手動 | lint、JVM単体テスト、debug build | 使用しない |
 | `Android Google Play` | `android-vX.Y.Z` tag、手動 | AAB署名、internal track upload | `play-internal` Environmentのみ |
 

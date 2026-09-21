@@ -1,13 +1,13 @@
 # ドキュメント
 
 2026-09-05 に提供された構成案を、このリポジトリの方針として整理しました。
-2026-09-06 の追加指示により、TCA＋Clean Architecture、機能内の DTO 変換、予約ファイルを作らない方針へ更新しました。
+2026-09-21 時点では、非公開を基本とするiOS初版の仕様とプロトタイプ実装、Swift Testing専用方針まで反映しています。
 製品名は「ひまっち（仮）」、コード上の名称は `himatch` とします。
 既存のリポジトリ名 `free-time-matching` は変更しません。
 
 | 文書 | 内容 |
 | --- | --- |
-| [製品の範囲](product/overview.md) | 添付から読み取れる機能と未確定の要件 |
+| [製品の範囲](product/overview.md) | iOS初版の製品契約、対象外、外部準備事項 |
 | [技術方針](architecture/technology.md) | 採用方針、依存方向、未決事項 |
 | [iOS の設計](architecture/ios-architecture.md) | TCA、MVVM との関係、DTO 変換、依存注入 |
 | [Android の設計](architecture/android-architecture.md) | Compose、機能配置、依存方向、テスト境界 |
@@ -19,6 +19,7 @@
 | [Backend CI/CD](operations/backend-ci-cd.md) | Cloudflare、Terraform、staging、productionの運用手順 |
 | [iOS CI/CD](operations/ios-ci-cd.md) | 署名とTestFlight配布の運用手順 |
 | [Android CI/CD](operations/android-ci-cd.md) | 署名とGoogle Play internal track配布の運用手順 |
+| [iOS初版の実装・リリース判定](operations/ios-first-release-readiness.md) | プロトタイプで検証済みの範囲とリリース前の残件 |
 
 ## 文書の扱い
 
@@ -28,4 +29,4 @@
 
 機能実装へ進む際は、AGENTS.md に従って要件、設計、タスクを作成し、各段階をレビューします。
 Backend CI/CDの仕様は`.kiro/specs/backend-ci-cd/`、iOS CI/CDの仕様は`.kiro/specs/ios-ci-cd/`、Android CI/CDの仕様は`.kiro/specs/android-ci-cd/`にあります。
-製品機能の仕様とモバイルの機能architecture実装はまだありません。
+iOS初版の依存順は`.kiro/steering/roadmap.md`、各機能仕様は`.kiro/specs/ios-*`にあります。iOSはBackend未接続のプロトタイプ、AndroidはCI/CD用の最小アプリです。

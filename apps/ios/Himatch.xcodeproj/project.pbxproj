@@ -2,14 +2,11 @@
 {
 	archiveVersion = 1;
 	classes = {};
-	objectVersion = 56;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B10000000000000000000001 /* HimatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* HimatchApp.swift */; };
-		B10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* ContentView.swift */; };
-		B10000000000000000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000003 /* Assets.xcassets */; };
-		B10000000000000000000004 /* HimatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000004 /* HimatchTests.swift */; };
+		B10000000000000000000005 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = N10000000000000000000001 /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -23,16 +20,25 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		C10000000000000000000001 /* HimatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HimatchApp.swift; sourceTree = "<group>"; };
-		C10000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		C10000000000000000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C10000000000000000000004 /* HimatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HimatchTests.swift; sourceTree = "<group>"; };
 		C10000000000000000000005 /* Himatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Himatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C10000000000000000000006 /* HimatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HimatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		C10000000000000000000001 /* Himatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Himatch;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000002 /* HimatchTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HimatchTests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
-		F10000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (B10000000000000000000005 /* ComposableArchitecture in Frameworks */); runOnlyForDeploymentPostprocessing = 0; };
 		F10000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
@@ -40,22 +46,10 @@
 		G10000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				G10000000000000000000002 /* Himatch */,
-				G10000000000000000000003 /* HimatchTests */,
+				C10000000000000000000001 /* Himatch */,
+				C10000000000000000000002 /* HimatchTests */,
 				G10000000000000000000004 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		G10000000000000000000002 /* Himatch */ = {
-			isa = PBXGroup;
-			children = (C10000000000000000000001, C10000000000000000000002, C10000000000000000000003);
-			path = Himatch;
-			sourceTree = "<group>";
-		};
-		G10000000000000000000003 /* HimatchTests */ = {
-			isa = PBXGroup;
-			children = (C10000000000000000000004);
-			path = HimatchTests;
 			sourceTree = "<group>";
 		};
 		G10000000000000000000004 /* Products */ = {
@@ -73,7 +67,9 @@
 			buildPhases = (I10000000000000000000001, F10000000000000000000001, J10000000000000000000001);
 			buildRules = ();
 			dependencies = ();
+			fileSystemSynchronizedGroups = (C10000000000000000000001 /* Himatch */);
 			name = Himatch;
+			packageProductDependencies = (N10000000000000000000001 /* ComposableArchitecture */);
 			productName = Himatch;
 			productReference = C10000000000000000000005;
 			productType = "com.apple.product-type.application";
@@ -84,7 +80,9 @@
 			buildPhases = (I10000000000000000000002, F10000000000000000000002);
 			buildRules = ();
 			dependencies = (K10000000000000000000001);
+			fileSystemSynchronizedGroups = (C10000000000000000000002 /* HimatchTests */);
 			name = HimatchTests;
+			packageProductDependencies = ();
 			productName = HimatchTests;
 			productReference = C10000000000000000000006;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -99,7 +97,7 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
-					A10000000000000000000001 = {CreatedOnToolsVersion = 26.6; };
+					A10000000000000000000001 = {CreatedOnToolsVersion = 26.6; SystemCapabilities = {com.apple.SignInWithApple = {enabled = 1; }; }; };
 					A10000000000000000000002 = {CreatedOnToolsVersion = 26.6; TestTargetID = A10000000000000000000001; };
 				};
 			};
@@ -109,6 +107,9 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (en, Base);
 			mainGroup = G10000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (M10000000000000000000001 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */);
+			preferredProjectObjectVersion = 77;
 			productRefGroup = G10000000000000000000004;
 			projectDirPath = "";
 			projectRoot = "";
@@ -120,7 +121,7 @@
 		J10000000000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (B10000000000000000000003 /* Assets.xcassets in Resources */);
+			files = ();
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
@@ -129,13 +130,13 @@
 		I10000000000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (B10000000000000000000001, B10000000000000000000002);
+			files = ();
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		I10000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (B10000000000000000000004);
+			files = ();
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
@@ -145,8 +146,8 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		L10000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "ひまっち"; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO; INFOPLIST_KEY_UILaunchScreen_Generation = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
-		L10000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "ひまっち"; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO; INFOPLIST_KEY_UILaunchScreen_Generation = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
+		L10000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_ENTITLEMENTS = Himatch/Himatch.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "ひまっち"; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO; INFOPLIST_KEY_UILaunchScreen_Generation = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
+		L10000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_ENTITLEMENTS = Himatch/Himatch.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "ひまっち"; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO; INFOPLIST_KEY_UILaunchScreen_Generation = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
 		L10000000000000000000003 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Himatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Himatch"; }; name = Debug; };
 		L10000000000000000000004 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Himatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Himatch"; }; name = Release; };
 		L10000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; ONLY_ACTIVE_ARCH = YES; SDKROOT = iphoneos; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; SWIFT_VERSION = 6.0; }; name = Debug; };
@@ -158,6 +159,22 @@
 		H10000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (L10000000000000000000003, L10000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		H10000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (L10000000000000000000005, L10000000000000000000006); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		M10000000000000000000001 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
+			requirement = {kind = exactVersion; version = 1.26.1; };
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		N10000000000000000000001 /* ComposableArchitecture */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = M10000000000000000000001 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			productName = ComposableArchitecture;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E10000000000000000000001 /* Project object */;
 }

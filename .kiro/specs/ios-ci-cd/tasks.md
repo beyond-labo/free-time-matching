@@ -16,8 +16,8 @@ kiro:
 # Implementation Plan
 
 - [x] 1. 実行可能な最小 iOS アプリとテストを追加する
-  - SwiftUI app、AppIcon、XCTest、shared scheme を Xcode 26.6 で build/test できる。
-  - _Requirements: 1.1, 2.1_
+  - SwiftUI app、AppIcon、Swift Testing、shared scheme を Xcode 26.6 で build/test でき、iOS テストは XCTest に依存しない。
+  - _Requirements: 1.1, 1.5, 2.1_
   - _Boundary: iOSProject_
 
 - [x] 2. 署名不要の iOS CI を追加する
@@ -39,7 +39,7 @@ kiro:
   - _Depends: 2, 3_
 
 - [x] 5. 統合検証と安全性レビューを完了する
-  - repository verify、workflow 構文、Xcode build/test、差分レビューが成功し、外部資格情報が必要な upload の未検証範囲が明記される。
-  - _Requirements: 1.1, 1.2, 1.4, 2.3, 3.1, 3.2, 4.1_
+  - repository verify、Swift Testing 専用検査、workflow 構文、Xcode build/test、差分レビューが成功し、外部資格情報が必要な upload の未検証範囲が明記される。
+  - _Requirements: 1.1, 1.2, 1.4, 1.5, 2.3, 3.1, 3.2, 4.1_
   - _Boundary: IntegrationValidation_
   - _Depends: 1, 2, 3, 4_

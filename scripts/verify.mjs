@@ -210,6 +210,15 @@ const requiredIOSFiles = [
 for (const path of requiredIOSFiles) {
   assert.ok(existsSync(join(root, path)), `iOS CI/CD の必須ファイルがありません: ${path}`);
 }
+const iosTestRoot = join(root, "apps/ios/HimatchTests");
+const iosTestSources = [...filesIn(iosTestRoot)].filter((path) => extname(path) === ".swift");
+assert.ok(iosTestSources.length > 0, "Swift Testing のテストがありません");
+for (const path of iosTestSources) {
+  const content = readFileSync(path, "utf8");
+  assert.doesNotMatch(content, /\bimport\s+XCTest\b/, `iOS テストで XCTest を import しています: ${path}`);
+  assert.doesNotMatch(content, /\bXCTestCase\b/, `iOS テストで XCTestCase を使用しています: ${path}`);
+  assert.match(content, /\bimport\s+Testing\b/, `iOS テストは Swift Testing を import してください: ${path}`);
+}
 
 const requiredAndroidFiles = [
   "apps/android/settings.gradle.kts",
@@ -280,5 +289,6 @@ console.log(`JSON ${jsonCount} 件、ローカル文書リンク ${linkCount} �
 console.log("Backend Worker 構成: OK");
 console.log("Backend / Cloudflare CI/CD 構成: OK");
 console.log("iOS CI/CD 構成: OK");
+console.log(`iOS Swift Testing ${iosTestSources.length} ファイル: OK`);
 console.log("Android CI/CD 構成: OK");
 console.log("アプリの build/test は scripts/ios/test.sh と scripts/android/test.sh、API 互換性は公開契約実装後に検証します。");
