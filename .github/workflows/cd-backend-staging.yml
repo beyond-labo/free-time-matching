@@ -1,0 +1,149 @@
+name: Backend CD (staging)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-staging
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify backend and Cloudflare configuration
+    uses: ./.github/workflows/ci-backend.yml
+    permissions:
+      contents: read
+
+  deploy:
+    name: Terraform and Worker deploy (staging)
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: staging
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 11.0.4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.15.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Initialize Terraform remote state
+        working-directory: infra/cloudflare/environments/staging
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          TF_STATE_ENDPOINT: ${{ vars.TF_STATE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_STATE_SECRET_ACCESS_KEY }}
+        run: bash ../../../../scripts/terraform/init-r2-backend.sh staging "$PWD"
+
+      - name: Plan Terraform changes
+        working-directory: infra/cloudflare/environments/staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_READ }}
+          TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_STATE_SECRET_ACCESS_KEY }}
+        run: |
+          set +e
+          plan_log="$RUNNER_TEMP/staging-plan.txt"
+          terraform plan -lock=false -input=false -no-color \
+            -out="$RUNNER_TEMP/staging.tfplan" >"$plan_log" 2>&1
+          plan_status=$?
+          set -e
+
+          if [[ "$plan_status" -ne 0 ]]; then
+            echo "Terraform staging plan failed; details remain on the ephemeral runner." >&2
+            exit "$plan_status"
+          fi
+
+          summary="$(grep -E '^(No changes\.|Plan:)' "$plan_log" | tail -n 1 || true)"
+          if [[ -z "$summary" ]]; then
+            summary="Terraform plan completed without a concise summary line."
+          fi
+          {
+            echo "### Staging Terraform plan"
+            echo "- Result: ${summary}"
+            echo "- Plan details remain on the ephemeral runner and are not uploaded."
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Apply Terraform changes
+        working-directory: infra/cloudflare/environments/staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_WRITE }}
+          TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_STATE_SECRET_ACCESS_KEY }}
+        run: |
+          set +e
+          apply_log="$RUNNER_TEMP/staging-apply.txt"
+          terraform apply -lock=false -input=false -no-color -auto-approve \
+            "$RUNNER_TEMP/staging.tfplan" >"$apply_log" 2>&1
+          apply_status=$?
+          set -e
+
+          if [[ "$apply_status" -ne 0 ]]; then
+            echo "Terraform staging apply failed; details remain on the ephemeral runner." >&2
+            exit "$apply_status"
+          fi
+          echo "- Terraform apply: succeeded" >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy Worker to staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_WRITE }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          deployment_output="$RUNNER_TEMP/wrangler-staging-deploy.txt"
+          pnpm --dir apps/backend exec wrangler deploy --env staging >"$deployment_output"
+          cat "$deployment_output"
+          deployment_id="$(sed -nE 's/.*(Current Version ID|Version ID):[[:space:]]*([^[:space:]]+).*/\2/p' "$deployment_output" | tail -n 1)"
+          {
+            echo "### Staging deployment"
+            echo "- Commit: \\`${GITHUB_SHA}\\`"
+            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- Actor: ${GITHUB_ACTOR}"
+            if [[ -n "$deployment_id" ]]; then
+              echo "- Worker version: \\`${deployment_id}\\`"
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test staging health endpoint
+        env:
+          BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+          BACKEND_HEALTH_TIMEOUT_MS: "5000"
+          BACKEND_HEALTH_MAX_ATTEMPTS: "12"
+          BACKEND_HEALTH_RETRY_DELAY_MS: "5000"
+        run: node scripts/backend/smoke-health.mjs
+
+      - name: Record staging smoke result
+        env:
+          BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+        run: |
+          {
+            echo "- Health URL: ${BACKEND_HEALTH_URL}/healthz"
+            echo "- Smoke: passed"
+          } >>"$GITHUB_STEP_SUMMARY"

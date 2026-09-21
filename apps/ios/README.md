@@ -13,4 +13,4 @@ bash scripts/ios/test.sh
 
 現在の画面と AppIcon は CI/CD の実経路を成立させる暫定成果物です。
 製品機能、TCA、Backend API client はまだ導入していません。
-署名、TestFlight、Apple/GitHub の初回設定は [CI/CD 手順](../../docs/operations/ci-cd.md)を参照してください。
+署名、TestFlight、Apple/GitHubの初回設定は[iOS CI/CD運用手順](../../docs/operations/ios-ci-cd.md)を参照してください。

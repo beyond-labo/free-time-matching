@@ -15,7 +15,10 @@
 | [API 契約](architecture/api-contracts.md) | OpenAPI の生成、配布、互換性 |
 | [構成の見直し結果](architecture/review-notes.md) | 層名、DTO 変換、予約ファイル削除の決定 |
 | [開発手順](operations/development.md) | ローカルでの構成確認と実装開始手順 |
-| [CI/CD 方針](operations/ci-cd.md) | ワークフローの責務と公開までの整備順序 |
+| [CI/CD](operations/ci-cd.md) | ワークフロー一覧と共通の保護方針 |
+| [Backend CI/CD](operations/backend-ci-cd.md) | Cloudflare、Terraform、staging、productionの運用手順 |
+| [iOS CI/CD](operations/ios-ci-cd.md) | 署名とTestFlight配布の運用手順 |
+| [Android CI/CD](operations/android-ci-cd.md) | 署名とGoogle Play internal track配布の運用手順 |
 
 ## 文書の扱い
 
@@ -24,4 +27,5 @@
 添付にないフレームワーク、クラウド設定、バージョン、料金、機能要件は補完して確定しません。
 
 機能実装へ進む際は、AGENTS.md に従って要件、設計、タスクを作成し、各段階をレビューします。
-iOS CI/CDの仕様は`.kiro/specs/ios-ci-cd/`、Android CI/CDの仕様は`.kiro/specs/android-ci-cd/`にあります。製品機能の仕様とモバイルの機能architecture実装はまだありません。
+Backend CI/CDの仕様は`.kiro/specs/backend-ci-cd/`、iOS CI/CDの仕様は`.kiro/specs/ios-ci-cd/`、Android CI/CDの仕様は`.kiro/specs/android-ci-cd/`にあります。
+製品機能の仕様とモバイルの機能architecture実装はまだありません。

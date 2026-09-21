@@ -20,6 +20,9 @@ fastlane/test_output/
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 DerivedData/
 .build/
 build/
@@ -32,3 +35,8 @@ xcuserdata/
 *.tfstate
 *.tfstate.*
 *.tfplan
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+crash.log
+crash.*.log

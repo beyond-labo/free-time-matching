@@ -1,0 +1,40 @@
+{
+  "feature_name": "backend-ci-cd",
+  "created_at": "2026-09-20T00:00:00+09:00",
+  "updated_at": "2026-09-20T14:20:00+09:00",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true,
+  "freshness": {
+    "status": "current",
+    "pending": [],
+    "checked_inputs": {
+      ".kiro/specs/backend-ci-cd/brief.md": "58f91a6b0313cb3b078b04532ef4a7bbc6f5711afde86a3aa5270925f3223813",
+      ".kiro/specs/backend-ci-cd/design.md": "5ffe81ae724f355bb6c7ef671999dd319ef632ef057087d52698af0bb0142098",
+      ".kiro/specs/backend-ci-cd/requirements.md": "2f0e7a0a7a24831b9a87b5b95ec8828ed69c73f55311dc33d1ab649d9f15f1a3",
+      ".kiro/specs/backend-ci-cd/research.md": "f886705e5d892bc78b8ffefa97d970fe976ef904b7cb466bc2028362584c8e66",
+      ".kiro/specs/backend-ci-cd/tasks.md": "0ca25c0e2fd25e3189100130c4e46bf9495147b31b178a56f2129f55532772f0",
+      "apps/backend/package.json": "174ed4d62be2966937791a3116fa51348942c00c4e195a8c8190b44744b0aaff",
+      "apps/backend/wrangler.jsonc": "02d0839b84aec545bd1ef698ac7ca8a3f0fa6f651472f21bfc86f88b19ba0c5c",
+      "docs/architecture/api-contracts.md": "6964da399f767ac2bd92f34cfe83aa221186dbfdb8ab6155f3d652e7129c0b57",
+      "docs/architecture/package-structure.md": "33a0a928a7b1504d39ffeeb3a1bada8e323a40250768f0765a374aa4a15cfdca",
+      "docs/architecture/technology.md": "79b9ea429ab572b696f1cf6369ee997391b94fa723a21c97392c0315fa218aa1",
+      "docs/operations/backend-ci-cd.md": "a0c00ee7a06fd36a37f84ce0be9dc619258281b484f2a1e1a27d5983d12f24bc",
+      "docs/operations/development.md": "41438e23079efc4f5dbbf3b83588499a126927649ec795e1f73a5608b8d6dc25"
+    }
+  }
+}
