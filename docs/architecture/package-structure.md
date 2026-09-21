@@ -146,7 +146,7 @@ TCA の Store を囲う ViewModel は作成しません。
 Backend CI、Terraform環境scaffold、staging/production deploy workflowは実装済みです。
 実apply/deployはCloudflare/R2/GitHub Environmentの外部bootstrap後に実行します。
 
-iOS の Xcode project、XCTest、Simulator CI、TestFlight upload は実装済みです。
+iOS の Xcode project、Swift Testing、Simulator CI、TestFlight upload は実装済みです。iOS テストでは XCTest を使用しません。
 App Store review と公開の自動化は現在の配布境界に含めません。
 AndroidのGradle project、JVM単体テスト、lint/debug build CI、Google Play internal track uploadは実装済みです。
 Google Play production公開とstore listing更新は現在の配布境界に含めません。

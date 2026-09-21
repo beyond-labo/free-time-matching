@@ -1,7 +1,7 @@
 {
   "feature_name": "ios-ci-cd",
   "created_at": "2026-09-16T08:29:34+09:00",
-  "updated_at": "2026-09-17T07:43:09+09:00",
+  "updated_at": "2026-09-21T00:00:00+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
@@ -23,13 +23,13 @@
     "status": "current",
     "pending": [],
     "checked_inputs": {
-      ".kiro/specs/ios-ci-cd/design.md": "6ab2f5a4481ffe8bdaef268f995988ec255bf0174ba9c06cda2a2b1f9a614df4",
-      ".kiro/specs/ios-ci-cd/requirements.md": "7274683637f90cbf5d2b8e3b3388faae19c6f4a9581b5841ca600b73f7957f71",
-      ".kiro/specs/ios-ci-cd/research.md": "b9e047af78269dea70ad4458efbd87e325dec4ba23f4d9af188f50ee98bc6cbe",
-      ".kiro/specs/ios-ci-cd/tasks.md": "e2aa0388d7b66e1f9d9e5c97004540788df3960b1f59574555d8bd790716b412",
-      "docs/architecture/ios-architecture.md": "bdad6c6fa4dbd4e28c3137516c1e449ca76da5db8e012d41639e1a5bbb2feb00",
-      "docs/architecture/technology.md": "742438f91bb6225413e85fd63989ed7264930cd36c2b277451bfb9b0ee07a342",
-      "docs/operations/ios-ci-cd.md": "c7033cf419bc6d5cb7cf76598d4f70cedbc52bb4274ddbba0cd5c97dbf95421b"
+      ".kiro/specs/ios-ci-cd/design.md": "86a416f2123fb6018a1394e8cfb80f7247f1537418fb064e7f594aa1597a927a",
+      ".kiro/specs/ios-ci-cd/requirements.md": "f96507d330a0626010fb26bb8e6d112c4504181fcbb621a2b641873b8a2d2cdf",
+      ".kiro/specs/ios-ci-cd/research.md": "abb787409160a59adebc5a9a7b8c58d4abdc48c150cf37264bb79702d8c47ded",
+      ".kiro/specs/ios-ci-cd/tasks.md": "4471e5290737d10704e4cadbbe92c4b9848c3121bd6c81faf5b058c7f9fb5130",
+      "docs/architecture/ios-architecture.md": "5594f92d4e6b4df29ad57038d0ae09f62864d1d2d09c136f2a6808b5e6207e4e",
+      "docs/architecture/technology.md": "748c05d6ff1cfd684b18208ebd16271bef0572fdf14384bf077329c4cf7cb9ad",
+      "docs/operations/ios-ci-cd.md": "6cdacf998120fb989361b9a4cce27d7ce6e1b98b2fce2de39277ece0478649cb"
     }
   }
 }

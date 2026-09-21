@@ -82,7 +82,7 @@ graph LR
 
 | Layer | Choice / Version | Role | Notes |
 |---|---|---|---|
-| iOS | Swift 6.3 / SwiftUI / iOS 17+ | 最小 app と XCTest | TCA は未導入 |
+| iOS | Swift 6.3 / SwiftUI / Swift Testing / iOS 17+ | app と単体・Reducer・統合テスト | iOS テストでは XCTest を使用しない |
 | Build | Xcode 26.6 | test、archive、export | App Store の Xcode 26+ 要件に適合 |
 | CI/CD | GitHub Actions macOS 26 | PR 検証と TestFlight 配布 | workflow を分離 |
 | Upload | `xcrun altool` + App Store Connect API key | IPA upload | Apple ID password は使わない |
@@ -114,7 +114,7 @@ scripts/ios/
 
 | Requirement | Summary | Components | Interfaces | Flows |
 |---|---|---|---|---|
-| 1.1-1.4 | PR/main 検証 | iOSProject, TestScript, IOSCI | shell exit status | PullRequest → IOSCI |
+| 1.1-1.5 | PR/main 検証 | iOSProject, TestScript, IOSCI | shell exit status | PullRequest → IOSCI |
 | 2.1-2.5 | TestFlight 配布 | IOSCD, ReleaseScript | Environment values, IPA | ReleaseTag → AppStoreConnect |
 | 3.1-3.4 | 秘密と運用境界 | ReleaseScript, GitIgnore, Runbook | secret/variable names | Environment → ReleaseScript |
 | 4.1-4.3 | 文書整合 | ProjectDocs | documented commands | 実装 → 文書同期 |
@@ -143,7 +143,7 @@ scripts/ios/
 - PR job には Environment を付けず、secret context を参照しない。
 - release job の token permission は `contents: read` のみ。
 - context 値は shell command へ直接埋め込まず、environment variable として渡す。
-- repository 検査、signing preflight の異常系単体テスト、generic Simulator build、XCTest、workflow 構文、secret-like file の非追跡を検証する。
+- repository 検査、signing preflight の異常系単体テスト、generic Simulator build、Swift Testing、iOS テストに XCTest が混入していないこと、workflow 構文、secret-like file の非追跡を検証する。
 
 ## Open Questions / Risks
 

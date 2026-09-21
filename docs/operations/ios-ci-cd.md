@@ -1,6 +1,6 @@
 # iOS CI/CDとTestFlight
 
-`iOS CI`はすべてのpull request、`main` push、手動実行でXcode buildとXCTestを実行します。
+`iOS CI`はすべてのpull request、`main` push、手動実行でXcode buildとSwift Testingを実行します。iOSのテストコードではXCTestを使用しません。
 `iOS TestFlight`は`ios-v*` tagまたは手動実行から、署名済みIPAをApp Store Connectへuploadします。
 
 ## 実行環境

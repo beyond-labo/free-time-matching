@@ -37,6 +37,7 @@ GitHub Actions 上で iOS アプリのビルドとテストを再現可能にし
 2. If ビルドまたはテストが失敗した, the iOS CI shall 非ゼロ終了して後続の配布を許可しない
 3. The iOS CI shall pull request で Apple の配布資格情報を参照しない
 4. The repository verification shall iOS CI/CD に必要な追跡対象ファイルと非機密設定の欠落を検出する
+5. The iOS tests shall Swift Testing を使用し、iOS のテストコードで XCTest を import または XCTestCase を継承しない
 
 ### Requirement 2: TestFlight 配布
 

@@ -113,7 +113,7 @@ kiro:
 ### Decision: 最小アプリを実行可能な契約として追加する
 
 - **Context**: 現状は Xcode project がなく、空 workflow は既存方針に反する。
-- **Selected Approach**: SwiftUI の最小画面、shared scheme、XCTest、AppIcon を追加する。TCA と製品機能は追加しない。
+- **Selected Approach**: SwiftUI の最小画面、shared scheme、Swift Testing、AppIcon を追加する。iOS テストでは XCTest を使用しない。TCA と製品機能は別仕様で追加する。
 - **Trade-offs**: 暫定 UI とアイコンは将来置換が必要だが、build・archive・upload の実経路を今から検証できる。
 
 ## Risks & Mitigations
@@ -125,6 +125,10 @@ kiro:
 - Python/OpenSSL の runner 同梱版が更新される — version をログへ残し、期限切れ、鍵不一致、RSA/P-384、壊れた key の実 fixture test で archive 前検査を再確認する。
 
 ## Change Log
+
+### 2026-09-21
+
+ユーザーの iOS 戦略決定により、iOS の単体・Reducer・統合テストを Swift Testing に統一し、XCTest の import と XCTestCase 継承を禁止した。`xcodebuild test` と既存 test target は実行経路として維持し、テスト記述フレームワークだけを置換した。
 
 ### 2026-09-19
 
