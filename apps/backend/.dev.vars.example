@@ -1,0 +1,11 @@
+# Public/local configuration
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_replace_me
+APPLE_CLIENT_ID=com.example.himatch
+
+# Secrets: use local-only values here and Cloudflare secrets outside local development.
+SUPABASE_SECRET_KEY=sb_secret_replace_me
+APPLE_TEAM_ID=REPLACE_ME
+APPLE_KEY_ID=REPLACE_ME
+APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nREPLACE_ME\n-----END PRIVATE KEY-----
+ACCOUNT_DELETION_STATUS_SECRET=replace-with-at-least-32-random-characters
