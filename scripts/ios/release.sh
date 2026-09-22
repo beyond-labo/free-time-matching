@@ -37,6 +37,9 @@ required=(
   APP_STORE_CONNECT_KEY_ID
   APP_STORE_CONNECT_ISSUER_ID
   APP_STORE_CONNECT_PRIVATE_KEY_BASE64
+  SUPABASE_URL
+  SUPABASE_PUBLISHABLE_KEY
+  API_BASE_URL
 )
 
 for name in "${required[@]}"; do
@@ -68,6 +71,16 @@ if [[ ! "$APP_STORE_CONNECT_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]; then
 fi
 if [[ ! "$APP_STORE_CONNECT_ISSUER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
   echo "APP_STORE_CONNECT_ISSUER_ID must be a UUID." >&2
+  exit 1
+fi
+for name in SUPABASE_URL API_BASE_URL; do
+  if [[ ! "${!name}" =~ ^https://[^[:space:]]+$ ]]; then
+    echo "${name} must be a non-empty HTTPS URL." >&2
+    exit 1
+  fi
+done
+if [[ "$SUPABASE_PUBLISHABLE_KEY" =~ [[:space:]] ]]; then
+  echo "SUPABASE_PUBLISHABLE_KEY must not contain whitespace." >&2
   exit 1
 fi
 
@@ -165,6 +178,9 @@ xcodebuild archive \
   CODE_SIGN_IDENTITY='Apple Distribution' \
   DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
   PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" \
+  SUPABASE_URL="$SUPABASE_URL" \
+  SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+  API_BASE_URL="$API_BASE_URL" \
   PROVISIONING_PROFILE_SPECIFIER="$profile_name" \
   MARKETING_VERSION="$IOS_MARKETING_VERSION" \
   CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER"
