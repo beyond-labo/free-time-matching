@@ -92,7 +92,29 @@ CI と App Store upload の build 環境は Xcode 26.6 に固定します。
 6. Composition で依存を注入し、TestStore と Simulator で検証する。
 
 TCA 1.26.1とsupabase-swiftの解決結果を固定し、認証・プロフィール・削除のProduction Compositionを検証します。
-実行には`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`API_BASE_URL`のiOS構成値と、対応するWorker variables/secretsが必要です。値はリポジトリへ保存しません。
+
+### iOSのローカル構成値
+
+各開発者は、初回セットアップ時にリポジトリルートで次を実行します。
+
+```sh
+cp apps/ios/Config/Local.xcconfig.example apps/ios/Config/Local.xcconfig
+```
+
+コピー後の`Local.xcconfig`で、次の3項目を使用するstaging環境の値へ置き換えます。
+
+```text
+SUPABASE_URL = https:/$()/your-staging-project-ref.supabase.co
+SUPABASE_PUBLISHABLE_KEY = sb_publishable_replace_me
+API_BASE_URL = https:/$()/your-staging-api.example.com
+```
+
+`Debug.xcconfig`がこのファイルを任意読込し、`Config/Himatch-Info.plist`のbuild setting参照へ値を渡します。
+`Local.xcconfig`はGit管理外であり、stagingの値や環境固有値をコミットしません。
+xcconfigでは`//`がコメントとして扱われるため、URLは`https:/$()/example.com`形式で記述します。
+`SUPABASE_SECRET_KEY`、`SUPABASE_DB_PASSWORD`、`SUPABASE_ACCESS_TOKEN`、`APPLE_PRIVATE_KEY`などのserver secretは設定しません。
+設定後にXcodeで`File`、`Packages`、`Resolve Package Versions`の順に選び、`Himatch` schemeをDebug構成で実行します。
+対応するWorker variables/secretsは別途必要です。
 外部設定とstaging確認は[Supabase Auth・Database CI/CD](supabase-auth.md)に従います。
 
 ## Androidのbuildとtest

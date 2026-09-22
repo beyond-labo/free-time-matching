@@ -33,6 +33,7 @@ build/
 local.properties
 xcuserdata/
 *.xcuserstate
+apps/ios/Config/Local.xcconfig
 .terraform/
 *.tfstate
 *.tfstate.*

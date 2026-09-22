@@ -22,6 +22,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C10000000000000000000007 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		C10000000000000000000008 /* Himatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Himatch-Info.plist"; sourceTree = "<group>"; };
 		C10000000000000000000005 /* Himatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Himatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C10000000000000000000006 /* HimatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HimatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -54,6 +56,7 @@
 		G10000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				G10000000000000000000005 /* Config */,
 				C10000000000000000000001 /* Himatch */,
 				C10000000000000000000002 /* HimatchTests */,
 				G10000000000000000000004 /* Products */,
@@ -67,6 +70,15 @@
 				C10000000000000000000006 /* HimatchTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000005 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				C10000000000000000000007 /* Debug.xcconfig */,
+				C10000000000000000000008 /* Himatch-Info.plist */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -204,17 +216,16 @@
 /* Begin XCBuildConfiguration section */
 		L10000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C10000000000000000000007 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Himatch/Himatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_API_BASE_URL = "$(API_BASE_URL)";
+				INFOPLIST_FILE = "Config/Himatch-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "ひまっち";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY = "$(SUPABASE_PUBLISHABLE_KEY)";
-				INFOPLIST_KEY_SUPABASE_URL = "$(SUPABASE_URL)";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -236,11 +247,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_API_BASE_URL = "$(API_BASE_URL)";
+				INFOPLIST_FILE = "Config/Himatch-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "ひまっち";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY = "$(SUPABASE_PUBLISHABLE_KEY)";
-				INFOPLIST_KEY_SUPABASE_URL = "$(SUPABASE_URL)";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

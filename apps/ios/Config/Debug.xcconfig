@@ -1,0 +1,2 @@
+// Local.xcconfig is intentionally excluded from Git.
+#include? "Local.xcconfig"

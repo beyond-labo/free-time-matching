@@ -1,0 +1,5 @@
+// Copy this file to Local.xcconfig and replace every placeholder.
+// Local.xcconfig is excluded from Git and must not contain server secrets.
+SUPABASE_URL = https:/$()/your-staging-project-ref.supabase.co
+SUPABASE_PUBLISHABLE_KEY = sb_publishable_replace_me
+API_BASE_URL = https:/$()/your-staging-api.example.com
