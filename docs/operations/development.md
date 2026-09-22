@@ -10,6 +10,22 @@ node scripts/verify.mjs
 
 JSON、workspaceの登録、ローカル文書リンク、iOS/Android/Backend CI/CD構成、BackendとTerraformの必須ファイル、credential非公開契約を確認します。
 
+## Supabase Databaseの検証
+
+DockerとSupabase CLI 2.117.0を用意し、リポジトリルートで実行します。
+
+```sh
+npx -y supabase@2.117.0 db start
+npx -y supabase@2.117.0 db lint --local --schema public --level error --fail-on error
+npx -y supabase@2.117.0 test db --local
+npx -y supabase@2.117.0 stop --no-backup
+```
+
+`db start`は空のローカルPostgresへ`supabase/migrations/`を順番に適用します。
+外部Projectの資格情報は使いません。
+schema変更は新しいmigrationとして追加し、適用済みmigrationを編集しません。
+環境設定と配備順序は[Supabase Auth・Database CI/CD](supabase-auth.md)に従います。
+
 ## Backend の build と test
 
 Node.js と pnpm を用意し、リポジトリルートで実行します。
@@ -26,9 +42,9 @@ pnpm --dir apps/backend build
 `test` は Cloudflare Workers Runtime 相当で `GET /healthz` の status、JSON content type、固定 payload、内部情報非公開、未定義 route の 404 を確認します。
 `build` は `wrangler deploy --dry-run --outdir dist` の bundle 検査で、実 Cloudflare deploy は行いません。
 
-Backend の現在の実装範囲は最小 Worker と health 契約です。
+Backend の現在の実装範囲はhealth、Supabase JWT検証、本人プロフィール、アカウント削除です。
 Terraform環境scaffoldとGitHub Actions CI/CDは実装済みですが、実apply/deployにはR2 bucket、Cloudflare token、GitHub Environmentの外部bootstrapが必要です。
-OpenAPI生成、認証、DB、業務APIは後続仕様です。
+OpenAPI生成、友達・暇・募集の業務APIは後続仕様です。
 
 ## Cloudflare Terraform のローカル検証
 
@@ -75,8 +91,9 @@ CI と App Store upload の build 環境は Xcode 26.6 に固定します。
 5. 生成ツールと入力契約を固定し、DTO の変換を機能内へ閉じ込める。
 6. Composition で依存を注入し、TestStore と Simulator で検証する。
 
-TCA の導入方針は採用済みですが、ライブラリの互換性と実装は未検証です。
-現在の SwiftUI 画面と AppIcon は CI/CD 経路を検証する最小成果物で、製品機能ではありません。
+TCA 1.26.1とsupabase-swiftの解決結果を固定し、認証・プロフィール・削除のProduction Compositionを検証します。
+実行には`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`API_BASE_URL`のiOS構成値と、対応するWorker variables/secretsが必要です。値はリポジトリへ保存しません。
+外部設定とstaging確認は[Supabase Auth・Database CI/CD](supabase-auth.md)に従います。
 
 ## Androidのbuildとtest
 

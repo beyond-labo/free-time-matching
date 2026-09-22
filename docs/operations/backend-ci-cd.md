@@ -9,13 +9,14 @@ Custom Domainに付随してCloudflareが自動作成するDNSレコードとTLS
 
 ## 最初に理解すること
 
-実装済みのworkflowは次の3本です。
+実装済みの関連workflowは次の4本です。
 
 | Workflow | Trigger | 役割 |
 | --- | --- | --- |
 | `Backend CI` | pull request、`main` push、手動、再利用呼び出し | BackendとTerraformのsecretless検証 |
-| `Backend CD (staging)` | `main` push | stagingのTerraform apply、Worker deploy、health smoke |
-| `Backend CD (production)` | `backend-vX.Y.Z` tag、`main`からの手動実行 | production preflight、承認、apply、deploy、health smoke |
+| `Supabase CI` | pull request、`main` push、手動、再利用呼び出し | migration、DB lint、pgTAPのsecretless検証 |
+| `Backend CD (staging)` | `main` push | Terraform apply、stagingのDB migration、Worker deploy、health smoke |
+| `Backend CD (production)` | `backend-vX.Y.Z` tag、`main`からの手動実行 | production preflight、承認、Terraform apply、DB migration、deploy、health smoke |
 
 配布は次の順序で進みます。
 
@@ -31,12 +32,15 @@ Pull Request
 
 main push
   └─ staging
-       └─ verify → Terraform plan/apply → Wrangler deploy → /healthz
+       └─ Backend/Supabase verify → Terraform plan/apply → DB migration → Wrangler deploy → /healthz
 
 backend-vX.Y.Z tag または mainからの手動実行
   └─ production
-       └─ source検証 → read-only plan → 承認 → plan再計算/apply → deploy → /healthz
+       └─ source検証 → Supabase verify → read-only plan → 承認 → plan再計算/apply → DB migration → deploy → /healthz
 ```
+
+Supabase Projectの作成、Apple provider、DB資格情報は[Supabase Auth・Database CI/CD](supabase-auth.md)を参照してください。
+stagingは`himatch-staging`、productionは`himatch-production`という別Projectを使い、Supabase Branchingで環境を切り替えません。
 
 Backend CIの`Build Worker bundle` stepは、[package.json](../../apps/backend/package.json)の`build` scriptを通じて`wrangler deploy --dry-run --outdir dist`を実行します。
 
@@ -389,10 +393,21 @@ secretは`Add secret`を押し、password managerから値を貼り付けて`Add
 | Variable | `TF_STATE_BUCKET` | 手順2で作ったstaging bucket名 |
 | Variable | `TF_STATE_ENDPOINT` | 手順3で控えたR2 S3 endpoint |
 | Variable | `BACKEND_HEALTH_URL` | `https://api-staging.beyond-labo.com` |
+| Variable | `SUPABASE_PROJECT_REF` | staging Project ref |
+| Variable | `SUPABASE_URL` | staging Project URL |
+| Variable | `SUPABASE_PUBLISHABLE_KEY` | staging publishable key |
+| Variable | `APPLE_CLIENT_ID` | native App ID／Bundle ID |
 | Secret | `CLOUDFLARE_API_TOKEN_READ` | `himatch-staging-plan-read`のtoken |
 | Secret | `CLOUDFLARE_API_TOKEN_WRITE` | `himatch-staging-deploy-write`のtoken |
 | Secret | `R2_STATE_ACCESS_KEY_ID` | staging read/write credentialのAccess Key ID |
 | Secret | `R2_STATE_SECRET_ACCESS_KEY` | staging read/write credentialのSecret Access Key |
+| Secret | `SUPABASE_ACCESS_TOKEN` | stagingだけに到達できるCI identityのaccess token |
+| Secret | `SUPABASE_DB_PASSWORD` | staging database password |
+| Secret | `SUPABASE_SECRET_KEY` | staging server secret key |
+| Secret | `APPLE_TEAM_ID` | Apple Team ID |
+| Secret | `APPLE_KEY_ID` | Sign in with Apple Key ID |
+| Secret | `APPLE_PRIVATE_KEY` | `.p8`のPEM全文 |
+| Secret | `ACCOUNT_DELETION_STATUS_SECRET` | staging専用のランダム値 |
 
 `BACKEND_HEALTH_URL`には次の値をそのまま登録します。
 
@@ -422,9 +437,20 @@ https://api-staging.beyond-labo.com
 | Variable | `TF_STATE_BUCKET` | 手順2で作ったproduction bucket名 |
 | Variable | `TF_STATE_ENDPOINT` | 手順3で控えたR2 S3 endpoint |
 | Variable | `BACKEND_HEALTH_URL` | `https://api.beyond-labo.com` |
+| Variable | `SUPABASE_PROJECT_REF` | production Project ref |
+| Variable | `SUPABASE_URL` | production Project URL |
+| Variable | `SUPABASE_PUBLISHABLE_KEY` | production publishable key |
+| Variable | `APPLE_CLIENT_ID` | native App ID／Bundle ID |
 | Secret | `CLOUDFLARE_API_TOKEN_WRITE` | `himatch-production-deploy-write`のtoken |
 | Secret | `R2_STATE_ACCESS_KEY_ID` | production read/write credentialのAccess Key ID |
 | Secret | `R2_STATE_SECRET_ACCESS_KEY` | production read/write credentialのSecret Access Key |
+| Secret | `SUPABASE_ACCESS_TOKEN` | productionだけに到達できる別CI identityのaccess token |
+| Secret | `SUPABASE_DB_PASSWORD` | production database password |
+| Secret | `SUPABASE_SECRET_KEY` | production server secret key |
+| Secret | `APPLE_TEAM_ID` | Apple Team ID |
+| Secret | `APPLE_KEY_ID` | Sign in with Apple Key ID |
+| Secret | `APPLE_PRIVATE_KEY` | `.p8`のPEM全文 |
+| Secret | `ACCOUNT_DELETION_STATUS_SECRET` | production専用のランダム値 |
 
 `BACKEND_HEALTH_URL`には次の値をそのまま登録します。
 
@@ -493,6 +519,11 @@ pnpm --dir apps/backend run typecheck
 pnpm --dir apps/backend run test
 pnpm --dir apps/backend run build
 
+npx -y supabase@2.117.0 db start
+npx -y supabase@2.117.0 db lint --local --schema public --level error --fail-on error
+npx -y supabase@2.117.0 test db --local
+npx -y supabase@2.117.0 stop --no-backup
+
 terraform fmt -check -recursive infra/cloudflare
 terraform -chdir=infra/cloudflare/environments/staging init -backend=false
 terraform -chdir=infra/cloudflare/environments/staging validate
@@ -514,11 +545,13 @@ pull requestを`main`へmergeすると、`Backend CD (staging)`が自動的に�
 Actions画面でworkflowを開き、次の順序で成功することを確認します。
 
 1. `Verify backend and Cloudflare configuration`が成功する。
-2. `Initialize Terraform remote state`がstaging bucketへ接続する。
-3. read tokenによるTerraform planが成功する。
-4. write tokenによるTerraform applyが成功する。
-5. `wrangler deploy --env staging`が`himatch-backend-staging`と`api-staging.beyond-labo.com`のCustom Domainを作成または更新する。
-6. `https://api-staging.beyond-labo.com/healthz`へのsmoke testが成功する。
+2. `Verify Supabase migrations and RLS`が成功する。
+3. `Initialize Terraform remote state`がstaging bucketへ接続する。
+4. read tokenによるTerraform planが成功する。
+5. write tokenによるTerraform applyが成功する。
+6. staging Projectへのmigration dry-run、非対話適用、linked履歴表示が成功する。
+7. `wrangler deploy --env staging`がruntime variables/secretsを含めてWorkerとCustom Domainを作成または更新する。
+8. `https://api-staging.beyond-labo.com/healthz`へのsmoke testが成功する。
 
 最初のTerraform planが`No changes.`でも正常です。
 現在のTerraform rootには実resourceがなく、続くWrangler deployがWorker本体とCustom Domainを作成します。
@@ -593,12 +626,14 @@ GitHubの`Actions`から`Backend CD (production)`を開き、次の順序で確�
 
 1. `Validate release ref`がtagとcommitを検証する。
 2. `Verify backend and Cloudflare configuration`が同じcommitを検証する。
-3. `Production Terraform preflight plan`が`production-plan`のread-only資格情報でplan要約を作る。
-4. `Apply and deploy production`が`Waiting`になり、`production` Environmentの承認を要求する。
-5. reviewerがpreflight要約、commit SHA、tagを確認して承認する。
-6. workflowがplanを再計算してTerraform applyを実行する。
-7. Wranglerが`himatch-backend-production`と`api.beyond-labo.com`のCustom Domainを作成または更新する。
-8. `https://api.beyond-labo.com/healthz`のsmoke testが成功する。
+3. `Verify Supabase migrations and RLS`が同じcommitを検証する。
+4. `Production Terraform preflight plan`が`production-plan`のread-only資格情報でplan要約を作る。
+5. `Apply and deploy production`が`Waiting`になり、`production` Environmentの承認を要求する。
+6. reviewerがpreflight要約、commit SHA、tagを確認して承認する。
+7. workflowがplanを再計算してTerraform applyを実行する。
+8. production ProjectへDB migrationを非対話で適用し、linked履歴を表示する。
+9. Wranglerがruntime variables/secretsを含めてWorkerとCustom Domainを作成または更新する。
+10. `https://api.beyond-labo.com/healthz`のsmoke testが成功する。
 
 承認前のsaved planはproduction applyへ引き渡しません。
 承認後に同じcommitからplanを再計算します。
@@ -628,7 +663,7 @@ GitHub Actionsから手動実行する場合は、workflow画面の`Run workflow
 - [ ] `production`へrequired reviewerを設定した。
 - [ ] すべてのvariablesとsecretsを対応するEnvironmentへ登録した。
 - [ ] `main`と`backend-v*`のrulesetを有効にした。
-- [ ] ローカル検証とpull requestの`Backend CI`が成功した。
+- [ ] ローカル検証とpull requestの`Backend CI`、`Supabase CI`が成功した。
 - [ ] stagingのCustom Domain、TLS証明書、`/healthz`が成功した。
 - [ ] productionの承認、Custom Domain、TLS証明書、`/healthz`が成功した。
 
@@ -636,6 +671,10 @@ GitHub Actionsから手動実行する場合は、workflow画面の`Run workflow
 
 Terraform planまたはapplyが失敗した場合は、後続のWorker deployを実行しません。
 job summaryとCloudflare Dashboardを確認し、資格情報、state、resource設定のどこで失敗したかを切り分けます。
+Terraformが失敗した場合はDB migrationを開始しません。
+DB migration後にWorker deployまたはsmokeが失敗した場合、DBは適用済みのままで、job summaryに復旧案内が表示されます。
+旧Workerと互換なmigrationであることを前提に、原因を直して同じreleaseを再実行します。
+互換性が崩れた場合は、適用済みmigrationを削除せずcorrective migrationを追加します。
 
 deploy後のsmokeが失敗した場合は、該当workflowを失敗のまま保持し、直前の安定version IDへ戻します。
 
@@ -651,8 +690,9 @@ staging rollbackはstaging権限を持つ開発担当者または運用担当者
 production rollbackはproduction権限を持つリリース担当者が実行します。
 環境、version ID、workflow run、実行者、理由をrelease記録へ残します。
 
-Worker version rollbackはTerraform state、D1、KV、R2、Queueなどのデータを戻しません。
-将来schema migrationを導入する場合は、expand/contractと後方互換期間を別仕様で定義します。
+Worker version rollbackはTerraform stateやSupabase DB migrationを戻しません。
+DB不具合は適用済みmigrationを削除せず、旧Workerとも互換なcorrective migrationを追加します。
+destructive変更はexpand / contractと後方互換期間を設けます。
 
 資格情報が漏えいした場合は、該当するCloudflare API tokenまたはR2 tokenを直ちにrevokeします。
 新しい資格情報を発行し、対応するGitHub Environment secretだけを更新してからworkflowを再実行します。

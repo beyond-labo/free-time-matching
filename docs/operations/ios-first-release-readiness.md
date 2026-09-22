@@ -2,8 +2,8 @@
 
 ## 現在の判定
 
-現時点の成果物は、画面とクライアント状態遷移を確認するBackend未接続のプロトタイプです。
-SimulatorでのビルドとSwift Testingは合格していますが、外部TestFlightへ配布できる製品完成状態ではありません。
+現時点の成果物は、認証・プロフィール・削除をSupabase/Backendへ接続し、それ以外の画面と状態遷移をPrototypeで確認する段階です。
+外部Apple/Supabase設定と実機E2Eが未完了のため、外部TestFlightへ配布できる製品完成状態ではありません。
 
 ## 実装済みの検証範囲
 
@@ -19,12 +19,12 @@ SimulatorでのビルドとSwift Testingは合格していますが、外部Test
 
 ## リリース前に未完了の項目
 
-- Backend API、Sign in with Apple credential検証、セッション、すべてのサーバー側認可。
+- Apple DeveloperとSupabase Dashboardの実環境設定、GitHub EnvironmentへのSupabase／Worker設定登録、実資格情報によるstaging E2E。
 - operation ID、version conflict、同時操作、二重送信、募集頻度制限を含む整合性制御。
 - APNs、アプリ内受信箱の永続化、通知設定の保存、通知本文の本番確認。
 - 友達コードの解決・申請・拒否・取消、募集回答の変更・撤回・見送り、予定の取消・離脱の本番フロー。
 - 運営の通報受付・是正・利用停止、公開問い合わせ先、コミュニティルール。
-- 実アカウント削除、Sign in with Apple token失効、再試行ジョブ、完了確認、バックアップ復元対策。
+- actionRequiredとなった削除の運用再試行、将来の業務データ削除、バックアップ復元対策。
 - 実Bundle IDとTeam ID、capability対応profile、審査用アクセス、Privacy Label、年齢レーティング、外部TestFlight審査。
 - VoiceOver、Dynamic Type、タイムゾーン変更、IPv6-only、2台以上の実機によるリリース判定。
 

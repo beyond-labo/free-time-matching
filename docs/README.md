@@ -1,7 +1,7 @@
 # ドキュメント
 
 2026-09-05 に提供された構成案を、このリポジトリの方針として整理しました。
-2026-09-21 時点では、非公開を基本とするiOS初版の仕様とプロトタイプ実装、Swift Testing専用方針まで反映しています。
+2026-09-21 時点では、非公開を基本とするiOS初版、AppleのみのSupabase認証・プロフィール・削除境界、Swift Testing専用方針まで反映しています。
 製品名は「ひまっち（仮）」、コード上の名称は `himatch` とします。
 既存のリポジトリ名 `free-time-matching` は変更しません。
 
@@ -15,6 +15,7 @@
 | [API 契約](architecture/api-contracts.md) | OpenAPI の生成、配布、互換性 |
 | [構成の見直し結果](architecture/review-notes.md) | 層名、DTO 変換、予約ファイル削除の決定 |
 | [開発手順](operations/development.md) | ローカルでの構成確認と実装開始手順 |
+| [Supabase Auth・Database CI/CD](operations/supabase-auth.md) | Project作成、Apple認証、migration、GitHub設定、staging／production運用 |
 | [CI/CD](operations/ci-cd.md) | ワークフロー一覧と共通の保護方針 |
 | [Backend CI/CD](operations/backend-ci-cd.md) | Cloudflare、Terraform、staging、productionの運用手順 |
 | [iOS CI/CD](operations/ios-ci-cd.md) | 署名とTestFlight配布の運用手順 |
@@ -29,4 +30,4 @@
 
 機能実装へ進む際は、AGENTS.md に従って要件、設計、タスクを作成し、各段階をレビューします。
 Backend CI/CDの仕様は`.kiro/specs/backend-ci-cd/`、iOS CI/CDの仕様は`.kiro/specs/ios-ci-cd/`、Android CI/CDの仕様は`.kiro/specs/android-ci-cd/`にあります。
-iOS初版の依存順は`.kiro/steering/roadmap.md`、各機能仕様は`.kiro/specs/ios-*`にあります。iOSはBackend未接続のプロトタイプ、AndroidはCI/CD用の最小アプリです。
+iOS初版の依存順は`.kiro/steering/roadmap.md`、各機能仕様は`.kiro/specs/ios-*`、Backendのユーザー管理仕様は`.kiro/specs/backend-user-account-management`にあります。iOSは認証・プロフィール・削除をProductionへ接続し、それ以外はPrototype、AndroidはCI/CD用の最小アプリです。
