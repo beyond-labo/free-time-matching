@@ -9,6 +9,7 @@ sources:
     title: iOS CI/CD 調査
 kiro:
   depends_on:
+    - .kiro/specs/backend-user-account-management/requirements.md
     - .kiro/specs/ios-ci-cd/requirements.md
     - docs/architecture/ios-architecture.md
 ---
@@ -115,7 +116,7 @@ scripts/ios/
 | Requirement | Summary | Components | Interfaces | Flows |
 |---|---|---|---|---|
 | 1.1-1.5 | PR/main 検証 | iOSProject, TestScript, IOSCI | shell exit status | PullRequest → IOSCI |
-| 2.1-2.5 | TestFlight 配布 | IOSCD, ReleaseScript | Environment values, IPA | ReleaseTag → AppStoreConnect |
+| 2.1-2.6 | TestFlight 配布 | IOSCD, ReleaseScript | Environment values, public app settings, IPA | ReleaseTag → AppStoreConnect |
 | 3.1-3.4 | 秘密と運用境界 | ReleaseScript, GitIgnore, Runbook | secret/variable names | Environment → ReleaseScript |
 | 4.1-4.3 | 文書整合 | ProjectDocs | documented commands | 実装 → 文書同期 |
 
@@ -133,7 +134,7 @@ scripts/ios/
 ### ReleaseScript batch contract
 
 - **Trigger**: `cd-ios-testflight.yml` の release job。
-- **Inputs**: certificate/profile/API key の Base64 secrets、Team/Bundle/Issuer/Key ID variables、marketing/build version。
+- **Inputs**: certificate/profile/API key の Base64 secrets、Team/Bundle/Issuer/Key ID variables、marketing/build version、`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`API_BASE_URL`。公開アプリ設定以外のserver secretは受け取らない。
 - **Validation**: 必須値、厳密な ID 形式、Base64 decode、証明書と秘密鍵の対応、証明書と profile の対応、両者の有効期限、profile の Team ID と application identifier、API private key の parse と ES256 用 EC P-256 curve。
 - **Output**: signed IPA、App Store Connect upload result。
 - **Recovery**: cleanup trap で keychain/profile/key を削除。失敗後は原因を直し、同じ version と新しい build number で再実行する。

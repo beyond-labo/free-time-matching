@@ -21,7 +21,7 @@ kiro:
 
 ## Overview
 
-`AppCompositionRoot` が全機能の Port 実装と TCA Store を組み立てる。`HimatchPrototypeScenario` actor はデモ専用の一貫した状態を持ち、Adapter facet と `AppProjectionRepository` を提供する。本番では同じ Port を API Adapter へ差し替える。
+`AppCompositionRoot` が全機能のPort実装とTCA Storeを組み立てる。認証・プロフィール・削除はProduction Adapterを標準とし、`HimatchPrototypeScenario` actorはDEBUGの明示的なデモと未接続の業務機能だけに限定する。
 
 ## Boundary Commitments
 
@@ -31,7 +31,7 @@ kiro:
 
 ### Out of Boundary
 
-- 個別機能の業務規則、本番トランザクション、API、認可、Push。
+- 個別機能の業務規則、友達・暇・募集の本番トランザクションとAPI、Push。
 
 ### Allowed Dependencies
 
@@ -47,6 +47,7 @@ kiro:
 graph LR
     AppCompositionRoot --> RootStore
     AppCompositionRoot --> FeatureAdapters
+    AppCompositionRoot --> ProductionAccountAdapters
     FeatureAdapters --> PrototypeScenario
     ProjectionRepository --> PrototypeScenario
     Home --> ProjectionRepository
@@ -78,6 +79,7 @@ apps/ios/HimatchTests/AppIntegration/
 | 1.1-1.4 | AppProjectionRepository, Root route | projection / navigation tests |
 | 2.1-2.5 | HimatchPrototypeScenario, facets | actor / reset / cross-effect tests |
 | 3.1-3.5 | AppCompositionRoot, integration tests | build / Swift Testing / Simulator smoke |
+| 3.6-3.7 | ProductionAccountAdapters, AppFeature | composition / restore / logout / deletion tests |
 
 ## Testing Strategy
 

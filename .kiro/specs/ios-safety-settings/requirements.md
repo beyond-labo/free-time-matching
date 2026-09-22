@@ -27,9 +27,9 @@ kiro:
 
 ## Boundary Context
 
-- **In scope**: iOS の通報・ブロック入力と状態、設定、通知設定、サポート文書導線、削除受付 UI。
-- **Out of scope**: 運営管理、SLA、実データ削除、Apple token revoke、APNs、Backend 認可・横断処理。
-- **Adjacent expectations**: Backend はブロック効果、通報是正、削除ジョブを所有し、iOS へ必要最小限の結果だけ返す。
+- **In scope**: iOS の通報・ブロック入力と状態、設定、通知設定、サポート文書導線、Apple再認証を伴う実アカウント削除。
+- **Out of scope**: 運営管理、SLA、APNs、通報・ブロックのBackend横断処理、非同期削除Queue。
+- **Adjacent expectations**: Backend はApple token失効とSupabase Auth user削除を所有し、iOSへ必要最小限の削除状態だけ返す。
 
 ## Requirements
 
@@ -91,7 +91,7 @@ kiro:
 1. When 削除画面を開いた, the iOS app shall プロフィール・暇・友達・未確定回答の削除、主催予定の取消、参加予定からの離脱、セッション失効を説明する
 2. The iOS app shall 主催中の予定を理由に削除を拒否しない
 3. The iOS app shall 削除理由、追加の電話番号・メール登録、サポート連絡を必須にしない
-4. When 必要な再認証が成功して削除を実行した, the iOS app shall 端末アクセスを停止し削除 Port の受付結果を表示する
+4. When freshなApple再認証が成功して削除を実行した, the iOS app shall authorization codeと冪等キーを削除Portへ送り、受付時点でSupabaseセッションと端末アクセスを停止する
 5. Where 削除処理に時間がかかる, the iOS app shall 受付番号、所要期間、処理中、完了、再試行状態を区別する
 6. If Apple token revoke または後続削除が一時失敗した, the iOS app shall アクセス停止済みの受付を成功前へ戻さず、状況照会と再試行状態を表示する
 7. The iOS app shall 既に閲覧された情報やスクリーンショットまで消せるとは説明しない

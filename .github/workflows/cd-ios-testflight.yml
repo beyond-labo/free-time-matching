@@ -19,23 +19,92 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    name: Validate release ref
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      commit_sha: ${{ steps.release-ref.outputs.commit_sha }}
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release ref
+        id: release-ref
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          main_ref="refs/remotes/origin/main"
+          if ! git rev-parse --verify "${main_ref}^{commit}" >/dev/null 2>&1; then
+            echo "origin/main is not available in the checkout" >&2
+            exit 1
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ "${GITHUB_REF_NAME}" != "main" ]]; then
+              echo "workflow_dispatch is only allowed from main" >&2
+              exit 1
+            fi
+            commit_sha="$(git rev-parse HEAD^{commit})"
+            main_sha="$(git rev-parse "${main_ref}^{commit}")"
+            if [[ "$commit_sha" != "$main_sha" ]]; then
+              echo "manual run is not pointing at the current main commit" >&2
+              exit 1
+            fi
+          else
+            tag_name="${GITHUB_REF_NAME}"
+            if [[ ! "$tag_name" =~ ^ios-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "tag must match ios-vX.Y.Z: $tag_name" >&2
+              exit 1
+            fi
+            tag_ref="refs/tags/${tag_name}"
+            if [[ "$(git cat-file -t "$tag_ref")" != "tag" ]]; then
+              echo "release tag must be annotated: $tag_name" >&2
+              exit 1
+            fi
+            commit_sha="$(git rev-parse "${tag_ref}^{commit}")"
+            if ! git merge-base --is-ancestor "$commit_sha" "${main_ref}^{commit}"; then
+              echo "tag commit is not contained in origin/main: $commit_sha" >&2
+              exit 1
+            fi
+          fi
+
+          echo "commit_sha=$commit_sha" >>"$GITHUB_OUTPUT"
+          {
+            echo "### iOS release preflight"
+            echo "- Commit: \`${commit_sha}\`"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >>"$GITHUB_STEP_SUMMARY"
+
   test:
     name: Verify release source
+    needs: preflight
     runs-on: macos-26
     timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
-      - name: Check out repository
+      - name: Check out release commit
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
+          ref: ${{ needs.preflight.outputs.commit_sha }}
+          fetch-depth: 1
           persist-credentials: false
       - name: Build and test
         run: bash scripts/ios/test.sh
 
   release:
     name: Upload to TestFlight
-    needs: test
+    needs:
+      - preflight
+      - test
     runs-on: macos-26
     timeout-minutes: 30
     environment: testflight
@@ -43,9 +112,11 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       IOS_BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
     steps:
-      - name: Check out repository
+      - name: Check out release commit
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
+          ref: ${{ needs.preflight.outputs.commit_sha }}
+          fetch-depth: 1
           persist-credentials: false
       - name: Resolve marketing version
         id: version
@@ -71,6 +142,9 @@ jobs:
           IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
           IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
           IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}

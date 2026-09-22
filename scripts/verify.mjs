@@ -77,12 +77,43 @@ const requiredBackendFiles = [
   "scripts/backend/smoke-health.test.mjs",
   "scripts/terraform/init-r2-backend.sh",
   ".github/workflows/ci-backend.yml",
+  ".github/workflows/ci-supabase.yml",
   ".github/workflows/cd-backend-staging.yml",
   ".github/workflows/cd-backend-production.yml",
+  "supabase/config.toml",
+  "supabase/migrations/202609210001_auth_profile_and_deletion.sql",
+  "supabase/tests/auth_profile_and_deletion.test.sql",
   "infra/cloudflare/README.md",
 ];
 for (const path of requiredBackendFiles) {
   assert.ok(existsSync(join(root, path)), `Backend の必須ファイルがありません: ${path}`);
+}
+
+const migrationRoot = join(root, "supabase/migrations");
+const destructiveMigrationPatterns = [
+  /\bdrop\s+(?:table|schema|type)\b/i,
+  /\balter\s+table\b[\s\S]*?\bdrop\s+column\b/i,
+  /\balter\s+table\b[\s\S]*?\brename\s+(?:column\b|to\b)/i,
+  /\btruncate(?:\s+table)?\b/i,
+  /\bdelete\s+from\b/i,
+  /\balter\s+table\b[\s\S]*?\balter\s+column\b[\s\S]*?\bset\s+not\s+null\b/i,
+];
+for (const path of filesIn(migrationRoot)) {
+  if (extname(path) !== ".sql") continue;
+  const source = readFileSync(path, "utf8");
+  const reviewedMarker = /^\s*--\s*himatch: destructive-migration-reviewed\s*$/m;
+  if (reviewedMarker.test(source)) continue;
+  const executableSQL = source
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/--[^\n]*/g, " ")
+    .replace(/'(?:''|[^'])*'/gs, "''");
+  for (const pattern of destructiveMigrationPatterns) {
+    assert.doesNotMatch(
+      executableSQL,
+      pattern,
+      `破壊的なmigration候補です。expand / contractの承認後だけマーカーを付けてください: ${path}`,
+    );
+  }
 }
 const backendWrangler = readFileSync(join(root, "apps/backend/wrangler.jsonc"), "utf8");
 const backendWranglerConfig = JSON.parse(backendWrangler);
@@ -142,22 +173,96 @@ assert.doesNotMatch(backendCI, /secrets\./, "Backend pull request CI はsecret�
 assert.doesNotMatch(backendCI, /vars\./, "Backend pull request CI はEnvironment variableを参照できません");
 assert.doesNotMatch(backendCI, /^\s+environment:/m, "Backend pull request CI はprotected Environmentを参照できません");
 
+const supabaseCI = readFileSync(join(root, ".github/workflows/ci-supabase.yml"), "utf8");
+assert.match(supabaseCI, /^\s*workflow_call:/m);
+assert.match(supabaseCI, /runs-on: ubuntu-24\.04/);
+assert.match(supabaseCI, /version: 2\.117\.0/);
+assert.match(supabaseCI, /supabase db start/);
+assert.match(supabaseCI, /supabase db lint --local/);
+assert.match(supabaseCI, /supabase test db --local/);
+assert.doesNotMatch(supabaseCI, /pull_request_target/);
+assert.doesNotMatch(supabaseCI, /secrets\./, "Supabase pull request CI はsecretを参照できません");
+assert.doesNotMatch(supabaseCI, /vars\./, "Supabase pull request CI はEnvironment variableを参照できません");
+assert.doesNotMatch(supabaseCI, /^\s+environment:/m, "Supabase pull request CI はprotected Environmentを参照できません");
+
 const backendStagingCD = readFileSync(join(root, ".github/workflows/cd-backend-staging.yml"), "utf8");
 assert.match(backendStagingCD, /group: backend-staging/);
 assert.match(backendStagingCD, /environment: staging/);
-assert.match(backendStagingCD, /needs: verify/);
+assert.match(backendStagingCD, /verify-supabase/);
+assert.match(backendStagingCD, /supabase db push --linked --dry-run --skip-vault/);
+assert.match(backendStagingCD, /supabase db push --linked --skip-vault --yes/);
+assert.match(backendStagingCD, /supabase migration list --linked/);
 assert.match(backendStagingCD, /wrangler deploy --env staging/);
+assert.match(backendStagingCD, /--secrets-file/);
+assert.match(backendStagingCD, /SUPABASE_URL/);
 assert.match(backendStagingCD, /smoke-health\.mjs/);
 assert.match(backendStagingCD, /BACKEND_HEALTH_MAX_ATTEMPTS/);
+assert.ok(
+  backendStagingCD.indexOf("Apply Terraform changes") <
+    backendStagingCD.indexOf("Apply Supabase migrations to staging") &&
+    backendStagingCD.indexOf("Apply Supabase migrations to staging") <
+      backendStagingCD.indexOf("Deploy Worker to staging"),
+  "stagingはTerraform、DB migration、Workerの順で配備してください",
+);
+assert.match(backendStagingCD, /Partial release requires attention/);
+assert.match(backendStagingCD, /steps\.database-migration\.outcome != 'skipped'/);
+assert.ok(
+  backendStagingCD.split("supabase migration list --linked").length - 1 >= 2,
+  "stagingは通常適用後と失敗時復旧の両方でlinked migration履歴を確認してください",
+);
+for (const setting of [
+  "SUPABASE_PROJECT_REF",
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
+  "APPLE_CLIENT_ID",
+  "APPLE_TEAM_ID",
+  "APPLE_KEY_ID",
+  "APPLE_PRIVATE_KEY",
+  "ACCOUNT_DELETION_STATUS_SECRET",
+]) {
+  assert.match(backendStagingCD, new RegExp(`\\b${setting}\\b`), `staging CDに${setting}がありません`);
+}
 
 const backendProductionCD = readFileSync(join(root, ".github/workflows/cd-backend-production.yml"), "utf8");
 assert.match(backendProductionCD, /group: backend-production/);
 assert.match(backendProductionCD, /environment: production-plan/);
 assert.match(backendProductionCD, /environment: production/);
+assert.match(backendProductionCD, /verify-supabase/);
 assert.match(backendProductionCD, /git merge-base --is-ancestor/);
 assert.match(backendProductionCD, /terraform plan -lock=false -detailed-exitcode/);
+assert.match(backendProductionCD, /supabase db push --linked --dry-run --skip-vault/);
+assert.match(backendProductionCD, /supabase db push --linked --skip-vault --yes/);
+assert.match(backendProductionCD, /supabase migration list --linked/);
 assert.match(backendProductionCD, /wrangler deploy --env production/);
+assert.match(backendProductionCD, /--secrets-file/);
 assert.match(backendProductionCD, /BACKEND_HEALTH_MAX_ATTEMPTS/);
+assert.ok(
+  backendProductionCD.indexOf("Recalculate and apply Terraform changes") <
+    backendProductionCD.indexOf("Apply Supabase migrations to production") &&
+    backendProductionCD.indexOf("Apply Supabase migrations to production") <
+      backendProductionCD.indexOf("Deploy Worker to production"),
+  "productionはTerraform、DB migration、Workerの順で配備してください",
+);
+assert.match(backendProductionCD, /Partial release requires attention/);
+assert.match(backendProductionCD, /steps\.database-migration\.outcome != 'skipped'/);
+assert.ok(
+  backendProductionCD.split("supabase migration list --linked").length - 1 >= 2,
+  "productionは通常適用後と失敗時復旧の両方でlinked migration履歴を確認してください",
+);
+for (const setting of [
+  "SUPABASE_PROJECT_REF",
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
+  "APPLE_CLIENT_ID",
+  "APPLE_TEAM_ID",
+  "APPLE_KEY_ID",
+  "APPLE_PRIVATE_KEY",
+  "ACCOUNT_DELETION_STATUS_SECRET",
+]) {
+  assert.match(backendProductionCD, new RegExp(`\\b${setting}\\b`), `production CDに${setting}がありません`);
+}
 const productionPlanJob = backendProductionCD.match(
   /\n  production-plan:[\s\S]*?\n  apply-and-deploy:/,
 )?.[0];
@@ -166,6 +271,11 @@ assert.doesNotMatch(
   productionPlanJob,
   /BACKEND_HEALTH_URL/,
   "production-planへBACKEND_HEALTH_URLを登録しないでください",
+);
+assert.doesNotMatch(
+  productionPlanJob,
+  /SUPABASE_(ACCESS_TOKEN|DB_PASSWORD)/,
+  "production-planへSupabaseの変更資格情報を登録しないでください",
 );
 
 for (const terraformRoot of [
@@ -184,7 +294,7 @@ for (const terraformRoot of [
   }
 }
 
-const backendWorkflows = [backendCI, backendStagingCD, backendProductionCD];
+const backendWorkflows = [backendCI, supabaseCI, backendStagingCD, backendProductionCD];
 for (const workflow of backendWorkflows) {
   assert.doesNotMatch(workflow, /pull_request_target/);
   assert.doesNotMatch(workflow, /actions\/upload-artifact/);
@@ -247,7 +357,20 @@ assert.doesNotMatch(iosCI, /^\s+paths:/m, "required iOS check は path filter �
 const iosCD = readFileSync(join(root, ".github/workflows/cd-ios-testflight.yml"), "utf8");
 assert.match(iosCD, /environment: testflight/);
 assert.match(iosCD, /APP_STORE_CONNECT_PRIVATE_KEY_BASE64/);
-assert.match(iosCD, /needs: test/);
+assert.match(iosCD, /SUPABASE_URL/);
+assert.match(iosCD, /SUPABASE_PUBLISHABLE_KEY/);
+assert.match(iosCD, /API_BASE_URL/);
+assert.match(iosCD, /git merge-base --is-ancestor/);
+assert.match(iosCD, /release tag must be annotated/);
+assert.match(iosCD, /\^ios-v\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$/);
+assert.ok(
+  iosCD.split("ref: ${{ needs.preflight.outputs.commit_sha }}").length - 1 >= 2,
+  "iOS testとreleaseはpreflightで確定したcommitをcheckoutしてください",
+);
+const iosRelease = readFileSync(join(root, "scripts/ios/release.sh"), "utf8");
+for (const setting of ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "API_BASE_URL"]) {
+  assert.match(iosRelease, new RegExp(`\\b${setting}\\b`), `iOS release scriptに${setting}がありません`);
+}
 
 const androidBuild = readFileSync(join(root, "apps/android/app/build.gradle.kts"), "utf8");
 assert.match(androidBuild, /compileSdk = 37/);
@@ -282,6 +405,8 @@ for (const pattern of [
   "*.tfplan",
   "*.tfvars",
   "*.tfvars.json",
+  "supabase/.branches/",
+  "supabase/.temp/",
 ]) {
   assert.ok(gitignore.split("\n").includes(pattern), `秘密・配布成果物の ignore がありません: ${pattern}`);
 }

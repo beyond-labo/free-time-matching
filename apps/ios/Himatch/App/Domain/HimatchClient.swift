@@ -37,3 +37,38 @@ struct HimatchClient: Sendable {
     var block: @Sendable (UUID) async -> AppSnapshot
     var deleteAccount: @Sendable () async -> AppSnapshot
 }
+
+extension AppSnapshot {
+    static func empty(profileName: String = "", profileIcon: String = PresetProfileIcon.sun.rawValue) -> Self {
+        Self(
+            profileName: profileName,
+            profileIcon: profileIcon,
+            inviteCode: InviteCode(value: "", expiresAt: .distantPast),
+            availability: [],
+            friends: [],
+            requests: [],
+            hostings: [],
+            invitations: [],
+            plans: [],
+            blocked: [],
+            deletionStatus: .idle
+        )
+    }
+}
+
+extension HimatchClient {
+    static let productionPlaceholder = Self(
+        load: { .empty() },
+        saveProfile: { _, _ in throw PrototypeError.notFound },
+        addAvailability: { _ in throw PrototypeError.notFound },
+        removeAvailability: { _ in .empty() },
+        createHosting: { _ in throw PrototypeError.notFound },
+        acceptInvitation: { _, _ in throw PrototypeError.notFound },
+        confirmHosting: { _ in throw PrototypeError.notFound },
+        acceptRequest: { _ in .empty() },
+        removeFriend: { _ in .empty() },
+        submitReport: { _, _ in throw PrototypeError.notFound },
+        block: { _ in .empty() },
+        deleteAccount: { .empty() }
+    )
+}

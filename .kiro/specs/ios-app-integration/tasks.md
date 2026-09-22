@@ -26,14 +26,14 @@ kiro:
   - _Boundary: AppProjectionRepository_
   - _Depends: 1_
 
-- [ ] 3. Root Composition と Navigation を接続する
-  - 全 Adapter / UseCase / Reducer を注入し、3タブと各詳細を delegate action で遷移できる。
-  - _Requirements: 3.1, 3.2_
+- [x] 3. Root Composition と Navigation を接続する
+  - 全Adapter / UseCase / Reducerを注入し、Releaseでは認証・プロフィール・削除をProductionへ固定し、3タブと各詳細をdelegate actionで遷移できる。
+  - _Requirements: 3.1, 3.2, 3.6_
   - _Boundary: AppCompositionRoot, AppFeature_
   - _Depends: 1, 2_
 
 - [ ] 4. repository verify と全機能統合テストを完了する
-  - project構造、TCA pin、entitlements、Swift Testing専用検査、主要デモ経路の build/test/smoke が成功し、Backend未検証範囲を区別する。
-  - _Requirements: 3.3, 3.4, 3.5_
+  - project構造、TCA pin、Supabase pin、entitlements、Swift Testing専用検査、セッション復元・logout・削除後停止と主要デモ経路のbuild/test/smokeが成功し、未接続Backend範囲を区別する。
+  - _Requirements: 3.3, 3.4, 3.5, 3.7_
   - _Boundary: AppIntegrationValidation_
   - _Depends: 1, 2, 3_

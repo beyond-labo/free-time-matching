@@ -8,12 +8,7 @@ struct HimatchApp: App {
     private let store: StoreOf<AppFeature>
 
     init() {
-        let scenario = HimatchPrototypeScenario()
-        store = Store(initialState: AppFeature.State()) {
-            AppFeature()
-        } withDependencies: {
-            $0.himatchClient = scenario.client()
-        }
+        store = AppCompositionRoot.makeStore()
     }
 
     var body: some Scene {

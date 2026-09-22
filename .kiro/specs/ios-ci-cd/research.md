@@ -126,6 +126,10 @@ kiro:
 
 ## Change Log
 
+### 2026-09-22
+
+`backend-user-account-management`仕様で承認された公開アプリ設定の注入とrelease ref検証を既存TestFlight配布へ合成した。`SUPABASE_URL`、publishable key、Backend API URLだけをarchiveへ渡し、server secretをiOS binaryへ渡さない境界を追加した。
+
 ### 2026-09-21
 
 ユーザーの iOS 戦略決定により、iOS の単体・Reducer・統合テストを Swift Testing に統一し、XCTest の import と XCTestCase 継承を禁止した。`xcodebuild test` と既存 test target は実行経路として維持し、テスト記述フレームワークだけを置換した。

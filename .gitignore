@@ -23,6 +23,8 @@ fastlane/test_output/
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
+supabase/.branches/
+supabase/.temp/
 DerivedData/
 .build/
 build/
@@ -31,6 +33,7 @@ build/
 local.properties
 xcuserdata/
 *.xcuserstate
+apps/ios/Config/Local.xcconfig
 .terraform/
 *.tfstate
 *.tfstate.*

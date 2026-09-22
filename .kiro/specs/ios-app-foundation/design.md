@@ -18,7 +18,7 @@ kiro:
 
 ## Overview
 
-SwiftUI の単一暫定画面を TCA の `AppFeature` と `AppView` に置換し、Onboarding、ProfileSetup、MainTab を子機能として合成する。Application は認証・プロフィールの UseCase と Port を所有し、Composition が実装を注入する。
+TCA の `AppFeature` と `AppView` に、起動時セッション復元、native Apple認証、プロフィールAPIを接続する。Applicationは認証・プロフィールのPortを所有し、CompositionがSupabase/Auth API AdapterまたはDEBUG Prototype Adapterを明示的に注入する。
 
 ### Goals
 
@@ -28,7 +28,6 @@ SwiftUI の単一暫定画面を TCA の `AppFeature` と `AppView` に置換し
 
 ### Non-Goals
 
-- Backend による credential 検証と実セッション。
 - 暇、友達、募集、安全機能の業務実装。
 - APNs capability と通知許可。
 
@@ -37,16 +36,16 @@ SwiftUI の単一暫定画面を TCA の `AppFeature` と `AppView` に置換し
 ### This Spec Owns
 
 - アプリ起動状態、Onboarding、ProfileSetup、3タブとルート Composition。
-- `AuthenticationPort`、`ProfileRepository`、入力・失敗型。
+- `AuthenticationPort`、`ProfileRepository`、セッション状態、入力・失敗型。
 - TCA 1.26.1 と filesystem-synchronized Xcode group の導入。
 
 ### Out of Boundary
 
-- 各タブの業務状態、サーバー認可、Apple token revoke。
+- 各タブの業務状態、Apple token revokeとAuth user削除。
 
 ### Allowed Dependencies
 
-- SwiftUI / AuthenticationServices / TCA 1.26.1。
+- SwiftUI / AuthenticationServices / TCA 1.26.1 / supabase-swift固定版。
 - iOS 17、Swift 6.3、Xcode 26.6。
 
 ### Revalidation Triggers
@@ -62,8 +61,10 @@ graph LR
     AppFeature --> ProfileUseCase
     AuthUseCase --> AuthenticationPort
     ProfileUseCase --> ProfileRepository
-    PrototypeAdapters --> AuthenticationPort
-    PrototypeAdapters --> ProfileRepository
+    SupabaseAuthAdapter --> AuthenticationPort
+    ProfileAPIAdapter --> ProfileRepository
+    DebugPrototypeAdapters --> AuthenticationPort
+    DebugPrototypeAdapters --> ProfileRepository
     Composition --> AppFeature
     Composition --> PrototypeAdapters
 ```
@@ -76,7 +77,8 @@ graph LR
 |---|---|---|---|
 | UI | SwiftUI / iOS 17 | View と Navigation | Dynamic Type / VoiceOver |
 | State | TCA 1.26.1 | Reducer、Store、Effect | 1.26.2 は Swift 6.4 要求のため不採用 |
-| Auth UI | AuthenticationServices | Apple 標準ボタン | サーバー検証は Port の先 |
+| Auth UI | AuthenticationServices | Apple 標準ボタン、nonce | identity tokenとauthorization codeを取得 |
+| Auth SDK | supabase-swift 固定版 | session発行・保存・更新 | native `signInWithIdToken` |
 | Build/Test | Xcode 26.6 / Swift 6.3 / Swift Testing | app と test | TCA Package.resolved を固定し、XCTest は使用しない |
 
 ## File Structure Plan
@@ -87,11 +89,11 @@ apps/ios/Himatch/
 ├── App/Presentation/View/AppView.swift
 ├── App/Composition/AppCompositionRoot.swift
 ├── Authentication/Application/{Port,UseCase}/
-├── Authentication/Infrastructure/Adapter/PrototypeAuthenticationAdapter.swift
+├── Authentication/Infrastructure/Adapter/{Supabase,Prototype}AuthenticationAdapter.swift
 ├── Authentication/Presentation/{Reducer,View}/
 ├── Profile/Application/{Port,UseCase}/
 ├── Profile/Domain/Model/UserProfile.swift
-├── Profile/Infrastructure/Adapter/PrototypeProfileAdapter.swift
+├── Profile/Infrastructure/Adapter/{API,Prototype}ProfileAdapter.swift
 ├── Profile/Presentation/{Reducer,View}/
 ├── MainTab/Presentation/{Reducer,View}/
 └── Himatch.entitlements
@@ -106,17 +108,19 @@ apps/ios/HimatchTests/AppFoundation/
 
 ```swift
 struct AppleAuthorizationInput: Equatable, Sendable {
-    let authorizationCode: Data
-    let userIdentifier: String
+    let identityToken: String
+    let authorizationCode: String?
+    let rawNonce: String
 }
 
 protocol AuthenticationPort: Sendable {
     func authenticate(_ input: AppleAuthorizationInput) async throws -> SessionSummary
+    func currentSession() async throws -> SessionSummary?
     func signOut() async throws
 }
 ```
 
-失敗は `cancelled`、`unavailable`、`rejected(message)`、`transport` へ正規化する。キャンセルを通信失敗として表示しない。Prototype Adapter は `DEBUG` でのみデモセッションを返し、本番認証成功を装わない。
+Apple requestにはraw nonceのSHA-256を設定し、Supabaseにはidentity tokenとraw nonceを渡す。失敗は`cancelled`、`unavailable`、`rejected(message)`、`transport`へ正規化し、キャンセルを通信失敗として表示しない。起動時はsession復元後に`GET /v1/me`でrouteを決める。Prototype Adapterは`DEBUG`でのみデモセッションを返し、Release Compositionは構成値不足を明示的に失敗させる。
 
 ## Requirements Traceability
 
@@ -126,6 +130,7 @@ protocol AuthenticationPort: Sendable {
 | 2.1-2.4 | ProfileSetupFeature, ProfileRepository | validation / UseCase tests |
 | 3.1-3.3 | AppFeature, MainTabFeature | route transition tests |
 | 4.1-4.5 | CommonUiState, reusable views | state and accessibility inspection |
+| 5.1-5.5 | AuthenticationPort, AppFeature, Composition | restore / refresh / invalidation tests |
 
 ## Testing Strategy
 
@@ -137,6 +142,6 @@ protocol AuthenticationPort: Sendable {
 
 ## Security Considerations
 
-- authorization code、user identifier、暇時間をログへ出さない。
-- Keychain を含む永続セッションは Backend 契約確定まで実装しない。
+- identity token、authorization code、raw nonce、access token、暇時間をログへ出さない。
+- 生のApple credentialを永続化せず、Supabase SDKの安全なsession storageを利用する。
 - Sign in with Apple entitlement 追加時は配布 profile の再作成を必要条件として文書化する。

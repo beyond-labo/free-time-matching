@@ -55,7 +55,9 @@ GitHub Releases、オブジェクトストレージ等の配布先と保存期�
 ## 互換性
 
 初版の業務 API は `/v1` を接頭辞とする方針です。
-`/v1/me`、`/v1/friendships`、`/v1/availability-days`、`/v1/hostings` は候補であり、今回のファイルには未定義です。
+`/v1/me`は本人プロフィールのGET/PUT、`/v1/account-deletion-requests`はApple再認証を伴う削除受付・状況照会として定義します。
+保護APIは`Authorization: Bearer <Supabase access token>`を要求し、本人IDはJWTのsubjectからのみ確定します。
+友達、暇、募集の`/v1/friendships`、`/v1/availability-days`、`/v1/hostings`は引き続き候補であり未定義です。
 古い iOS が残る前提で、既存クライアントの動作を維持します。
 
 フィールド削除、名前変更、意味変更、リクエストの必須項目追加、レスポンス形状変更は互換性を検討します。
@@ -74,7 +76,16 @@ Outbox、SQS、通知 Worker を導入する場合は、単一 Backend 内部の
 別 Backend が購読する公開イベントを導入するときは、Producer 所有の JSON Schema または AsyncAPI としてバージョン管理します。
 Producer と Consumer で TypeScript interface を直接共有しません。
 
+## ユーザーアカウント契約
+
+- `GET /v1/me` → `{ userId, profile: null | { nickname, presetIconKey } }`
+- `PUT /v1/me` ← `{ nickname, presetIconKey }`。nicknameはtrim後1〜20 grapheme、iconは定義済み4値。
+- `POST /v1/account-deletion-requests` ← `Idempotency-Key` headerと`{ appleAuthorizationCode }`。
+- 削除応答は`{ reference, status, statusToken, message? }`。`status`は`accepted`、`processing`、`completed`、`actionRequired`を区別する。
+- `GET /v1/account-deletion-requests/{reference}`は`Authorization: Deletion <statusToken>`で削除後も状況を取得する。
+
+生のApple credential、Supabase token、secretを応答・ログへ含めません。
+
 ## 現在の配置
 
-OpenAPI、生成スクリプト、生成クライアントはまだ存在しません。
-これらは実行できる処理を実装した時点で追加します。
+HTTP実装は存在しますが、OpenAPI生成スクリプトと生成クライアントはまだ存在しません。初版iOS Adapterは上記の固定契約を局所DTOへ変換し、生成経路導入時に置き換えます。

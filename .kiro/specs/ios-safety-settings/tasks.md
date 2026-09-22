@@ -38,8 +38,8 @@ kiro:
   - _Boundary: SettingsFeature, NotificationSettingsFeature_
   - _Depends: 1_
 
-- [ ] 5. アカウント削除画面を実装する
-  - 削除影響、再認証、受付、処理中、完了、再試行を区別し、主催予定や追加連絡先を削除の障害にしない。
+- [x] 5. アカウント削除画面とProduction Adapterを実装する
+  - 削除影響、fresh Apple再認証、冪等なBackend要求、session停止、完了、actionRequiredを区別し、主催予定や追加連絡先を削除の障害にしない。
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
   - _Boundary: AccountDeletionFeature_
   - _Depends: 2, 4_

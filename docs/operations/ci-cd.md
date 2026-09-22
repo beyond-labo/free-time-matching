@@ -8,6 +8,7 @@ Backend、iOS、Androidは、検証とリリースを独立して実行します
 | 対象 | 文書 | 配布先 |
 | --- | --- | --- |
 | Backend | [Backend CI/CDとCloudflare](backend-ci-cd.md) | Cloudflare Workers staging / production |
+| Supabase | [Supabase Auth・Database CI/CD](supabase-auth.md) | Supabase Postgres staging / production |
 | iOS | [iOS CI/CDとTestFlight](ios-ci-cd.md) | App Store Connect TestFlight |
 | Android | [Android CI/CDとGoogle Play](android-ci-cd.md) | Google Play internal track |
 
@@ -17,10 +18,11 @@ Backend、iOS、Androidは、検証とリリースを独立して実行します
 | --- | --- | --- | --- |
 | `Repository CI` | pull request、`main` push、手動 | JSON、workspace、文書リンク、CI/CD構成を検査 | 使用しない |
 | `Backend CI` | pull request、`main` push、手動、再利用呼び出し | BackendとTerraformを検証 | 使用しない |
-| `Backend CD (staging)` | `main` push | Terraform apply、Worker deploy、health smoke | `staging` Environmentのみ |
-| `Backend CD (production)` | `backend-vX.Y.Z` tag、手動 | preflight、承認、Terraform apply、Worker deploy、health smoke | `production-plan`と`production` Environment |
+| `Supabase CI` | pull request、`main` push、手動、再利用呼び出し | migration初期適用、DB lint、pgTAP | 使用しない |
+| `Backend CD (staging)` | `main` push | Terraform apply、Supabase migration、Worker設定・deploy、health smoke | `staging` Environmentのみ |
+| `Backend CD (production)` | `backend-vX.Y.Z` tag、手動 | preflight、承認、Terraform apply、Supabase migration、Worker設定・deploy、health smoke | `production-plan`と`production` Environment |
 | `iOS CI` | pull request、`main` push、手動 | signing preflight、Simulator build、Swift Testing | 使用しない |
-| `iOS TestFlight` | `ios-vX.Y.Z` tag、手動 | 同じテスト後、署名、IPA export、App Store Connect upload | `testflight` Environmentのみ |
+| `iOS TestFlight` | `ios-vX.Y.Z` annotated tag、`main`からの手動実行 | release ref検証、同じcommitのtest、署名、IPA export、App Store Connect upload | `testflight` Environmentのみ |
 | `Android CI` | pull request、`main` push、手動 | lint、JVM単体テスト、debug build | 使用しない |
 | `Android Google Play` | `android-vX.Y.Z` tag、手動 | AAB署名、internal track upload | `play-internal` Environmentのみ |
 
@@ -31,6 +33,7 @@ pull requestと承認を必須にし、次のstatus checksをrequired checksへ�
 
 - `Repository validation`
 - `Verify backend and Cloudflare configuration`
+- `Verify Supabase migrations and RLS`
 - `iOS build and test`
 - `Android build and test`
 

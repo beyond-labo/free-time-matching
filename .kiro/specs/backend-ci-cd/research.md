@@ -170,6 +170,10 @@ kiro:
 
 ## Change Log
 
+### 2026-09-22
+
+`backend-user-account-management`仕様で承認されたSupabase migrationと実行時設定注入を既存Backend配布へ合成した。Terraform apply、DB migrationとlinked履歴確認、Worker deploy、health smokeの順序を現行契約として同期し、Worker rollbackがDB rollbackではない境界を維持した。
+
 ### 2026-09-20
 
 ユーザーの実装順承認を受け、brief の広い CI/CD 構成案から、今回実装する最小 Worker、運用 endpoint `GET /healthz`、pnpm scripts、runtime test、型検査、bundle dry-run、README/既存検証の更新だけを現行範囲として確定した。`/healthz` の公開 payload は固定 `{\"status\":\"ok\"}` とし、内部情報を返さない。Terraform、CD、OpenAPI、実デプロイは brief の後続範囲として扱い、今回の実行タスクには含めない。

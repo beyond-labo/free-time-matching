@@ -8,6 +8,8 @@ struct AppView: View {
     var body: some View {
         ZStack {
             switch store.route {
+            case .launching:
+                ProgressView("サインイン状態を確認中…")
             case .onboarding:
                 OnboardingView(store: store)
             case .profile:
@@ -43,6 +45,7 @@ struct AppView: View {
 
 private struct OnboardingView: View {
     let store: StoreOf<AppFeature>
+    @State private var rawNonce: String?
 
     var body: some View {
         ScrollView {
@@ -63,14 +66,27 @@ private struct OnboardingView: View {
 
                 SignInWithAppleButton(.signIn) { request in
                     request.requestedScopes = []
+                    do {
+                        let nonce = try AppleNonce.generate()
+                        rawNonce = nonce
+                        request.nonce = AppleNonce.sha256(nonce)
+                    } catch {
+                        rawNonce = nil
+                        store.send(.appleAuthorizationFailed(error.localizedDescription))
+                    }
                 } onCompletion: { result in
                     switch result {
                     case let .success(authorization):
-                        let credential = authorization.credential as? ASAuthorizationAppleIDCredential
-                        let code = credential?.authorizationCode?.base64EncodedString()
-                        store.send(.appleAuthorizationCompleted(code))
-                    case .failure:
-                        store.send(.appleAuthorizationCompleted(nil))
+                        do {
+                            store.send(.appleAuthorizationCompleted(try appleCredential(authorization, rawNonce: rawNonce)))
+                        } catch {
+                            store.send(.appleAuthorizationFailed(error.localizedDescription))
+                        }
+                        rawNonce = nil
+                    case let .failure(error):
+                        rawNonce = nil
+                        let cancelled = (error as? ASAuthorizationError)?.code == .canceled
+                        store.send(.appleAuthorizationFailed(cancelled ? nil : error.localizedDescription))
                     }
                 }
                 .signInWithAppleButtonStyle(.black)
@@ -130,7 +146,7 @@ private struct PrivacyPoint: View {
 
 private struct ProfileSetupView: View {
     let store: StoreOf<AppFeature>
-    private let icons = ["sun.max.fill", "leaf.fill", "gamecontroller.fill", "figure.run"]
+    private let icons = PresetProfileIcon.allCases
 
     var body: some View {
         NavigationStack {
@@ -147,6 +163,9 @@ private struct ProfileSetupView: View {
                     Text("\(store.profileName.count)/20文字")
                         .font(.caption)
                         .foregroundStyle(store.profileName.count > 20 ? .red : .secondary)
+                    if let message = store.profileValidationMessage {
+                        Text(message).font(.caption).foregroundStyle(.red)
+                    }
                 } header: {
                     Text("表示名")
                 } footer: {
@@ -155,7 +174,8 @@ private struct ProfileSetupView: View {
 
                 Section("アイコン") {
                     HStack {
-                        ForEach(icons, id: \.self) { icon in
+                        ForEach(icons, id: \.self) { preset in
+                            let icon = preset.rawValue
                             Button {
                                 store.send(.profileIconChanged(icon))
                             } label: {
@@ -399,14 +419,11 @@ private struct SettingsView: View {
                 }
             }
             .navigationTitle("設定")
-            .confirmationDialog(
-                "アカウントを削除しますか？",
-                isPresented: Binding(get: { store.deleteConfirmationPresented }, set: { store.send(.showDeleteConfirmation($0)) }),
-                titleVisibility: .visible
-            ) {
-                Button("削除を開始", role: .destructive) { store.send(.deleteAccountTapped) }
-            } message: {
-                Text("暇・友達・回答を削除し、主催予定を取消、参加予定から離脱します。処理中でもアプリへのアクセスは停止します。")
+            .sheet(isPresented: Binding(
+                get: { store.deleteConfirmationPresented },
+                set: { store.send(.showDeleteConfirmation($0)) }
+            )) {
+                AccountDeletionView(store: store)
             }
         }
     }
@@ -640,20 +657,135 @@ private struct ReportView: View {
 
 private struct DeletionAcceptedView: View {
     let store: StoreOf<AppFeature>
+    @State private var rawNonce: String?
 
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundStyle(.green)
-            Text("削除を受け付けました").font(.title2.bold())
-            if case let .accepted(reference) = store.snapshot?.deletionStatus {
-                Text("受付番号: \(reference)").font(.body.monospaced())
+            Image(systemName: statusIcon).font(.system(size: 56)).foregroundStyle(statusColor)
+            if store.accountDeletionReceipt == nil {
+                Text("削除結果の確認が必要です").font(.title2.bold())
+            } else if store.accountDeletionReceipt?.status == .actionRequired {
+                Text("削除手続きに対応が必要です").font(.title2.bold())
+            } else if store.accountDeletionReceipt?.status == .accepted
+                        || store.accountDeletionReceipt?.status == .processing {
+                Text("削除手続きを処理中です").font(.title2.bold())
+            } else {
+                Text("アカウントを削除しました").font(.title2.bold())
             }
-            Text("アプリへのアクセスは停止しました。Apple連携の失効や関連データの削除は再試行可能な処理として進めます。")
+            if let receipt = store.accountDeletionReceipt {
+                Text("受付番号: \(receipt.reference)").font(.body.monospaced())
+                if let message = receipt.message { Text(message).foregroundStyle(.secondary) }
+            } else if let message = store.deletionRecoveryMessage {
+                Text(message).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            Text("通常画面へのアクセスは停止しました。削除完了後に再登録する場合はAppleでサインインしてください。")
                 .multilineTextAlignment(.center).foregroundStyle(.secondary)
-            Button("登録画面へ戻る") { store.send(.logoutTapped) }
-                .buttonStyle(.bordered)
+            if store.accountDeletionReceipt == nil, store.authenticationSession != nil {
+                SignInWithAppleButton(.continue) { request in
+                    request.requestedScopes = []
+                    do {
+                        let nonce = try AppleNonce.generate()
+                        rawNonce = nonce
+                        request.nonce = AppleNonce.sha256(nonce)
+                    } catch {
+                        rawNonce = nil
+                        store.send(.appleAuthorizationFailed(error.localizedDescription))
+                    }
+                } onCompletion: { result in
+                    switch result {
+                    case let .success(authorization):
+                        do {
+                            store.send(.deleteAccountAuthorized(try appleCredential(authorization, rawNonce: rawNonce)))
+                        } catch {
+                            store.send(.appleAuthorizationFailed(error.localizedDescription))
+                        }
+                    case let .failure(error):
+                        let cancelled = (error as? ASAuthorizationError)?.code == .canceled
+                        store.send(.appleAuthorizationFailed(cancelled ? nil : error.localizedDescription))
+                    }
+                    rawNonce = nil
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(minHeight: 50)
+            } else if store.accountDeletionReceipt?.status == .completed {
+                Button("登録画面へ戻る") { store.send(.logoutTapped) }
+                    .buttonStyle(.bordered)
+            }
         }
         .padding(32)
+    }
+
+    private var statusIcon: String {
+        guard let status = store.accountDeletionReceipt?.status else { return "exclamationmark.shield.fill" }
+        switch status {
+        case .accepted, .processing: return "clock.badge.checkmark.fill"
+        case .completed: return "checkmark.circle.fill"
+        case .actionRequired: return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var statusColor: Color {
+        guard let status = store.accountDeletionReceipt?.status else { return .orange }
+        switch status {
+        case .accepted, .processing: return .orange
+        case .completed: return .green
+        case .actionRequired: return .orange
+        }
+    }
+}
+
+private struct AccountDeletionView: View {
+    @Environment(\.dismiss) private var dismiss
+    let store: StoreOf<AppFeature>
+    @State private var rawNonce: String?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("削除されるもの") {
+                    Text("プロフィール、暇、友達、未確定の回答")
+                    Text("主催中の予定は取消され、参加予定から離脱します")
+                    Text("この端末のセッションを停止します")
+                }
+                Section {
+                    Text("既に他の人が閲覧した情報やスクリーンショットまでは削除できません。削除理由や追加の連絡先は必要ありません。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("本人確認") {
+                    Text("削除を確定するため、Appleで再認証してください。")
+                    SignInWithAppleButton(.continue) { request in
+                        request.requestedScopes = []
+                        do {
+                            let nonce = try AppleNonce.generate()
+                            rawNonce = nonce
+                            request.nonce = AppleNonce.sha256(nonce)
+                        } catch {
+                            rawNonce = nil
+                            store.send(.appleAuthorizationFailed(error.localizedDescription))
+                        }
+                    } onCompletion: { result in
+                        switch result {
+                        case let .success(authorization):
+                            do {
+                                store.send(.deleteAccountAuthorized(try appleCredential(authorization, rawNonce: rawNonce)))
+                            } catch {
+                                store.send(.appleAuthorizationFailed(error.localizedDescription))
+                            }
+                            rawNonce = nil
+                        case let .failure(error):
+                            rawNonce = nil
+                            let cancelled = (error as? ASAuthorizationError)?.code == .canceled
+                            store.send(.appleAuthorizationFailed(cancelled ? nil : error.localizedDescription))
+                        }
+                    }
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(minHeight: 50)
+                }
+            }
+            .navigationTitle("アカウント削除")
+            .toolbar { Button("閉じる") { dismiss() } }
+        }
     }
 }
 
@@ -757,6 +889,23 @@ private func visibilityExplanation(_ visibility: AvailabilityVisibility) -> Stri
     case .shareOnHosting:
         "友達が募集を始めたとき、募集と重なる暇時間を主催者に表示します。自動で参加OKにはなりません。"
     }
+}
+
+private func appleCredential(
+    _ authorization: ASAuthorization,
+    rawNonce: String?
+) throws -> AppleAuthorizationCredential {
+    guard
+        let rawNonce,
+        let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+        credential.identityToken != nil,
+        credential.authorizationCode != nil
+    else { throw AuthenticationFailure.invalidAppleCredential }
+    return AppleAuthorizationCredential(
+        identityToken: try AppleCredentialDataDecoder.identityToken(credential.identityToken),
+        authorizationCode: try AppleCredentialDataDecoder.authorizationCode(credential.authorizationCode),
+        rawNonce: rawNonce
+    )
 }
 
 #Preview {

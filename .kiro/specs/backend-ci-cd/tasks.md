@@ -74,7 +74,7 @@ kiro:
   - _Depends: 6_
 
 - [x] 8. `main` から staging への自動配布を追加する
-  - `.github/workflows/cd-backend-staging.yml` を作成し、同一 SHA の verify → staging Environment の Terraform plan/apply → `wrangler deploy --env staging` → `BACKEND_HEALTH_URL/healthz` smoke の順を固定する。
+  - `.github/workflows/cd-backend-staging.yml` を作成し、同一 SHA の verify → staging Environment の Terraform plan/apply → Supabase migrationとlinked履歴確認 → `wrangler deploy --env staging` → `BACKEND_HEALTH_URL/healthz` smoke の順を固定する。
   - `backend-staging` concurrency、Environment vars/secrets、R2 remote state、state/plan を artifact にしない契約を実装し、未検証の `use_lockfile` は有効化しない。
   - 任意の verify/plan/apply/deploy/smoke 失敗で後続 mutation を停止し、summary に commit SHA と deploy identifier を残す。
   - 完了条件: credential のモックまたは dry-run でジョブ順序、failure propagation、concurrency、secret 名/vars 名が検証できる。
@@ -85,7 +85,7 @@ kiro:
 - [x] 9. production の preflight・承認・再計算配布を追加する
   - `.github/workflows/cd-backend-production.yml` を作成し、`backend-vX.Y.Z` tag と manual trigger、tag SHA の `main` ancestor check、同一 SHA の verify を実装する。
   - `production-plan` の read-only credential で `-lock=false` の非機密 plan summary を作り、saved plan を保存せず、`production` protected Environment の required reviewer 承認後に `backend-production` concurrency 下で plan を再計算して apply する。
-  - apply 成功後だけ `wrangler deploy --env production` と health smoke を行い、`backend-production` concurrency、commit/run/version/URL/actor summary、staging/production credential 分離を実装する。
+  - apply 成功後だけSupabase migrationとlinked履歴確認を行い、その後に`wrangler deploy --env production`とhealth smokeを行う。`backend-production` concurrency、commit/run/version/URL/actor summary、staging/production credential分離を実装する。
   - 完了条件: approval 前の plan が apply に再利用されず、main 非包含 tag、verify failure、approval 未完了、smoke failure が変更処理を停止することを workflow 検査で確認できる。
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 9.1, 9.2, 9.3, 10.3_
   - _Boundary: ProductionDeployWorkflow_
@@ -93,7 +93,7 @@ kiro:
 
 - [x] 10. 運用文書、rollback、検証を同期する
   - `infra/cloudflare/README.md`、`apps/backend/README.md`、`docs/operations/backend-ci-cd.md`、必要な `scripts/verify.mjs` と `.gitignore` を更新し、secret/vars、R2 bootstrap、Environment/reviewer、state/plan 非公開、ownership、rollback の開始条件と実行者を記載する。
-  - smoke failure 時に自動データ操作をせず安定 Worker version を 100% traffic に戻す手順、Worker rollback が data/state rollback ではないこと、migration の expand/contract 前提を明記する。
+  - smoke failure 時に自動データ操作をせず安定 Worker version を 100% traffic に戻す手順、Worker rollback がSupabase dataやTerraform stateのrollbackではないこと、migrationのexpand/contractとlinked履歴確認を明記する。
   - frozen install、Backend verify、両 Terraform root の secretless validation、workflow static check、禁止ファイル検査、`git diff --check` を実行する。
   - 完了条件: 外部 credential/Environment/bootstrap が未設定でも local verification が成功し、実 Cloudflare apply/deploy の成功を主張せず、Requirement 1-10 の traceability と OKF check issues 0 を確認できる。
   - _Requirements: 4.1, 4.2, 4.3, 6.3, 9.5, 10.1, 10.2, 10.3, 10.4_

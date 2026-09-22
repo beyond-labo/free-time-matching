@@ -20,14 +20,17 @@ git tag -a ios-v0.1.0 -m "iOS 0.1.0"
 git push origin ios-v0.1.0
 ```
 
-workflowが機械的に検査するのは`ios-v*`というtag名です。
-annotated tagであることと`main`への包含はworkflow内では検査しないため、tag rulesetとリリース担当者の手順で保証します。
+workflowはtagが厳密な`ios-vX.Y.Z`形式のannotated tagであることと、対象commitが`origin/main`に含まれることを機械的に検査します。
+testとreleaseはpreflightで確定した同一commitをcheckoutします。
 
-手動実行ではGitHubの`Actions`から`iOS TestFlight`を選び、`marketing_version`へ`X.Y.Z`を入力します。
+手動実行ではGitHubの`Actions`から`iOS TestFlight`を選び、branchに現在の`main`を指定して、`marketing_version`へ`X.Y.Z`を入力します。
+選択したcommitが現在の`origin/main`と一致しない場合はpreflightで停止します。
 build numberはGitHubのrun numberとrun attemptから生成するため、再実行でも別番号になります。
 
 配布jobは`testflight` Environmentの保護を通過してからsecretsを読みます。
 archive前に、証明書と秘密鍵、証明書とprofile、有効期限、Team ID、Bundle ID、API private keyの形式を検査します。
+Supabase URL、publishable key、Backend API URLも必須入力として検査し、Release archiveのInfo.plistへbuild setting経由で埋め込みます。
+Supabase設定はAuthのsign-in／session更新だけに使います。プロフィールや削除などの業務リクエストはBackend API URLへ送り、iOSからSupabase PostgRESTやDBへ直接アクセスしません。
 一時keychain、profile、API keyは終了時に削除し、成功したIPAはGitHub Artifactへ14日だけ保持します。
 
 ## 初回セットアップ
@@ -107,6 +110,9 @@ GitHub repositoryの`Settings`から`testflight` Environmentを作成します�
 | Variable | `IOS_BUNDLE_ID` |
 | Variable | `APP_STORE_CONNECT_KEY_ID` |
 | Variable | `APP_STORE_CONNECT_ISSUER_ID` |
+| Variable | `SUPABASE_URL` |
+| Variable | `SUPABASE_PUBLISHABLE_KEY` |
+| Variable | `API_BASE_URL` |
 | Secret | `IOS_DISTRIBUTION_CERTIFICATE_BASE64` |
 | Secret | `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` |
 | Secret | `IOS_PROVISIONING_PROFILE_BASE64` |
@@ -114,6 +120,10 @@ GitHub repositoryの`Settings`から`testflight` Environmentを作成します�
 
 同名のrepositoryまたはorganization secretへ複製しません。
 Environment secretを利用できない契約planでは、repository secretへ代替せず、承認付きの配布基盤を用意するまでworkflowを実行しません。
+
+最初の内部TestFlightでは、3つのruntime Variableをstaging Projectと`https://api-staging.beyond-labo.com`へ向けます。
+Supabase secret key、database password、Apple private keyをiOSのEnvironmentまたはarchiveへ渡しません。
+詳しい値の取得元は[Supabase Auth・Database CI/CD](supabase-auth.md)を参照してください。
 
 ## TestFlightで確認する
 
@@ -131,6 +141,7 @@ upload成功はApp Store公開を意味しません。
 - 証明書またはprofileが期限切れの場合は、再発行して対応するEnvironment secretsを同時に更新する。
 - API keyが漏えいした場合は、App Store Connectでrevokeし、新しいkeyとsecretへ置き換える。
 - Bundle IDまたはTeam IDが一致しない場合は、workflowを再試行せず、profileとGitHub variablesの組合せを直す。
+- runtime設定が不足している場合は、`testflight` Environmentの`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`API_BASE_URL`を確認する。
 - upload後に不具合が見つかった場合は、TestFlightのtester groupからbuildを外し、新しいbuild numberで修正版を配布する。
 - App Store公開後の不具合はこのpipelineのrollback対象ではない。App Store Connectで販売停止またはphased releaseのpauseを判断する。
 

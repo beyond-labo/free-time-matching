@@ -20,6 +20,11 @@ from validate_signing_assets import ValidationError, validate_crypto_material, v
 class SigningAssetValidationTests(unittest.TestCase):
     team_id = "ABCDE12345"
     bundle_id = "com.example.himatch"
+    runtime_configuration = {
+        "SUPABASE_URL": "https://example.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_test",
+        "API_BASE_URL": "https://api-staging.example.com",
+    }
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -156,7 +161,7 @@ class SigningAssetValidationTests(unittest.TestCase):
             validate_crypto_material(self.certificate_pem, self.distribution_private_key, self.api_p384_key)
 
     def test_release_rejects_non_uuid_issuer_before_decoding_assets(self) -> None:
-        environment = os.environ | {
+        environment = os.environ | self.runtime_configuration | {
             "APPLE_TEAM_ID": self.team_id,
             "IOS_BUNDLE_ID": self.bundle_id,
             "IOS_MARKETING_VERSION": "1.0.0",
@@ -177,6 +182,30 @@ class SigningAssetValidationTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("must be a UUID", result.stderr)
+
+    def test_release_rejects_non_https_runtime_url_before_decoding_assets(self) -> None:
+        environment = os.environ | self.runtime_configuration | {
+            "APPLE_TEAM_ID": self.team_id,
+            "IOS_BUNDLE_ID": self.bundle_id,
+            "IOS_MARKETING_VERSION": "1.0.0",
+            "IOS_BUILD_NUMBER": "1",
+            "IOS_DISTRIBUTION_CERTIFICATE_BASE64": "unused",
+            "IOS_DISTRIBUTION_CERTIFICATE_PASSWORD": "unused",
+            "IOS_PROVISIONING_PROFILE_BASE64": "unused",
+            "APP_STORE_CONNECT_KEY_ID": "ABCDEF1234",
+            "APP_STORE_CONNECT_ISSUER_ID": "12345678-1234-1234-1234-123456789abc",
+            "APP_STORE_CONNECT_PRIVATE_KEY_BASE64": "unused",
+            "SUPABASE_URL": "http://example.supabase.co",
+        }
+        result = subprocess.run(
+            ["bash", str(SCRIPT_DIR / "release.sh")],
+            capture_output=True,
+            text=True,
+            env=environment,
+            check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("SUPABASE_URL must be a non-empty HTTPS URL", result.stderr)
 
     def test_release_can_extract_legacy_pkcs12_before_profile_validation(self) -> None:
         fake_bin = self.directory / "fake-bin"
@@ -201,7 +230,7 @@ class SigningAssetValidationTests(unittest.TestCase):
         fake_runner_temp = self.directory / "runner-temp"
         fake_home.mkdir(exist_ok=True)
         fake_runner_temp.mkdir(exist_ok=True)
-        environment = os.environ | {
+        environment = os.environ | self.runtime_configuration | {
             "APPLE_TEAM_ID": self.team_id,
             "IOS_BUNDLE_ID": self.bundle_id,
             "IOS_MARKETING_VERSION": "1.0.0",

@@ -26,7 +26,7 @@ kiro:
 
 ## Current State
 
-設定、安全機能、通知設定、サポート、退会画面は未実装である。運営 Backend も存在しない。
+設定、安全機能、通知設定、サポート、退会画面とプロトタイプ状態遷移がある。アカウント削除は fresh Apple 再認証、Apple token revoke、Supabase Auth hard delete を行う Production Backend へ接続し、通報・ブロック・通知・運営処理は引き続きプロトタイプまたは未接続である。
 
 ## Desired Outcome
 
@@ -34,7 +34,7 @@ kiro:
 
 ## Approach
 
-Safety と AccountDeletion の Port を定義し、iOS は入力、影響確認、送信状態、受付状態を所有する。ブロックの横断的な予定影響は Hosting との Application 契約で表し、実サーバー処理と運営対応は対象外として明示する。
+Safety と AccountDeletion の Port を定義し、iOS は入力、影響確認、送信状態、受付状態を所有する。削除だけを Production Adapter へ接続し、ブロックの横断的な予定影響は Hosting との Application 契約で表す。通報・ブロックの実サーバー処理と運営対応は対象外として明示する。
 
 ## Scope
 
@@ -48,7 +48,7 @@ Safety と AccountDeletion の Port を定義し、iOS は入力、影響確認�
 
 ### Out
 
-- 運営管理画面、通報 SLA の実運用、Apple token revoke、実データ削除、APNs、法令上の保持判断。
+- 運営管理画面、通報 SLA の実運用、友達・暇・募集データの実削除、APNs、法令上の保持判断。
 
 ## Boundary Candidates
 

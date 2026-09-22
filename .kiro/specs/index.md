@@ -6,6 +6,7 @@ okf_version: "0.2"
 
 - [android-ci-cd](android-ci-cd/index.md)
 - [backend-ci-cd](backend-ci-cd/index.md)
+- [backend-user-account-management](backend-user-account-management/index.md)
 - [ios-app-foundation](ios-app-foundation/index.md)
 - [ios-app-integration](ios-app-integration/index.md)
 - [ios-availability](ios-availability/index.md)
