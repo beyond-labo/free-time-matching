@@ -12,6 +12,7 @@ sources:
     title: Backend CI/CD と Cloudflare 配布調査
 kiro:
   depends_on:
+    - .kiro/specs/backend-user-account-management/requirements.md
     - .kiro/specs/backend-ci-cd/requirements.md
     - .kiro/specs/backend-ci-cd/brief.md
     - apps/backend/package.json
@@ -32,7 +33,7 @@ kiro:
 
 - PR で frozen install、生成型差分、typecheck、Workers Runtime test、Wrangler dry-run、Terraform fmt/backend=false init/validate を secretless に検証する。
 - `infra/cloudflare/environments/staging` と `production` を別 root/state とし、R2 S3 backend の partial config を安全に使う。
-- staging は verify → Terraform plan/apply → Wrangler deploy → `/healthz` smoke、production は main 包含確認 → read-only plan → protected approval → plan 再計算/apply → Wrangler deploy → smoke の順序を固定する。
+- staging は verify → Terraform plan/apply → Supabase migration → Wrangler deploy → `/healthz` smoke、production は main 包含確認 → read-only plan → protected approval → plan 再計算/apply → Supabase migration → Wrangler deploy → smoke の順序を固定する。
 - staging は `api-staging.beyond-labo.com`、production は `api.beyond-labo.com` の Custom Domain だけを公開入口とし、両 environment の `workers_dev` を `false` にする。
 - 初回 Custom Domain 作成前に account/zone 一致、zone Active、既存 A/AAAA/CNAME 競合を確認し、Cloudflare が自動作成する DNS/TLS の反映を有限 retry で待機する。
 - GitHub-hosted runner、最小権限、SHA pin、concurrency、rollback と secret/vars 契約を文書化する。
@@ -84,13 +85,15 @@ flowchart LR
   SV --> ST[Environment: staging]
   ST --> PF1[account/zone/DNS preflight]
   PF1 --> TP1[Terraform plan/apply\nstaging R2 state]
-  TP1 --> WD1[Wrangler deploy --env staging\nCustom Domain]
+  TP1 --> DB1[Supabase migration\nlinked履歴確認]
+  DB1 --> WD1[Wrangler deploy --env staging\nCustom Domain]
   WD1 --> HS1[api-staging.beyond-labo.com\n有限 retry /healthz smoke]
   Rel[backend-vX.Y.Z または dispatch] --> PV[main 包含 + verify]
   PV --> PP[read-only production plan]
   PP --> AP[Environment: production\nrequired reviewer]
   AP --> TP2[plan 再計算/apply\nproduction R2 state]
-  TP2 --> WD2[Wrangler deploy --env production\nCustom Domain]
+  TP2 --> DB2[Supabase migration\nlinked履歴確認]
+  DB2 --> WD2[Wrangler deploy --env production\nCustom Domain]
   WD2 --> HS2[api.beyond-labo.com\n有限 retry /healthz smoke]
 ```
 
@@ -100,7 +103,7 @@ flowchart LR
 - **Terraform**: environment ごとの root/state と将来の長寿命 Cloudflare resource を所有する。初期 root は provider と state 境界だけで、未決定 resource を作らない。
 - **Wrangler**: `apps/backend/wrangler.jsonc` の environment 設定に基づき Worker code、version、deployment、binding、Custom Domain、対応する自動 DNS/TLS を唯一所有する。
 - **Runtime**: `EntryPoint → Composition → Health/Presentation` の既存境界を維持する。CI/CD は runtime code に credential を渡さない。
-- **Recovery**: deploy smoke failure は自動データ操作をせず、安定 Worker version の rollback を運用者が実施する。Terraform state/data rollback とは別扱いにする。
+- **Recovery**: deploy smoke failure は自動データ操作をせず、安定 Worker version の rollback を運用者が実施する。Terraform stateやSupabase migrationのrollbackとは別扱いにし、DB変更開始後はlinked migration履歴を確認する。
 
 ### Terraform Boundary
 
@@ -169,7 +172,7 @@ Workflow は step の環境変数へ必要な値だけをマッピングし、so
 #### Staging (`.github/workflows/cd-backend-staging.yml`)
 
 - `push` on `main` のみを通常 trigger とする。Backend CI 相当の verify job を同じ SHA で先に実行する。
-- 初回のみ運用担当者がaccount/zone/DNSの手動preflightを完了する。その後、`environment: staging`、`concurrency: backend-staging`、cancel-in-progressを用いるworkflowがverify → `terraform plan` → `terraform apply` → `pnpm exec wrangler deploy --env staging` → `GET $BACKEND_HEALTH_URL/healthz`の順を固定する。
+- 初回のみ運用担当者がaccount/zone/DNSの手動preflightを完了する。その後、`environment: staging`、`concurrency: backend-staging`、cancel-in-progressを用いるworkflowがverify → `terraform plan` → `terraform apply` → Supabase migrationとlinked履歴確認 → `pnpm exec wrangler deploy --env staging` → `GET $BACKEND_HEALTH_URL/healthz`の順を固定する。
 - 初回 deploy では Custom Domain の DNS/TLS 自動作成が完了してから health が安定するため、smoke は 5 秒 timeout、12 回、5 秒間隔で有限 retry する。
 - plan/apply は `backend-staging` concurrency 下で直列化し、state と plan file は artifact にしない。smoke failure は job を失敗させ、後続の自動変更を止める。
 
@@ -177,13 +180,13 @@ Workflow は step の環境変数へ必要な値だけをマッピングし、so
 
 - `push` tag `backend-v*` と `workflow_dispatch` を trigger とし、tag SHA が `origin/main` の祖先であることを `git merge-base --is-ancestor` で確認する。
 - verify 後、`production-plan` Environment の read-only token で非機密 plan summary を作り、saved plan は保存しない。
-- `production-plan` Environment の Cloudflare token は read-only とし、R2 backend credential は state read に限定する。`BACKEND_HEALTH_URL` は登録しない。preflight plan は `-lock=false` で実行する。`production` Environment の required reviewer 承認後、同じ SHA の checkout と `backend-production` concurrency で plan を再計算し、その場で `terraform apply`、Wrangler deploy、health smoke を行う。承認前の plan を apply に再利用しない。
+- `production-plan` Environment の Cloudflare token は read-only とし、R2 backend credential は state read に限定する。`BACKEND_HEALTH_URL`とSupabase変更資格情報は登録しない。preflight plan は `-lock=false` で実行する。`production` Environment の required reviewer 承認後、同じ SHA の checkout と `backend-production` concurrency で plan を再計算し、その場で `terraform apply`、Supabase migrationとlinked履歴確認、Wrangler deploy、health smoke を行う。承認前の plan を apply に再利用しない。
 - production の health URL は `https://api.beyond-labo.com` に固定し、smoke は staging と同じ有限 retry を使う。
 - `concurrency: backend-production` で production deploy を直列化し、summary に commit SHA、run、Worker version/deployment identifier、URL、actor を出す。
 
 ### Rollback Contract
 
-deploy 後 smoke が失敗した場合、workflow は自動で D1/KV/R2/Queue や Terraform state を変更しない。運用者は直前の安定 Worker version を Cloudflare/Wrangler の rollback 手順で 100% traffic に戻し、該当 run と version を記録する。将来 migration を導入する場合は expand/contract と後方互換期間を別仕様で定義し、Worker version rollback が data rollback ではないことを維持する。
+deploy 後 smoke が失敗した場合、workflow は自動でSupabaseなどのDB状態やTerraform stateを変更しない。運用者は直前の安定 Worker version を Cloudflare/Wrangler の rollback 手順で 100% traffic に戻し、該当 run と version を記録する。migrationは`backend-user-account-management`仕様のexpand/contractと後方互換契約に従い、Worker version rollbackがdata rollbackではないことを維持する。
 
 ## Technology Stack
 

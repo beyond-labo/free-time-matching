@@ -12,6 +12,7 @@ sources:
     title: Backend CI/CD 構成案
 kiro:
   depends_on:
+    - .kiro/specs/backend-user-account-management/requirements.md
     - docs/architecture/technology.md
     - docs/architecture/package-structure.md
     - docs/architecture/api-contracts.md
@@ -27,8 +28,8 @@ Backend の実装入口を pnpm workspace の `apps/backend` に置き、TypeScr
 ## Boundary Context
 
 - **In scope**: `apps/backend` の pnpm package、TypeScript/Hono Worker、`GET /healthz` の JSON 契約、Workers Runtime テスト、型検査、bundle の dry-run、Terraform の環境別 root/state scaffold、R2 S3 remote state の partial config、Wrangler 管理の環境別 Custom Domain、Backend PR CI、staging 自動配布、production 承認配布、smoke/rollback 手順、関連 README と検証。
-- **Out of scope**: Cloudflare account、R2 state bucket、GitHub Environment、branch protection、reviewer、secret の初期作成と実資格情報による apply/deploy、OpenAPI 自動生成・公開、認証、DB、業務 API、remote preview、production gradual deployment。
-- **Adjacent expectations**: Backend は iOS/Android と独立してビルド・リリースし、将来の公開契約は Backend が所有する。Terraform は長寿命 resource と state、Wrangler は Worker script/version/deploy/binding/Custom Domain と対応する自動 DNS/TLS を所有し、同一 resource を二重管理しない。
+- **Out of scope**: Cloudflare account、R2 state bucket、GitHub Environment、branch protection、reviewer、secret の初期作成と実資格情報による apply/deploy、OpenAPI 自動生成・公開、認証・DB・業務 APIそのものの設計、remote preview、production gradual deployment。
+- **Adjacent expectations**: Backend は iOS/Android と独立してビルド・リリースし、公開契約は Backend が所有する。認証・DB migrationと実行時設定の追加契約は`backend-user-account-management`仕様が所有し、本仕様の配布順序へ合成する。Terraform は長寿命 resource と state、Wrangler は Worker script/version/deploy/binding/Custom Domain と対応する自動 DNS/TLS を所有し、同一 resource を二重管理しない。
 
 ## Requirements
 
@@ -105,9 +106,9 @@ Backend の実装入口を pnpm workspace の `apps/backend` に置き、TypeScr
 #### Acceptance Criteria
 
 1. When `main` への push が発生した, the staging CD shall 同じ commit の Backend verify を成功させた後、GitHub Environment `staging` の資格情報で staging Terraform plan/apply を実行する
-2. When staging Terraform apply が成功した, the staging CD shall lockfile の Wrangler を使って `wrangler deploy --env staging` を実行し、`api-staging.beyond-labo.com` の Custom Domain（`custom_domain: true`、`workers_dev: false`）を経由して `GET /healthz` smoke test を行う
+2. When staging Terraform apply が成功した, the staging CD shall 隣接仕様で定義されたSupabase migrationを対象Projectへ適用してlinked履歴を確認した後、lockfile の Wrangler を使って `wrangler deploy --env staging` を実行し、`api-staging.beyond-labo.com` の Custom Domain（`custom_domain: true`、`workers_dev: false`）を経由して `GET /healthz` smoke test を行う
 3. When staging の Custom Domain を初回作成または更新した, the staging CD shall `BACKEND_HEALTH_URL=https://api-staging.beyond-labo.com` を使い、5 秒 timeout、最大 12 回、5 秒間隔の有限 retry で DNS/TLS 証明書の反映を待機する
-4. If verify、Terraform plan/apply、Wrangler deploy、または有限 retry 後の smoke test が失敗した, the staging CD shall 後続の変更処理を実行せず non-zero で終了する
+4. If verify、Terraform plan/apply、Supabase migration、Wrangler deploy、または有限 retry 後の smoke test が失敗した, the staging CD shall 後続の変更処理を実行せず non-zero で終了する
 5. While staging deployment runs overlap, the staging CD shall 同一 staging Worker を concurrency で直列化し、未開始の古い run を置換できる
 
 ### Requirement 8: production 承認配布
@@ -119,7 +120,7 @@ Backend の実装入口を pnpm workspace の `apps/backend` に置き、TypeScr
 1. When `backend-vX.Y.Z` annotated tag または許可された手動実行が開始された, the production CD shall 対象 commit が `main` に含まれることと同一 commit の Backend verify 成功を確認する
 2. When production preflight が開始された, the production CD shall Cloudflare read-only credential で production Terraform plan の非機密な要約だけを作り、R2 backend credential は state read に限定し、plan 全文または saved plan を public comment/artifact に保存しない
 3. When preflight summary が確認された, the production CD shall required reviewer を設定した protected GitHub Environment `production` の承認を要求する
-4. When `production` Environment の承認が完了した, the production CD shall saved plan を再利用せず環境別 concurrency で他の apply と直列化した上で plan を再計算して apply し、`api.beyond-labo.com` の Custom Domain（`custom_domain: true`、`workers_dev: false`）へ `wrangler deploy --env production` を行い、成功後に `GET /healthz` smoke test を実行する
+4. When `production` Environment の承認が完了した, the production CD shall saved plan を再利用せず環境別 concurrency で他の apply と直列化した上で plan を再計算してapplyし、隣接仕様で定義されたSupabase migrationとlinked履歴確認を完了してから、`api.beyond-labo.com` の Custom Domain（`custom_domain: true`、`workers_dev: false`）へ `wrangler deploy --env production` を行い、成功後に `GET /healthz` smoke test を実行する
 5. When production の Custom Domain を初回作成または更新した, the production CD shall `BACKEND_HEALTH_URL=https://api.beyond-labo.com` を使い、5 秒 timeout、最大 12 回、5 秒間隔の有限 retry で DNS/TLS 証明書の反映を待機する
 6. The `production-plan` Environment shall not register `BACKEND_HEALTH_URL` and shall not execute production deploy or health smoke.
 7. The production CD shall job summary に commit SHA、Terraform run、Worker version または deployment identifier、deployment URL、実行者を記録し、staging と production の credential と runtime secret を混在させない
@@ -144,7 +145,7 @@ Backend の実装入口を pnpm workspace の `apps/backend` に置き、TypeScr
 #### Acceptance Criteria
 
 1. When staging または production smoke test が失敗した, the deployment runbook shall 自動でデータ操作を行わず、直前の安定 Worker version を Wrangler/Cloudflare の rollback 手順で 100% traffic に戻す手順を示す
-2. The deployment runbook shall Worker version rollback は D1/KV/R2/Queue 等の状態や Terraform state を戻さないこと、将来の migration は expand/contract と後方互換を満たすことを明記する
+2. The deployment runbook shall Worker version rollback はSupabaseを含むDB状態やTerraform stateを戻さないこと、migrationはexpand/contractと後方互換を満たし、適用後の失敗ではlinked履歴を確認してcorrective migrationまたは同一commit再実行で復旧することを明記する
 3. Before the first Custom Domain deployment, the deployment runbook shall Cloudflare Dashboard で `beyond-labo.com` zone の account 一致と Active 状態を確認し、DNS Records で `api-staging` と `api` の A、AAAA、CNAME を確認し、既存レコードがあれば削除せず競合解消を停止条件にする
 4. While Cloudflare credentials、R2 bucket、GitHub Environment、reviewer、health URL が未設定である, local verification shall scaffold、fmt、backend=false init、validate、secretless CI 検査までを完了条件とし、実 Cloudflare apply/deploy の成功を主張しない
 5. The project documentation shall staging/production の secret・vars 契約、bootstrap の担当境界、account/zone preflight、DNS競合、Custom Domain の DNS/TLS 自動作成、証明書反映直後の有限 retry、rollback の開始条件と実行者を具体的なパスから参照できるようにする

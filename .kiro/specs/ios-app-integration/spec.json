@@ -49,11 +49,11 @@
       ".kiro/specs/ios-safety-settings/requirements.md": "976a865b5bd2c72837aa25718944f944d76e2e55e82fefbdf12e2cea17f152eb",
       ".kiro/specs/ios-safety-settings/research.md": "a2b87e8f6d9565c7b63c971d21766bc558dc78c71358c7f8633e0f18ec81a9d1",
       ".kiro/steering/roadmap.md": "689a94ae2a49f348637acb8c3852b988e78c694ba4d9108a25a0c0bbbcfd8b11",
-      "apps/ios/Himatch.xcodeproj/project.pbxproj": "d1474246933037780dd42de7cb6c2891c2b0e202506a88c849c9efaf2ef02ed4",
+      "apps/ios/Himatch.xcodeproj/project.pbxproj": "73b858b951d1a3f46c97c5666acd883c8ba66f360139eb58209f6f57cba9a205",
       "docs/architecture/api-contracts.md": "0bf31003dd44e7caf478d4e9504f2402e8cc04fb849b3a7c014782686b76e63e",
       "docs/architecture/ios-architecture.md": "98936d5ff6b6ba6eff9e3969a5c40e57eee75f2ea6c7a16de8bf2a1dfb624485",
       "docs/architecture/technology.md": "b19a95745c5afb1f3f391f6f13e2c804ee72bdc88c0e505ee694a837b36e87e7",
-      "docs/operations/ci-cd.md": "52576f29eafcf69c6f9b9809e6b55abad6c31c24fd2f445a22840e28fcccc067",
+      "docs/operations/ci-cd.md": "6b7a14dcb0a2eb69d1f42c15991836bf22ac4a918a30a8c6ef4fb93c3088bb63",
       "docs/product/overview.md": "df016b4ffe84923c46749490857bc1015f33a34ccc908ce03512bdd9dde7b600"
     }
   }

@@ -9,6 +9,7 @@ sources:
     title: GitHub ActionsでiOSアプリを自動ビルド＆App Storeへ自動アップロードする完全ガイド
 kiro:
   depends_on:
+    - .kiro/specs/backend-user-account-management/requirements.md
     - docs/operations/ios-ci-cd.md
     - docs/architecture/technology.md
 ---
@@ -45,11 +46,12 @@ GitHub Actions 上で iOS アプリのビルドとテストを再現可能にし
 
 #### Acceptance Criteria
 
-1. When `ios-vX.Y.Z` 形式のタグが push された、または手動実行でバージョンが指定された, the iOS CD shall CI と同じテストを通過した後だけ archive と upload を実行する
-2. While TestFlight 配布ジョブが実行されている, the iOS CD shall GitHub の `testflight` Environment に保存された値だけから署名・アップロード資格情報を取得する
+1. When `ios-vX.Y.Z`形式のannotated tagがpushされた、または手動実行でバージョンが指定された, the iOS CD shall 対象commitが`origin/main`に含まれること、または手動実行が現在の`main`であることを確認し、確定した同一commitでCIと同じテストを通過した後だけarchiveとuploadを実行する
+2. While TestFlight 配布ジョブが実行されている, the iOS CD shall GitHub の `testflight` Environment に保存された値だけから署名・アップロード資格情報と公開アプリ設定を取得する
 3. If 必須値、証明書、provisioning profile、Bundle ID、Team ID の対応が不正である, the iOS CD shall archive 前に失敗する
 4. When archive が成功した, the iOS CD shall 一意な build number を設定し、同じジョブで生成した IPA を App Store Connect へ API key 認証でアップロードする
 5. When upload が成功した, the iOS CD shall 配布した IPA を短期保持の GitHub Artifact として識別可能に保存する
+6. When archiveを作成した, the iOS CD shall `SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`API_BASE_URL`だけを公開アプリ設定としてbuild settingへ渡し、server secretをiOS binaryへ渡さない
 
 ### Requirement 3: 秘密情報と運用境界
 

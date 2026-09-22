@@ -27,8 +27,8 @@ kiro:
   - _Depends: 1_
 
 - [x] 3. TestFlight 配布経路を追加する
-  - tag/manual trigger、Environment、preflight、署名、IPA export、API key upload、cleanup、artifact 保存が接続される。
-  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3_
+  - annotated tag／現在のmainに限定したmanual trigger、同一commitのtestとrelease、Environment、公開アプリ設定、preflight、署名、IPA export、API key upload、cleanup、artifact保存が接続される。
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.1, 3.2, 3.3_
   - _Boundary: ReleaseScript, IOSCD_
   - _Depends: 1, 2_
 
