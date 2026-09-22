@@ -24,9 +24,9 @@ iOS 初版の入口として、暇時間の非公開原則を登録前に説明�
 
 ## Boundary Context
 
-- **In scope**: 初回説明、Apple 認証 UI と Port、プロフィール、3タブ、共通画面状態、プロトタイプ利用導線。
-- **Out of scope**: Apple credential のサーバー検証、実セッション発行、Backend API、Push 許可、各タブの業務機能。
-- **Adjacent expectations**: 後続仕様は基盤の Navigation と Composition を利用し、プロトタイプ結果を本番認証の証拠にしない。
+- **In scope**: 初回説明、native Apple認証、Supabaseセッション、プロフィールAPI、3タブ、共通画面状態、DEBUGプロトタイプ利用導線。
+- **Out of scope**: メール・パスワード認証、Push 許可、各タブの業務機能、Android。
+- **Adjacent expectations**: BackendはSupabase JWTを検証し、本人プロフィールと削除APIを提供する。後続仕様は基盤のNavigationとCompositionを利用する。
 
 ## Requirements
 
@@ -38,9 +38,9 @@ iOS 初版の入口として、暇時間の非公開原則を登録前に説明�
 
 1. When アプリを未登録状態で起動した, the iOS app shall 暇時間は初期設定で友達へ表示されず参加 OK した時間だけ主催者へ伝わることを表示する
 2. The iOS app shall 登録前画面から利用規約、プライバシーポリシー、問い合わせ先へ到達できるようにする
-3. When 利用者が Apple 認証を開始した, the iOS app shall Apple 標準の Sign in with Apple UI から authorization code を認証 Port へ渡す
+3. When 利用者が Apple 認証を開始した, the iOS app shall Apple 標準UIへSHA-256 nonceを設定し、identity tokenとraw nonceをSupabase Authへ渡す
 4. If サーバー認証が利用できない, the iOS app shall 認証済みと扱わず再試行可能なエラーを表示する
-5. Where DEBUG プロトタイプ導線が含まれる, the iOS app shall 実 Apple 認証と区別できる表示でデモ利用を開始できるようにする
+5. Where DEBUG プロトタイプ導線が含まれる, the iOS app shall 実 Apple 認証と区別できる表示でデモ利用を開始できるようにし、Release構成へPrototype認証を含めない
 
 ### Requirement 2: 初期プロフィール
 
@@ -49,7 +49,7 @@ iOS 初版の入口として、暇時間の非公開原則を登録前に説明�
 #### Acceptance Criteria
 
 1. The iOS app shall 生成された仮名を表示名の初期値として提示する
-2. When 1〜20文字の有効な表示名とプリセットアイコンを保存した, the iOS app shall サーバー検証の成功後に初期設定を完了する
+2. When 1〜20文字の有効なニックネームとプリセットアイコンを保存した, the iOS app shall 本人のプロフィールAPIが成功した後に初期設定を完了する
 3. If 表示名が空、20文字超過、またはサーバー拒否である, the iOS app shall 項目の近くに理由を表示して入力を保持する
 4. The iOS app shall 本人識別に内部 ID を用い、表示名の一致を本人確認として扱わない
 
@@ -61,7 +61,19 @@ iOS 初版の入口として、暇時間の非公開原則を登録前に説明�
 
 1. When 初期プロフィールが完了した, the iOS app shall ホーム、友達、設定の3タブを表示する
 2. The iOS app shall 各機能の詳細を共通 Navigation 境界から表示し、業務データをアプリ全体状態へ重複保持しない
-3. When ログアウトした, the iOS app shall 端末内セッションを破棄して登録前画面へ戻す
+3. When ログアウトした, the iOS app shall Supabaseセッションと認証済み画面状態を破棄して登録前画面へ戻す
+
+### Requirement 5: セッション復元と失効
+
+**Objective:** As a 登録利用者, I want 起動時に安全にセッションを復元したい, so that 毎回認証せず利用でき、失効時は保護画面へ残らない
+
+#### Acceptance Criteria
+
+1. While 起動時のセッション確認中である, the iOS app shall 登録前・プロフィール・メインのいずれも確定表示せず読み込み状態を示す
+2. When 有効なセッションを復元した, the iOS app shall 本人プロフィールを取得し、未設定ならプロフィール、設定済みならメインへ遷移する
+3. When セッションが更新された, the iOS app shall 更新後のaccess tokenを後続APIへ使用する
+4. If セッションが存在しない、期限切れ、失効、または削除済みである, the iOS app shall 認証済み状態と機密な画面状態を破棄する
+5. If SupabaseまたはBackend構成値が欠落している, the iOS app shall デモ認証を成功扱いせず設定エラーを表示する
 
 ### Requirement 4: 共通の画面状態とアクセシビリティ
 

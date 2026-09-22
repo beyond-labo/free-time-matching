@@ -4,7 +4,7 @@
 
 SwiftUI と TCA を Presentation に使用し、業務の処理と外部接続を Clean Architecture の依存方向で分離します。
 これはこのプロジェクトの組み合わせ方であり、TCA 公式が要求するディレクトリ構成ではありません。
-CI/CD 経路を成立させる最小 SwiftUI アプリは存在しますが、TCA の依存追加と製品機能の実装はまだ行いません。
+TCA 1.26.1による初版UIが存在し、認証・プロフィール・削除をsupabase-swiftとBackend APIへ接続します。友達・暇・募集は引き続きPrototype Adapterで状態遷移を検証します。
 
 TCA は State、Action、Reducer、Effect、Store によって状態変化と副作用を扱います。
 Store は状態と Action の処理を駆動し、Reducer が遷移と実行する Effect を定義します。
@@ -101,6 +101,9 @@ Presentation 側の `liveValue` で Infrastructure を直接構築しません�
 初期値を必要とする場合は未注入の検出に使い、本番接続を自動生成する抜け道にしません。
 実装は選定した TCA と swift-dependencies の版で検証します。
 [依存差し替えの公式資料](https://github.com/pointfreeco/swift-dependencies)
+
+Release CompositionはAuthentication、Profile、AccountDeletionへProduction Adapterを注入し、構成値不足を認証成功へフォールバックしません。Prototype認証はDEBUGの明示的なデモ導線だけで利用します。
+Apple認証requestにはランダムなraw nonceのSHA-256を設定し、Apple identity tokenとraw nonceをSupabase Authへ渡します。authorization codeはアカウント削除時のfresh再認証でBackendへ送り、生credentialを永続化しません。
 
 Cancellation は Effect と下位の非同期処理へ伝播させ、キャンセルを通信失敗の画面表示へ機械的に変換しません。
 Swift の並行処理チェックに合わせ、境界の値とクロージャの Sendable 要件を確認します。

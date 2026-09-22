@@ -28,7 +28,7 @@ Safety、NotificationSettings、AccountDeletion を Application 境界として�
 
 ### Out of Boundary
 
-- 運営是正、APNs、Apple token revoke、実削除、バックアップ墓石、法的保持。
+- 運営是正、APNs、Backend内部のApple token revoke・Auth user削除、バックアップ墓石、法的保持。
 
 ### Allowed Dependencies
 
@@ -51,7 +51,8 @@ graph LR
     SafetyUseCases --> SafetyRepository
     DeletionUseCase --> AccountDeletionRepository
     PrototypeAdapters --> SafetyRepository
-    PrototypeAdapters --> AccountDeletionRepository
+    AccountDeletionAPIAdapter --> AccountDeletionRepository
+    DebugPrototypeAdapters --> AccountDeletionRepository
 ```
 
 ## File Structure Plan
@@ -66,7 +67,7 @@ apps/ios/Himatch/Safety/
 apps/ios/Himatch/AccountDeletion/
 ├── Domain/Model/AccountDeletionStatus.swift
 ├── Application/{Port,UseCase}/
-├── Infrastructure/Adapter/PrototypeAccountDeletionAdapter.swift
+├── Infrastructure/Adapter/{API,Prototype}AccountDeletionAdapter.swift
 └── Presentation/{Reducer,View}/
 apps/ios/Himatch/Settings/Presentation/{Reducer,View}/
 apps/ios/Himatch/Settings/Application/Port/NotificationSettingsRepository.swift
@@ -80,7 +81,7 @@ apps/ios/HimatchTests/{Safety,AccountDeletion,Settings}/
 - `ReportReason`: fixed enum。補足は500 grapheme以下。
 - `BlockImpact`: relationship、pendingInteractions、confirmedPlans の件数と表示用要約、version。ブロック関係そのものは他参加者向け文言に含めない。
 - `BlockResult`: 更新済み friendship ID、hosting ID、plan ID と外部向け安全な結果要約。完了後に Integration の各投影を再取得する。
-- `AccountDeletionStatus`: idle、confirmingImpact、reauthenticating、submitting、accepted(reference, estimate)、processing、completed、actionRequired(reference, message)。
+- `AccountDeletionStatus`: idle、confirmingImpact、reauthenticating、submitting、accepted(reference, estimate)、processing、completed、actionRequired(reference, message)。fresh Apple再認証からauthorization codeを取得し、UUIDの冪等キーとともにBackendへ送る。
 - `NotificationSettingsRepository`: load、save(settings, operationID)、systemAuthorizationStatus。アプリ内購読設定と OS 許可状態を別フィールドにする。
 - Repository command は operationID / expectedVersion を持つ。ambiguous transport は同じ operationID で照会する。
 
@@ -102,7 +103,8 @@ apps/ios/HimatchTests/{Safety,AccountDeletion,Settings}/
 - Domain/Application: 500文字、fixed enum、block preview version、deletion lifecycle、ambiguous retry。
 - Presentation: 対象自動設定、通報成功・失敗、ブロック影響再確認、設定一覧、削除受付。
 - Integration: 招待詳細から通報、プロフィールからブロック、設定から削除、利用停止中の許可画面。
-- Manual/Backend required: 実 Apple revoke、全データ削除、APNs、運営是正、通知本文。
+- Backend integration: Apple本人照合、token revoke、Supabase hard delete、actionRequired。
+- Manual required: 実Apple/Supabase staging、APNs、運営是正、通知本文。
 
 ## Security Considerations
 

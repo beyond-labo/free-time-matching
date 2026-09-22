@@ -21,7 +21,7 @@ kiro:
 
 ## Current State
 
-SwiftUI の単一 `ContentView` と旧 XCTest テストのみがあり、TCA、Sign in with Apple、製品状態、Navigation は未導入である。今回の実装でテスト記述を Swift Testing へ移行する。
+TCA 1.26.1 と Swift Testing を使う iOS 初版があり、DEBUG のプロトタイプ画面と状態遷移を確認できる。認証・プロフィールは native Sign in with Apple、Supabase Auth、Backend API の Production Adapter へ接続し、外部設定がない Release 構成は設定エラーとして扱う。
 
 ## Desired Outcome
 
@@ -29,7 +29,7 @@ SwiftUI の単一 `ContentView` と旧 XCTest テストのみがあり、TCA、S
 
 ## Approach
 
-TCA 1.26 系と SwiftUI を Presentation に導入し、Application の認証・プロフィール Port をプロトタイプ Adapter から呼ぶ。実 Apple credential のサーバー検証は Backend 契約待ちとして分離する。
+TCA 1.26.1 と SwiftUI を Presentation に置き、Application の認証・プロフィール Port へ Production / DEBUG Prototype Adapter を Composition から明示的に注入する。Apple request の nonce と identity token は Supabase Auth へ渡し、Backend は Supabase access token を検証して本人プロフィールを提供する。
 
 ## Scope
 
@@ -39,17 +39,17 @@ TCA 1.26 系と SwiftUI を Presentation に導入し、Application の認証・
 - Sign in with Apple ボタンと認証 Port。
 - 1〜20文字の表示名、生成仮名、プリセットアイコン。
 - 3タブ、共通 Navigation、読み込み・失敗・権限喪失・利用停止。
-- Composition とプロトタイプ依存の入口。
+- Production Composition と、DEBUG に限定したプロトタイプ依存の入口。
 
 ### Out
 
-- Apple credential のサーバー検証、セッショントークン発行、実利用停止判定。
+- メール・パスワード認証、Android、友達・暇・募集の本番 Backend 接続。
 - 各タブの業務機能、Push 許可要求、App Store 外部設定。
 
 ## Boundary Candidates
 
 - AppFeature / AppView、OnboardingFeature、ProfileSetupFeature。
-- AuthenticationPort、ProfileRepository と各プロトタイプ Adapter。
+- AuthenticationPort、ProfileRepository と Supabase / Backend / Prototype Adapter。
 - AppCompositionRoot。
 
 ## Out of Boundary

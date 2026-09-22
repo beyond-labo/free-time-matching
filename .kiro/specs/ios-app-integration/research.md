@@ -39,4 +39,8 @@ kiro:
 
 ユーザーのiOSテスト戦略に合わせ、単体・Reducer・統合テストをSwift Testingへ統一した。`xcodebuild test`と既存test targetは維持し、repository verifyとCIでXCTestのimport・継承の再混入とテスト0件を拒否する。
 
+認証・プロフィール・削除はProduction Adapterを標準とし、Release CompositionでPrototype認証へフォールバックしない。共有Prototype scenarioはDEBUGデモと未接続の友達・暇・募集へ限定する。
+
+削除状態の復元をRoot起動より先に判定し、Supabase SDKの初期session eventが保留中の削除を追い越して通常画面を復元しないようにした。
+
 - 2026-09-20: 独立仕様間レビューの Critical 指摘を受けて新規作成。

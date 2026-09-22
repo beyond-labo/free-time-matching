@@ -11,18 +11,19 @@ Backend の内部型を共有せず、Backend 所有の OpenAPI を公開契約�
 
 | 項目 | 方針 | 現在の状態 |
 | --- | --- | --- |
-| Backend | TypeScript、Hono、Cloudflare Workers、Clean Architecture | `apps/backend` に最小Worker、`GET /healthz`、Workers Runtimeテスト、staging/production配布設定を導入。実deployは外部bootstrap待ち |
-| iOS | Swift 6、SwiftUI、最低 iOS 17。TCA＋Clean Architecture。テストは Swift Testing | TCA 1.26.1 と初版プロトタイプを導入。iOS テストでは XCTest を使用しない |
+| Backend | TypeScript、Hono、Cloudflare Workers、Clean Architecture | `GET /healthz`に加え、Supabase JWT検証、プロフィール、アカウント削除を導入。実deployは外部設定待ち |
+| iOS | Swift 6、SwiftUI、最低 iOS 17。TCA＋Clean Architecture。テストは Swift Testing | TCA 1.26.1、supabase-swift固定版、Appleのみの認証・プロフィール・削除境界を導入 |
 | Android | AGP 9.4.0、AGP内蔵Kotlin 2.2.10、Jetpack Compose、最低API 26。Clean Architecture | CI/CD用の最小アプリとJVM単体テストを導入。製品機能は未導入 |
 | パッケージ管理 | Backend はpnpm、iOSはSwift Package Manager、AndroidはGradle Wrapper | AndroidはGradle 9.6.0とCompose BOM 2026.08.00を固定 |
 | API | Backend の HTTP スキーマから OpenAPI を生成 | 未実装 |
 | 利用側 | 固定した契約からクライアントを生成 | 生成ツールは未選定 |
-| DB | DynamoDB を想定した例が提示されている | 採用とキー設計は未確定 |
+| DB / Auth | Supabase Postgres / Auth | ユーザープロフィール、RLS、Apple認証セッション、アカウント削除に採用。その他の業務データは未確定 |
 | 非同期処理 | Outbox、SQS、通知 Worker を想定 | 実行基盤と配信保証は未設計 |
 | IaC | Terraform、Cloudflare provider、R2 remote state | staging/production別rootとpartial backendを導入。未決定のCloudflare resourceは未宣言 |
 | CI/CD | GitHub Actions | iOS/AndroidのCI/CDに加え、Backend secretless CI、staging自動配布、production承認配布workflowを導入 |
 
-Backend は Hono と Cloudflare Workers Vitest plugin を導入し、依存バージョンを `apps/backend/package.json` と `pnpm-lock.yaml` に固定します。
+Backend は Hono、Cloudflare Workers Vitest plugin、`jose`を導入し、依存バージョンを`apps/backend/package.json`と`pnpm-lock.yaml`に固定します。
+Supabase access JWTはWorkerがJWKSで検証し、通常のプロフィール操作はpublishable keyと利用者JWTをPostgRESTへ渡してRLSを適用します。Supabaseの特権secretとApple署名鍵はアカウント削除Adapterだけが参照します。
 HTTP スキーマライブラリ、生成ツール、OpenAPI 公開は後続仕様で決めます。
 Workerのscript/version/deployment/bindingとCustom DomainはWrangler、将来の長寿命resourceとaccount/zone policyはTerraformを唯一の所有者とし、同じresourceを二重管理しません。
 `api-staging.beyond-labo.com`と`api.beyond-labo.com`に対応するDNS、Workers Route、Custom Domain、TLS証明書はTerraformへ重複定義しません。
@@ -75,6 +76,7 @@ Clean Architecture の依存規則と、境界を越えるデータを内側に�
 
 [iOS の設計](ios-architecture.md)に、TCA と MVVM の対応、DTO 変換、依存注入、テスト方針を定めます。
 TCA の State と Reducer は Presentation に置き、Domain と Application から TCA を参照しません。
+native Sign in with AppleはSHA-256 nonceを使ってSupabase Authへidentity tokenを交換し、メール・パスワード認証は初版に導入しません。
 
 ## Android
 

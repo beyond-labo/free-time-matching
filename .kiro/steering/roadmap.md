@@ -19,7 +19,7 @@ kiro:
 ## Overview
 
 暇時間を常時公開せず、招待への参加承認を境界として友達との予定を成立させる iOS 初版を実装する。
-Backend の公開契約は未実装のため、iOS は機能別 Port とプロトタイプ Adapter で画面・入力・状態遷移を検証可能にし、サーバー認可、複数ユーザー整合性、Push 配信、運営処理を実装済みとは扱わない。
+Backend のうちユーザーアカウント管理を最初の本番境界とし、Sign in with Apple、Supabaseセッション、プロフィール、アカウント削除を実接続する。友達・暇・募集・Push・運営処理は引き続きプロトタイプ境界とし、本番の複数ユーザー整合性を実装済みとは扱わない。
 
 ## Approach Decision
 
@@ -31,10 +31,10 @@ Backend の公開契約は未実装のため、iOS は機能別 Port とプロ�
 - iOS 17 以降の SwiftUI / TCA クライアント。
 - Sign in with Apple のクライアント境界、初期説明、プロフィール、ホーム・友達・設定の3タブ。
 - 暇時間、友達、募集・招待・回答・確定予定、安全機能、設定・退会の画面とクライアント状態遷移。
-- Backend 未接続でも主要フローを再現するプロトタイプ Adapter と、後続 API Adapter が満たす Port。
+- 認証・プロフィール・削除のProduction Adapterと、それ以外の主要フローを再現するDEBUG専用Prototype Adapter。
 - Apple の UGC、アカウント削除、Push 非必須、プライバシー申告に関する iOS 側の導線と説明。
 
-対象外は Backend API・DB・認可、APNs 配信、運営管理画面、実データ削除ジョブ、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
+対象外は友達・暇・募集のBackend API・DB、APNs 配信、運営管理画面、非同期削除Queue、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
 
 ## Constraints
 
@@ -53,10 +53,12 @@ Backend の公開契約は未実装のため、iOS は機能別 Port とプロ�
 - `ios-hosting`: 募集、照合結果のクライアント表現、招待回答、確定予定、受信箱を所有する。
 - `ios-safety-settings`: 通報、ブロック、通知設定、規約導線、退会のユーザー操作を所有する。
 - `ios-app-integration`: Home・Inbox の読み取り投影、共有 Prototype scenario、Root Composition、全機能統合検証を所有する。
+- `backend-user-account-management`: Supabase JWT検証、本人プロフィール、Apple再認証を伴うアカウント削除を所有する。
 
 ## Specs (dependency order)
 
 - [x] ios-app-foundation -- 起動説明、Sign in with Apple 境界、プロフィール、3タブと共通画面状態。Dependencies: none
+- [x] backend-user-account-management -- Supabase認証済み本人、プロフィール、アカウント削除。Dependencies: ios-app-foundation, ios-safety-settings
 - [x] ios-availability -- ホーム時間軸と暇時間の登録・編集・公開設定。Dependencies: ios-app-foundation
 - [x] ios-friendship -- 友達一覧、招待コード、申請、プロフィール。Dependencies: ios-app-foundation
 - [x] ios-hosting -- 募集作成、招待、回答、確定予定、進行中一覧。Dependencies: ios-app-foundation, ios-availability, ios-friendship
@@ -65,8 +67,11 @@ Backend の公開契約は未実装のため、iOS は機能別 Port とプロ�
 
 ## Existing Spec Updates
 
+- `ios-app-foundation`: Production Apple認証、セッション復元、プロフィールAPIを対象へ追加する。
+- `ios-safety-settings`: fresh Apple再認証、削除API、ローカルアクセス停止を対象へ追加する。
+- `ios-app-integration`: Release CompositionでProduction Adapterを必須にし、PrototypeをDEBUGへ限定する。
 - `ios-ci-cd`: 製品実装と TCA 追加後も既存 build/test/TestFlight 経路が成立することを再検証する。CI/CD の責務や秘密管理契約は変更しない。
 
 ## Direct Implementation Candidates
 
-- `docs/product/overview.md` と iOS 関連文書を、初版仕様とプロトタイプ／Backend 未実装の境界へ同期する。
+- `docs/product/overview.md` と iOS 関連文書を、認証・プロフィール・削除のProduction境界と、その他機能のPrototype境界へ同期する。

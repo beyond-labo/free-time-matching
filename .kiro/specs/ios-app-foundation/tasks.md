@@ -15,6 +15,12 @@ kiro:
 
 # Implementation Plan
 
+- [x] 0. Production認証・プロフィール境界を実装する
+  - Apple identity token＋nonceをSupabaseへ交換し、session復元・更新・logout、`/v1/me`によるroute分岐をSwift Testingで検証する。
+  - Release CompositionがPrototype認証を注入せず、構成値不足を明示する。
+  - _Requirements: 1.3, 1.4, 1.5, 2.2, 2.3, 2.4, 3.3, 4.1, 4.2, 5.1, 5.2, 5.3, 5.4, 5.5_
+  - _Boundary: Authentication, Profile, AppComposition_
+
 - [ ] 1. TCA と Xcode プロジェクト構造を導入する
   - TCA 1.26.1 を固定し、app/test フォルダの同期、entitlements、Package.resolved を build 可能にする。
   - _Requirements: 1.3, 3.1, 4.5_

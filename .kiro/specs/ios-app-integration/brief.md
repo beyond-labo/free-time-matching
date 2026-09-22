@@ -25,7 +25,7 @@ Home は Availability と Hosting、統合受信箱は Friendship と Hosting、
 
 ## Current State
 
-各機能は独立 Port を定義する一方、Root Composition、共有 fixture、横断 read model、reset、全機能統合検証が未所有である。
+各機能の独立 Port、Root Composition、共有 fixture、横断 read model、reset、統合テストがある。Release Composition は認証・プロフィール・削除を Production Adapter へ接続し、その他の業務機能だけを未接続または DEBUG Prototype 境界として残している。
 
 ## Desired Outcome
 
@@ -33,7 +33,7 @@ Home は Availability と Hosting、統合受信箱は Friendship と Hosting、
 
 ## Approach
 
-Composition 配下の `HimatchPrototypeScenario` actor を単一のプロトタイプ整合性境界とし、各機能 Adapter へ facet を注入する。UI集約は `AppProjectionRepository` が読み取り DTO として提供し、変更は所有機能の UseCase だけが行う。
+Composition 配下の `HimatchPrototypeScenario` actor を未接続業務機能のプロトタイプ整合性境界とし、各機能 Adapter へ facet を注入する。認証・プロフィール・削除は Production Adapter を標準とする。UI集約は `AppProjectionRepository` が読み取り DTO として提供し、変更は所有機能の UseCase だけが行う。
 
 ## Scope
 
@@ -46,7 +46,7 @@ Composition 配下の `HimatchPrototypeScenario` actor を単一のプロトタ�
 
 ### Out
 
-- 本番 Backend のトランザクション、認可、Push、運営処理、DB。
+- 友達・暇・募集の本番 Backend トランザクション、Push、運営処理、業務 DB。
 
 ## Boundary Candidates
 

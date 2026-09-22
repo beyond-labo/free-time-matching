@@ -61,4 +61,5 @@ kiro:
 
 ## Change Log
 
+- 2026-09-21: アカウント削除をPrototype受付から、fresh Apple再認証、Backend token revoke、Supabase Auth hard deleteへ接続する方針へ更新。初版は同期処理とし、失敗はactionRequiredでアクセス停止を維持する。独立レビュー後、送信前operation IDのKeychain保存、曖昧結果の同一ID再送、accepted / processing表示、Keychain・sign-out失敗時の安全側遷移を追加した。
 - 2026-09-20: ユーザー提示内容を Apple 公式資料と照合し、新規仕様へ反映。

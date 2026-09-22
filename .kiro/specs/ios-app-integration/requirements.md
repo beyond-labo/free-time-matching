@@ -54,3 +54,5 @@ kiro:
 3. The repository verification shall filesystem-synchronized app/test group、TCA 1.26.1、Package.resolved、entitlements の存在と整合を検査する
 4. The integration tests shall デモ開始、暇登録、友達確認、募集、回答、確定、通報、ブロック、削除受付の主要経路を fixture で検証する
 5. The repository verification shall iOSテストがSwift Testingを使用し、XCTestのimportまたはXCTestCase継承を含まないことを検査する
+6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除のProduction Adapterだけを注入し、DEBUGの明示的なデモだけでPrototype Adapterを使用する
+7. The integration tests shall セッション復元、未設定プロフィール、ログアウト、削除後アクセス停止を検証する
