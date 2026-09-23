@@ -136,6 +136,7 @@ scripts/ios/
 - **Trigger**: `cd-ios-testflight.yml` の release job。
 - **Inputs**: certificate/profile/API key の Base64 secrets、Team/Bundle/Issuer/Key ID variables、marketing/build version、`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`API_BASE_URL`。公開アプリ設定以外のserver secretは受け取らない。
 - **Validation**: 必須値、厳密な ID 形式、Base64 decode、証明書と秘密鍵の対応、証明書と profile の対応、両者の有効期限、profile の Team ID と application identifier、API private key の parse と ES256 用 EC P-256 curve。
+- **Signing scope**: `release.sh` は `HIMATCH_*` のカスタム build setting だけをコマンドラインで渡し、`Himatch` Release target が標準の署名・Bundle ID・version settingへ変換する。Swift Package target へ manual signing と provisioning profile を伝播させない。
 - **Output**: signed IPA、App Store Connect upload result。
 - **Recovery**: cleanup trap で keychain/profile/key を削除。失敗後は原因を直し、同じ version と新しい build number で再実行する。
 

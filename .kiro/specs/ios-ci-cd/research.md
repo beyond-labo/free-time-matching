@@ -126,6 +126,10 @@ kiro:
 
 ## Change Log
 
+### 2026-09-23
+
+`xcodebuild archive` のコマンドラインに標準の manual signing setting を渡すと、Swift Package のmacro／resource bundle targetにもprovisioning profileが伝播してarchiveに失敗することを確認した。コマンドラインでは`HIMATCH_*`のカスタムsettingを渡し、App targetのRelease構成だけが標準settingへ変換する方式へ変更した。要件と外部の署名素材契約は変更せず、標準署名settingのグローバル指定を拒否する回帰テストを追加した。
+
 ### 2026-09-22
 
 `backend-user-account-management`仕様で承認された公開アプリ設定の注入とrelease ref検証を既存TestFlight配布へ合成した。`SUPABASE_URL`、publishable key、Backend API URLだけをarchiveへ渡し、server secretをiOS binaryへ渡さない境界を追加した。
