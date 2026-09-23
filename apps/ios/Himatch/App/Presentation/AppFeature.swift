@@ -3,6 +3,10 @@ import Foundation
 
 @Reducer
 struct AppFeature {
+    private enum CancelID: Hashable {
+        case friendship
+    }
+
     @ObservableState
     struct State: Equatable {
         enum Route: Equatable {
@@ -48,6 +52,9 @@ struct AppFeature {
         var inboxPresented = false
         var addFriendPresented = false
         var inviteCodeInput = ""
+        var friendCandidate: FriendProfile?
+        var friendshipOperationID: UUID?
+        var friendshipOperationKey: String?
         var reportPresented = false
         var reportReason: ReportReason = .nuisanceInvitation
         var reportNote = ""
@@ -62,6 +69,21 @@ struct AppFeature {
         var responseNotifications = true
         var planNotifications = true
         var reminderEnabled = false
+
+        mutating func operationID(forFriendshipKey key: String) -> UUID {
+            if friendshipOperationKey == key, let friendshipOperationID {
+                return friendshipOperationID
+            }
+            let operationID = UUID()
+            friendshipOperationKey = key
+            friendshipOperationID = operationID
+            return operationID
+        }
+
+        mutating func clearFriendshipOperation() {
+            friendshipOperationKey = nil
+            friendshipOperationID = nil
+        }
     }
 
     enum Action {
@@ -115,8 +137,18 @@ struct AppFeature {
         case showInbox(Bool)
         case showAddFriend(Bool)
         case inviteCodeChanged(String)
+        case reloadFriendships
+        case friendshipsLoaded(FriendshipSnapshot, userID: String)
+        case rotateInviteCode
+        case resolveInviteCode
+        case inviteCodeResolved(FriendProfile, userID: String)
+        case sendFriendRequest
         case acceptRequest(UUID)
+        case rejectRequest(UUID)
+        case cancelRequest(UUID)
         case removeFriend(UUID)
+        case friendshipMutationCompleted(FriendshipSnapshot, userID: String)
+        case friendshipMutationFailed(String, reload: Bool, userID: String)
         case snapshotMutationCompleted(AppSnapshot)
 
         case showReport(Bool)
@@ -139,6 +171,7 @@ struct AppFeature {
 
     @Dependency(\.himatchClient) var client
     @Dependency(\.authenticationClient) var authenticationClient
+    @Dependency(\.friendshipClient) var friendshipClient
     @Dependency(\.profileClient) var profileClient
     @Dependency(\.accountDeletionClient) var accountDeletionClient
     @Dependency(\.deletionStatusTokenStore) var deletionStatusTokenStore
@@ -236,10 +269,7 @@ struct AppFeature {
                     state.isLoading = false
                     return .run { send in await send(.snapshotLoaded(client.load())) }
                 }
-                return .merge(
-                    loadProfile(session: session),
-                    .run { send in await send(.snapshotLoaded(client.load())) }
-                )
+                return loadProfile(session: session)
 
             case let .sessionRestoreFailed(message):
                 state.route = .onboarding
@@ -260,13 +290,10 @@ struct AppFeature {
                     }
                     state.authenticationSession = session
                     guard state.route != .deletionAccepted else { return .none }
-                    if state.snapshot == nil {
-                        return .merge(
-                            loadProfile(session: session),
-                            .run { send in await send(.snapshotLoaded(client.load())) }
-                        )
-                    }
-                    return loadProfile(session: session)
+                    return .merge(
+                        .cancel(id: CancelID.friendship),
+                        loadProfile(session: session)
+                    )
                 case .signedOut:
                     guard state.route != .launching else { return .none }
                     state.authenticationSession = nil
@@ -274,7 +301,7 @@ struct AppFeature {
                     state.snapshot = nil
                     state.route = .onboarding
                     state.isLoading = false
-                    return .none
+                    return .cancel(id: CancelID.friendship)
                 }
 
             case let .authenticationInvalidated(message):
@@ -284,7 +311,7 @@ struct AppFeature {
                 state.isLoading = false
                 state.route = .onboarding
                 state.alertMessage = message
-                return .none
+                return .cancel(id: CancelID.friendship)
 
             case let .operationFailed(message):
                 state.isLoading = false
@@ -308,7 +335,10 @@ struct AppFeature {
 
             case let .authenticationSucceeded(session):
                 state.authenticationSession = session
-                return loadProfile(session: session)
+                return .merge(
+                    .cancel(id: CancelID.friendship),
+                    loadProfile(session: session)
+                )
 
             case let .profileLoaded(profile):
                 state.isLoading = false
@@ -322,7 +352,9 @@ struct AppFeature {
                 state.snapshot?.profileName = profile.nickname
                 state.snapshot?.profileIcon = profile.presetIcon.rawValue
                 state.route = .main
-                return .none
+                return state.isDemo || state.authenticationSession == nil
+                    ? .none
+                    : .send(.reloadFriendships)
 
             case let .profileLoadFailed(message):
                 state.isLoading = false
@@ -395,7 +427,9 @@ struct AppFeature {
                 state.profileValidationMessage = nil
                 state.isLoading = false
                 state.route = .main
-                return .none
+                return state.isDemo || state.authenticationSession == nil
+                    ? .none
+                    : .send(.reloadFriendships)
 
             case let .profileSaveFailed(message):
                 state.isLoading = false
@@ -412,20 +446,23 @@ struct AppFeature {
                     return .send(.logoutCompleted)
                 }
                 state.isLoading = true
-                return .run { send in
-                    do {
-                        try await authenticationClient.signOut()
-                        await send(.logoutCompleted)
-                    } catch {
-                        await send(.operationFailed(error.localizedDescription))
+                return .merge(
+                    .cancel(id: CancelID.friendship),
+                    .run { send in
+                        do {
+                            try await authenticationClient.signOut()
+                            await send(.logoutCompleted)
+                        } catch {
+                            await send(.operationFailed(error.localizedDescription))
+                        }
                     }
-                }
+                )
 
             case .logoutCompleted:
                 state = State()
                 state.route = .onboarding
                 state.isLoading = false
-                return .none
+                return .cancel(id: CancelID.friendship)
 
             case let .showAvailabilityEditor(presented):
                 state.availabilityEditorPresented = presented
@@ -565,17 +602,250 @@ struct AppFeature {
 
             case let .showAddFriend(presented):
                 state.addFriendPresented = presented
+                if !presented {
+                    state.friendCandidate = nil
+                    state.inviteCodeInput = ""
+                }
                 return .none
 
             case let .inviteCodeChanged(value):
                 state.inviteCodeInput = value
+                state.friendCandidate = nil
                 return .none
 
+            case .reloadFriendships:
+                guard !state.isDemo, let session = state.authenticationSession else { return .none }
+                state.isLoading = true
+                return .run { send in
+                    do {
+                        await send(.friendshipsLoaded(
+                            try await friendshipClient.load(session.accessToken),
+                            userID: session.userID
+                        ))
+                    } catch {
+                        if let message = authenticationRejectionMessage(error) {
+                            try? await authenticationClient.signOut()
+                            await send(.authenticationInvalidated(message))
+                        } else {
+                            await send(.friendshipMutationFailed(
+                                error.localizedDescription,
+                                reload: false,
+                                userID: session.userID
+                            ))
+                        }
+                    }
+                }
+                .cancellable(id: CancelID.friendship, cancelInFlight: true)
+
+            case let .friendshipsLoaded(friendship, userID):
+                guard state.authenticationSession?.userID == userID else { return .none }
+                if state.snapshot == nil { state.snapshot = .empty() }
+                state.snapshot?.apply(friendship)
+                state.isLoading = false
+                return .none
+
+            case .rotateInviteCode:
+                guard !state.isDemo, let session = state.authenticationSession else { return .none }
+                state.isLoading = true
+                return .run { send in
+                    do {
+                        await send(.friendshipMutationCompleted(
+                            try await friendshipClient.rotateCode(session.accessToken),
+                            userID: session.userID
+                        ))
+                    } catch {
+                        if let message = authenticationRejectionMessage(error) {
+                            try? await authenticationClient.signOut()
+                            await send(.authenticationInvalidated(message))
+                        } else {
+                            await send(.friendshipMutationFailed(
+                                error.localizedDescription,
+                                reload: false,
+                                userID: session.userID
+                            ))
+                        }
+                    }
+                }
+                .cancellable(id: CancelID.friendship, cancelInFlight: true)
+
+            case .resolveInviteCode:
+                guard let session = state.authenticationSession, !state.isDemo else {
+                    state.alertMessage = "DEBUGデモでは共有済みの友達データを利用してください。"
+                    return .none
+                }
+                let code = state.inviteCodeInput
+                state.isLoading = true
+                return .run { send in
+                    do {
+                        await send(.inviteCodeResolved(
+                            try await friendshipClient.resolveCode(code, session.accessToken),
+                            userID: session.userID
+                        ))
+                    } catch {
+                        if let message = authenticationRejectionMessage(error) {
+                            try? await authenticationClient.signOut()
+                            await send(.authenticationInvalidated(message))
+                        } else {
+                            await send(.friendshipMutationFailed(
+                                error.localizedDescription,
+                                reload: false,
+                                userID: session.userID
+                            ))
+                        }
+                    }
+                }
+                .cancellable(id: CancelID.friendship, cancelInFlight: true)
+
+            case let .inviteCodeResolved(friend, userID):
+                guard state.authenticationSession?.userID == userID else { return .none }
+                state.friendCandidate = friend
+                state.isLoading = false
+                return .none
+
+            case .sendFriendRequest:
+                guard state.friendCandidate != nil,
+                      let session = state.authenticationSession,
+                      !state.isDemo
+                else { return .none }
+                let code = state.inviteCodeInput
+                let operationID = state.operationID(forFriendshipKey: "send:\(code)")
+                state.isLoading = true
+                return .run { send in
+                    do {
+                        await send(.friendshipMutationCompleted(
+                            try await friendshipClient.sendRequest(code, operationID, session.accessToken),
+                            userID: session.userID
+                        ))
+                    } catch let error as BackendClientError {
+                        if let message = authenticationRejectionMessage(error) {
+                            try? await authenticationClient.signOut()
+                            await send(.authenticationInvalidated(message))
+                        } else {
+                            await send(.friendshipMutationFailed(
+                                error.localizedDescription,
+                                reload: isFriendshipConflict(error),
+                                userID: session.userID
+                            ))
+                        }
+                    } catch {
+                        await send(.friendshipMutationFailed(
+                            error.localizedDescription,
+                            reload: false,
+                            userID: session.userID
+                        ))
+                    }
+                }
+                .cancellable(id: CancelID.friendship, cancelInFlight: true)
+
             case let .acceptRequest(id):
-                return .run { send in await send(.snapshotMutationCompleted(client.acceptRequest(id))) }
+                if state.isDemo {
+                    return .run { send in await send(.snapshotMutationCompleted(client.acceptRequest(id))) }
+                }
+                guard let request = state.snapshot?.requests.first(where: { $0.id == id }),
+                      let session = state.authenticationSession
+                else { return .none }
+                state.isLoading = true
+                let operationID = state.operationID(
+                    forFriendshipKey: "accept:\(request.id.uuidString):\(request.version)"
+                )
+                return friendshipTransitionEffect(
+                    request,
+                    .accept,
+                    operationID,
+                    session.accessToken,
+                    session.userID
+                )
+
+            case let .rejectRequest(id):
+                guard let request = state.snapshot?.requests.first(where: { $0.id == id }),
+                      let session = state.authenticationSession,
+                      !state.isDemo
+                else { return .none }
+                state.isLoading = true
+                let operationID = state.operationID(
+                    forFriendshipKey: "reject:\(request.id.uuidString):\(request.version)"
+                )
+                return friendshipTransitionEffect(
+                    request,
+                    .reject,
+                    operationID,
+                    session.accessToken,
+                    session.userID
+                )
+
+            case let .cancelRequest(id):
+                guard let request = state.snapshot?.requests.first(where: { $0.id == id }),
+                      let session = state.authenticationSession,
+                      !state.isDemo
+                else { return .none }
+                state.isLoading = true
+                let operationID = state.operationID(
+                    forFriendshipKey: "cancel:\(request.id.uuidString):\(request.version)"
+                )
+                return friendshipTransitionEffect(
+                    request,
+                    .cancel,
+                    operationID,
+                    session.accessToken,
+                    session.userID
+                )
 
             case let .removeFriend(id):
-                return .run { send in await send(.snapshotMutationCompleted(client.removeFriend(id))) }
+                if state.isDemo {
+                    return .run { send in await send(.snapshotMutationCompleted(client.removeFriend(id))) }
+                }
+                guard let friend = state.snapshot?.friends.first(where: { $0.id == id }),
+                      let version = friend.relationshipVersion,
+                      let session = state.authenticationSession
+                else { return .none }
+                let operationID = state.operationID(
+                    forFriendshipKey: "remove:\(id.uuidString):\(version)"
+                )
+                state.isLoading = true
+                return .run { send in
+                    do {
+                        await send(.friendshipMutationCompleted(
+                            try await friendshipClient.removeFriend(id, version, operationID, session.accessToken),
+                            userID: session.userID
+                        ))
+                    } catch let error as BackendClientError {
+                        if let message = authenticationRejectionMessage(error) {
+                            try? await authenticationClient.signOut()
+                            await send(.authenticationInvalidated(message))
+                        } else {
+                            await send(.friendshipMutationFailed(
+                                error.localizedDescription,
+                                reload: isFriendshipConflict(error),
+                                userID: session.userID
+                            ))
+                        }
+                    } catch {
+                        await send(.friendshipMutationFailed(
+                            error.localizedDescription,
+                            reload: false,
+                            userID: session.userID
+                        ))
+                    }
+                }
+                .cancellable(id: CancelID.friendship, cancelInFlight: true)
+
+            case let .friendshipMutationCompleted(friendship, userID):
+                guard state.authenticationSession?.userID == userID else { return .none }
+                if state.snapshot == nil { state.snapshot = .empty() }
+                state.snapshot?.apply(friendship)
+                state.friendCandidate = nil
+                state.inviteCodeInput = ""
+                state.addFriendPresented = false
+                state.isLoading = false
+                state.clearFriendshipOperation()
+                return .none
+
+            case let .friendshipMutationFailed(message, reload, userID):
+                guard state.authenticationSession?.userID == userID else { return .none }
+                state.isLoading = false
+                state.alertMessage = message
+                if reload { state.clearFriendshipOperation() }
+                return reload ? .send(.reloadFriendships) : .none
 
             case let .snapshotMutationCompleted(snapshot):
                 state.snapshot = snapshot
@@ -740,7 +1010,7 @@ struct AppFeature {
                 state.deleteConfirmationPresented = false
                 state.isLoading = false
                 state.route = .deletionAccepted
-                return .none
+                return .cancel(id: CancelID.friendship)
 
             case let .deletionSubmissionFailed(message):
                 state.deleteConfirmationPresented = false
@@ -764,6 +1034,47 @@ struct AppFeature {
             }
         }
     }
+
+    private func friendshipTransitionEffect(
+        _ request: FriendRequest,
+        _ transition: FriendRequestTransition,
+        _ operationID: UUID,
+        _ accessToken: String,
+        _ userID: String
+    ) -> Effect<Action> {
+        .run { send in
+            do {
+                await send(.friendshipMutationCompleted(
+                    try await friendshipClient.transitionRequest(
+                        request.id,
+                        transition,
+                        request.version,
+                        operationID,
+                        accessToken
+                    ),
+                    userID: userID
+                ))
+            } catch let error as BackendClientError {
+                if let message = authenticationRejectionMessage(error) {
+                    try? await authenticationClient.signOut()
+                    await send(.authenticationInvalidated(message))
+                } else {
+                    await send(.friendshipMutationFailed(
+                        error.localizedDescription,
+                        reload: isFriendshipConflict(error),
+                        userID: userID
+                    ))
+                }
+            } catch {
+                await send(.friendshipMutationFailed(
+                    error.localizedDescription,
+                    reload: false,
+                    userID: userID
+                ))
+            }
+        }
+        .cancellable(id: CancelID.friendship, cancelInFlight: true)
+    }
 }
 
 private func authenticationRejectionMessage(_ error: Error) -> String? {
@@ -771,4 +1082,9 @@ private func authenticationRejectionMessage(_ error: Error) -> String? {
           status == 401 || status == 403
     else { return nil }
     return message ?? "サインイン状態を確認できません。Appleでサインインし直してください。"
+}
+
+private func isFriendshipConflict(_ error: BackendClientError) -> Bool {
+    guard case .response(409, _) = error else { return false }
+    return true
 }

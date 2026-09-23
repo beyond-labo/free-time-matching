@@ -33,18 +33,18 @@
       ".kiro/specs/ios-ci-cd/requirements.md": "9e43262a52307f0de3c2cc5c2f6dfdfbd1f334f82d011f4780b040852270af71",
       ".kiro/specs/ios-ci-cd/research.md": "8600a5fe3b763de1c30680af6a1604c0d82729d9dd37eb2729139e05d654b7aa",
       ".kiro/specs/ios-ci-cd/tasks.md": "c4d6bf12bb59ee146fdc40042e2da42cbf3cf14af1b6759d056c1b3edf022e47",
-      ".kiro/specs/ios-friendship/brief.md": "550ef87aaeb9677d85990c6a46cb7ffad35671e14206a4c2f109b8e8d04f06a6",
-      ".kiro/specs/ios-friendship/requirements.md": "7629b16df07aa31e785196f3976870763493d89e6a996f05af6cb5f3fbf42d77",
+      ".kiro/specs/ios-friendship/brief.md": "396b8575ce798f9c00c5c08f0f14c2f997dfe982cde3431b9b8d4620b868efee",
+      ".kiro/specs/ios-friendship/requirements.md": "4673d21eaf08ebb4265ccd0a3a6a34da9ee6e0557cc2436c6863920f36f06606",
       ".kiro/specs/ios-hosting/brief.md": "c5a9a950ef8c684206041bbcfdc52306e5abd2286241605a2befdca8567a86f8",
       ".kiro/specs/ios-hosting/requirements.md": "5a9bc2fbd5dfeec1dd2728c04c78849ef6f944bb543bc750b242d7d5001fc8ae",
       ".kiro/specs/ios-safety-settings/brief.md": "f3087a3c0ca27323f26414cb587af044f8dfcc0d1d26a2ee6b6f81fde843fdc9",
       ".kiro/specs/ios-safety-settings/requirements.md": "976a865b5bd2c72837aa25718944f944d76e2e55e82fefbdf12e2cea17f152eb",
-      ".kiro/steering/roadmap.md": "689a94ae2a49f348637acb8c3852b988e78c694ba4d9108a25a0c0bbbcfd8b11",
-      "docs/architecture/api-contracts.md": "0bf31003dd44e7caf478d4e9504f2402e8cc04fb849b3a7c014782686b76e63e",
-      "docs/architecture/ios-architecture.md": "98936d5ff6b6ba6eff9e3969a5c40e57eee75f2ea6c7a16de8bf2a1dfb624485",
+      ".kiro/steering/roadmap.md": "51eccd341e28a4219ea54c1fd191c33997778e9d60f9e1ebed10f3a263e5907f",
+      "docs/architecture/api-contracts.md": "a94c6bedadd8f9eb46ca2d2aaa6648dc43b91d01f7cf745824735a7aff2170c8",
+      "docs/architecture/ios-architecture.md": "792b54ae63ed3fdf2c7db2a3842fadc50093ba089f925f507a4d8aff0e7fe85a",
       "docs/architecture/technology.md": "b19a95745c5afb1f3f391f6f13e2c804ee72bdc88c0e505ee694a837b36e87e7",
       "docs/operations/ios-ci-cd.md": "a745ce0815527d7ba1693afa4c773ce50ad2c2ee122d81331dd54321012772ea",
-      "docs/product/overview.md": "df016b4ffe84923c46749490857bc1015f33a34ccc908ce03512bdd9dde7b600"
+      "docs/product/overview.md": "b4bcbae1b735d5007ee3f0b24601b1a016b414c534be0803575c2a0a429265bd"
     }
   }
 }

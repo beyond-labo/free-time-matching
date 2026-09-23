@@ -57,7 +57,7 @@ GitHub Releases、オブジェクトストレージ等の配布先と保存期�
 初版の業務 API は `/v1` を接頭辞とする方針です。
 `/v1/me`は本人プロフィールのGET/PUT、`/v1/account-deletion-requests`はApple再認証を伴う削除受付・状況照会として定義します。
 保護APIは`Authorization: Bearer <Supabase access token>`を要求し、本人IDはJWTのsubjectからのみ確定します。
-友達、暇、募集の`/v1/friendships`、`/v1/availability-days`、`/v1/hostings`は引き続き候補であり未定義です。
+友達の`/v1/friendships`と関連 mutation は下記の固定契約として実装済みです。暇、募集の`/v1/availability-days`、`/v1/hostings`は引き続き候補であり未定義です。
 古い iOS が残る前提で、既存クライアントの動作を維持します。
 
 フィールド削除、名前変更、意味変更、リクエストの必須項目追加、レスポンス形状変更は互換性を検討します。
@@ -86,6 +86,19 @@ Producer と Consumer で TypeScript interface を直接共有しません。
 
 生のApple credential、Supabase token、secretを応答・ログへ含めません。
 
+## 友達関係契約
+
+すべての endpoint は `Authorization: Bearer <Supabase access token>` を要求し、本人 ID を JWT subject から確定します。最初の内部 TestFlight は build-time variable により staging API / Supabase へ接続します。
+
+- `GET /v1/friendships` → `{ inviteCode, friends, incomingRequests, outgoingRequests }`。有効コードがなければ7日有効のコードを発行して返す。
+- `POST /v1/friendship-invite-code/rotate` → 旧コードを失効し、新しい code を含む snapshot を返す。
+- `POST /v1/friendship-invite-code/resolve` ← `{ code }` → `{ candidate: { userId, nickname, presetIconKey } }`。
+- `POST /v1/friendship-requests` ← `{ code, operationId }` → mutation 後の snapshot。
+- `POST /v1/friendship-requests/{requestId}/accept|reject|cancel` ← `{ operationId, expectedVersion }` → mutation 後の snapshot。
+- `DELETE /v1/friendships/{friendId}` ← `{ operationId, expectedVersion }` → mutation 後の snapshot。
+
+`friends` は `{ profile, version, createdAt }`、申請は `{ id, profile, version, createdAt }` を要素とします。profile は `userId`、`nickname`、`presetIconKey` だけです。コードの無効・期限切れ・失効・自己所有・不存在は `invite_code_unavailable` に統一し、version 競合は `friendship_conflict` として返します。mutation の operation ID は利用者ごとの再送安全性、version は楽観的競合検出に使用します。
+
 ## 現在の配置
 
-HTTP実装は存在しますが、OpenAPI生成スクリプトと生成クライアントはまだ存在しません。初版iOS Adapterは上記の固定契約を局所DTOへ変換し、生成経路導入時に置き換えます。
+HTTP実装は存在しますが、OpenAPI生成スクリプトと生成クライアントはまだ存在しません。初版iOS Adapterはプロフィール、友達関係、削除の固定契約を局所DTOへ変換し、生成経路導入時に置き換えます。

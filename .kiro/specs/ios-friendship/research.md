@@ -35,8 +35,11 @@ kiro:
 ## Risks & Mitigations
 
 - Prototype がコードの安全性を証明してしまう — UI 契約のみと文書化し、Backend 要件を別途必要とする。
+- Release が空の `Production Placeholder` を使いコード未発行になる — `backend-friendship` の実 Backend Adapter を注入し、最初は STG、DEBUG デモだけ Prototype を使う。
 - 解除で予定が消える — Hosting への delegate を表示して別操作にする。
 
 ## Change Log
 
 - 2026-09-20: ユーザーの友達追加・管理・公開制約を新規仕様へ反映。
+- 2026-09-23: `BackendFriendshipAdapter`、友達状態の Reducer/UI、旧 session 応答の破棄、手動再読込、権限喪失時の詳細画面 dismiss を実装。署名検査 13 件と Swift Testing 33 件を iPhone 17 Pro Max Simulator で確認。STG 実アカウント smoke は未実施。
+- 2026-09-23: 実装依頼と `Production Placeholder` の調査に基づき、`backend-friendship` を上流に追加し、最初の内部 TestFlight は STG の実 Backend へ接続する方針に更新。

@@ -112,6 +112,14 @@ const createDeletionApp = (admin: MemoryDeletionAdmin, apple: FakeAppleGateway) 
       find: async () => null,
       save: async (profile) => profile,
     }),
+    manageFriendships: {
+      snapshot: async () => { throw new Error("unused"); },
+      rotateCode: async () => { throw new Error("unused"); },
+      resolveCode: async () => { throw new Error("unused"); },
+      sendRequest: async () => { throw new Error("unused"); },
+      transitionRequest: async () => { throw new Error("unused"); },
+      removeFriend: async () => { throw new Error("unused"); },
+    },
     requestDeletion,
     deletionStatus,
   };

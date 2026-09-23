@@ -39,7 +39,13 @@ kiro:
 
 ユーザーのiOSテスト戦略に合わせ、単体・Reducer・統合テストをSwift Testingへ統一した。`xcodebuild test`と既存test targetは維持し、repository verifyとCIでXCTestのimport・継承の再混入とテスト0件を拒否する。
 
-認証・プロフィール・削除はProduction Adapterを標準とし、Release CompositionでPrototype認証へフォールバックしない。共有Prototype scenarioはDEBUGデモと未接続の友達・暇・募集へ限定する。
+認証・プロフィール・削除とFriendshipは実Backend Adapterを標準とし、Release CompositionでPrototypeへフォールバックしない。最初の内部TestFlightはSTGへ接続する。共有Prototype scenarioはDEBUGデモと未接続の暇・募集へ限定する。
+
+### 2026-09-23
+
+Friendship の実 Backend 契約追加に合わせ、Release Composition が `BackendFriendshipAdapter` を注入する境界と STG-first の接続方針を同期した。DEBUG デモの再現可能な Friendship fixture は維持するが、Release の状態正本にはしない。
+
+Root Composition と友達状態の統合を iPhone 17 Pro Max Simulator でビルドし、Swift Testing 33 件で確認した。STG 実アカウントを使う縦断 smoke は配備後の手動確認として残す。
 
 削除状態の復元をRoot起動より先に判定し、Supabase SDKの初期session eventが保留中の削除を追い越して通常画面を復元しないようにした。
 

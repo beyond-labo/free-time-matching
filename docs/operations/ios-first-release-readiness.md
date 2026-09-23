@@ -22,7 +22,7 @@
 - Apple DeveloperとSupabase Dashboardの実環境設定、GitHub EnvironmentへのSupabase／Worker設定登録、実資格情報によるstaging E2E。
 - operation ID、version conflict、同時操作、二重送信、募集頻度制限を含む整合性制御。
 - APNs、アプリ内受信箱の永続化、通知設定の保存、通知本文の本番確認。
-- 友達コードの解決・申請・拒否・取消、募集回答の変更・撤回・見送り、予定の取消・離脱の本番フロー。
+- 友達コードの解決・申請・拒否・取消は実装済みで、staging deploy後の複数アカウントsmokeが未実施。募集回答の変更・撤回・見送り、予定の取消・離脱の実Backendフローは未実装。
 - 運営の通報受付・是正・利用停止、公開問い合わせ先、コミュニティルール。
 - actionRequiredとなった削除の運用再試行、将来の業務データ削除、バックアップ復元対策。
 - 実Bundle IDとTeam ID、capability対応profile、審査用アクセス、Privacy Label、年齢レーティング、外部TestFlight審査。

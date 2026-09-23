@@ -8,6 +8,7 @@ enum AppCompositionRoot {
         let authentication: AuthenticationClient
         let profile: ProfileClient
         let deletion: AccountDeletionClient
+        let friendship: FriendshipClient
 
         do {
             let configuration = try AppConfiguration(bundle: bundle)
@@ -18,11 +19,13 @@ enum AppCompositionRoot {
             authentication = SupabaseAuthenticationAdapter(supabase: supabase).client()
             profile = BackendProfileAdapter(baseURL: configuration.apiBaseURL).client()
             deletion = BackendAccountDeletionAdapter(baseURL: configuration.apiBaseURL).client()
+            friendship = BackendFriendshipAdapter(baseURL: configuration.apiBaseURL).client()
         } catch {
             let message = error.localizedDescription
             authentication = .unconfigured(message)
             profile = .unconfigured(message)
             deletion = .unconfigured(message)
+            friendship = .unconfigured(message)
         }
 
         let business: HimatchClient
@@ -38,6 +41,7 @@ enum AppCompositionRoot {
             $0.authenticationClient = authentication
             $0.profileClient = profile
             $0.accountDeletionClient = deletion
+            $0.friendshipClient = friendship
             $0.deletionStatusTokenStore = KeychainDeletionStatusTokenStore().client()
             $0.himatchClient = business
         }

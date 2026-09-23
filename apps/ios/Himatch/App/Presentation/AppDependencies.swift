@@ -10,6 +10,11 @@ private enum AuthenticationClientKey: DependencyKey {
     static let testValue = liveValue
 }
 
+private enum FriendshipClientKey: DependencyKey {
+    static let liveValue = FriendshipClient.unconfigured("FriendshipClient is not injected")
+    static let testValue = liveValue
+}
+
 private enum ProfileClientKey: DependencyKey {
     static let liveValue = ProfileClient.unconfigured("ProfileClient is not injected")
     static let testValue = liveValue
@@ -34,6 +39,11 @@ extension DependencyValues {
     var authenticationClient: AuthenticationClient {
         get { self[AuthenticationClientKey.self] }
         set { self[AuthenticationClientKey.self] = newValue }
+    }
+
+    var friendshipClient: FriendshipClient {
+        get { self[FriendshipClientKey.self] }
+        set { self[FriendshipClientKey.self] = newValue }
     }
 
     var profileClient: ProfileClient {

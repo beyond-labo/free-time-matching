@@ -194,7 +194,7 @@ actor HimatchPrototypeScenario {
         return AppSnapshot(
             profileName: "ひまり",
             profileIcon: "sun.max.fill",
-            inviteCode: InviteCode(value: "HIMA-2741", expiresAt: now.addingTimeInterval(7 * 24 * 60 * 60)),
+            inviteCode: InviteCode(value: "HIMA-DEMA-FRND-CXDE-2742", expiresAt: now.addingTimeInterval(7 * 24 * 60 * 60)),
             availability: [
                 AvailabilitySlot(
                     interval: TimeIntervalRange(start: start, end: start.addingTimeInterval(2 * 60 * 60)),
