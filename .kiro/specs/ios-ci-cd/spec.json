@@ -1,7 +1,7 @@
 {
   "feature_name": "ios-ci-cd",
   "created_at": "2026-09-16T08:29:34+09:00",
-  "updated_at": "2026-09-21T00:00:00+09:00",
+  "updated_at": "2026-09-23T06:49:55+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
@@ -29,10 +29,10 @@
       ".kiro/specs/ios-app-foundation/requirements.md": "b486f614c357c0a1dfdd43f06b84c4f5707d021c461abd994bb489d9801927fc",
       ".kiro/specs/ios-availability/brief.md": "981e124762caf1338ea89b48baf35c4b34f1558c1be7bc09d068ff92a3d64b12",
       ".kiro/specs/ios-availability/requirements.md": "a4e374f65d798c33a98d33831e959368ec8e817359be205e02a567c899a58654",
-      ".kiro/specs/ios-ci-cd/design.md": "6f6568479d7008e3f9968af1664ce5f5e079633ef2e03868971b23f7b353358f",
+      ".kiro/specs/ios-ci-cd/design.md": "dc1955dcb4c5510b4a72356b2fe7ef0a150e0cfd9cc6dbbe430d0e708059d2eb",
       ".kiro/specs/ios-ci-cd/requirements.md": "9e43262a52307f0de3c2cc5c2f6dfdfbd1f334f82d011f4780b040852270af71",
-      ".kiro/specs/ios-ci-cd/research.md": "a11716bd15013a25bea68b624d785f468b6c9775067658553250008014e74611",
-      ".kiro/specs/ios-ci-cd/tasks.md": "25e6cabd32ab482286fffc6fc7899f11a78df235de7b3916e8f7f30144cbf3c1",
+      ".kiro/specs/ios-ci-cd/research.md": "8600a5fe3b763de1c30680af6a1604c0d82729d9dd37eb2729139e05d654b7aa",
+      ".kiro/specs/ios-ci-cd/tasks.md": "c4d6bf12bb59ee146fdc40042e2da42cbf3cf14af1b6759d056c1b3edf022e47",
       ".kiro/specs/ios-friendship/brief.md": "550ef87aaeb9677d85990c6a46cb7ffad35671e14206a4c2f109b8e8d04f06a6",
       ".kiro/specs/ios-friendship/requirements.md": "7629b16df07aa31e785196f3976870763493d89e6a996f05af6cb5f3fbf42d77",
       ".kiro/specs/ios-hosting/brief.md": "c5a9a950ef8c684206041bbcfdc52306e5abd2286241605a2befdca8567a86f8",

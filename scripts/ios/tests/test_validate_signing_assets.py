@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = SCRIPT_DIR.parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from validate_signing_assets import ValidationError, validate_crypto_material, validate_profile
@@ -182,6 +183,29 @@ class SigningAssetValidationTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("must be a UUID", result.stderr)
+
+    def test_release_scopes_signing_settings_to_the_app_target(self) -> None:
+        release_script = (SCRIPT_DIR / "release.sh").read_text(encoding="utf-8")
+        project = (ROOT_DIR / "apps/ios/Himatch.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
+
+        scoped_settings = {
+            "CODE_SIGN_STYLE": "HIMATCH_CODE_SIGN_STYLE",
+            "CODE_SIGN_IDENTITY": "HIMATCH_CODE_SIGN_IDENTITY",
+            "DEVELOPMENT_TEAM": "HIMATCH_DEVELOPMENT_TEAM",
+            "PRODUCT_BUNDLE_IDENTIFIER": "HIMATCH_PRODUCT_BUNDLE_IDENTIFIER",
+            "PROVISIONING_PROFILE_SPECIFIER": "HIMATCH_PROVISIONING_PROFILE_SPECIFIER",
+            "MARKETING_VERSION": "HIMATCH_MARKETING_VERSION",
+            "CURRENT_PROJECT_VERSION": "HIMATCH_CURRENT_PROJECT_VERSION",
+        }
+
+        for standard_setting, app_setting in scoped_settings.items():
+            self.assertNotRegex(
+                release_script,
+                rf"(?m)^  {standard_setting}=",
+                f"{standard_setting} must not be passed globally to Swift Package targets",
+            )
+            self.assertRegex(release_script, rf"(?m)^  {app_setting}=")
+            self.assertIn(f'{standard_setting} = "$({app_setting})";', project)
 
     def test_release_rejects_non_https_runtime_url_before_decoding_assets(self) -> None:
         environment = os.environ | self.runtime_configuration | {

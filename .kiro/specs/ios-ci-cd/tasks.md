@@ -27,7 +27,7 @@ kiro:
   - _Depends: 1_
 
 - [x] 3. TestFlight 配布経路を追加する
-  - annotated tag／現在のmainに限定したmanual trigger、同一commitのtestとrelease、Environment、公開アプリ設定、preflight、署名、IPA export、API key upload、cleanup、artifact保存が接続される。
+  - annotated tag／現在のmainに限定したmanual trigger、同一commitのtestとrelease、Environment、公開アプリ設定、App target限定のmanual signing、preflight、IPA export、API key upload、cleanup、artifact保存が接続される。
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.1, 3.2, 3.3_
   - _Boundary: ReleaseScript, IOSCD_
   - _Depends: 1, 2_
@@ -39,7 +39,7 @@ kiro:
   - _Depends: 2, 3_
 
 - [x] 5. 統合検証と安全性レビューを完了する
-  - repository verify、Swift Testing 専用検査、workflow 構文、Xcode build/test、差分レビューが成功し、外部資格情報が必要な upload の未検証範囲が明記される。
+  - repository verify、Swift Testing 専用検査、署名設定をSwift Package targetへ伝播させない回帰検査、workflow 構文、Xcode build/test、差分レビューが成功し、外部資格情報が必要な upload の未検証範囲が明記される。
   - _Requirements: 1.1, 1.2, 1.4, 1.5, 2.3, 3.1, 3.2, 4.1_
   - _Boundary: IntegrationValidation_
   - _Depends: 1, 2, 3, 4_
