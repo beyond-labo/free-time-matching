@@ -17,6 +17,18 @@ struct AppFeatureTests {
         #expect(!state.reminderEnabled)
     }
 
+    @Test("友達mutationの再試行は同じoperation IDを使う")
+    func friendshipOperationIDIsStableForRetry() {
+        var state = AppFeature.State()
+
+        let first = state.operationID(forFriendshipKey: "accept:request:1")
+        let retry = state.operationID(forFriendshipKey: "accept:request:1")
+        let other = state.operationID(forFriendshipKey: "reject:request:1")
+
+        #expect(first == retry)
+        #expect(other != first)
+    }
+
     @Test("復元プロフィールがある場合はメイン画面へ進む")
     func restoredProfileRoutesToMain() async {
         let profile = UserProfile(
@@ -50,6 +62,45 @@ struct AppFeatureTests {
         #expect(store.state.authenticationSession == nil)
     }
 
+    @Test("STG友達snapshotの初回コードを認証後に表示状態へ反映する")
+    func friendshipSnapshotLoadsIssuedCode() async {
+        var state = AppFeature.State()
+        state.route = .main
+        state.authenticationSession = AuthenticationSession(userID: "user", accessToken: "staging-access")
+        state.snapshot = .empty(profileName: "ひまり", profileIcon: PresetProfileIcon.sun.rawValue)
+        let friendship = FriendshipSnapshot(
+            inviteCode: InviteCode(
+                value: "HIMA-ABCD-EFGH-JKMP-QRST",
+                expiresAt: Date(timeIntervalSince1970: 2_000_000_000)
+            ),
+            friends: [],
+            requests: []
+        )
+        let store = TestStore(initialState: state) {
+            AppFeature()
+        } withDependencies: {
+            $0.friendshipClient = FriendshipClient(
+                load: { token in
+                    #expect(token == "staging-access")
+                    return friendship
+                },
+                rotateCode: { _ in friendship },
+                resolveCode: { _, _ in throw BackendClientError.invalidResponse },
+                sendRequest: { _, _, _ in friendship },
+                transitionRequest: { _, _, _, _, _ in friendship },
+                removeFriend: { _, _, _, _ in friendship }
+            )
+        }
+
+        await store.send(.reloadFriendships) {
+            $0.isLoading = true
+        }
+        await store.receive(\.friendshipsLoaded) {
+            $0.snapshot?.apply(friendship)
+            $0.isLoading = false
+        }
+    }
+
     @Test("認証拒否時はsessionと機密画面状態を破棄する")
     func authenticationRejectionClearsAuthenticatedState() async {
         var state = AppFeature.State()
@@ -66,6 +117,27 @@ struct AppFeatureTests {
             $0.route = .onboarding
             $0.alertMessage = "サインインし直してください。"
         }
+    }
+
+    @Test("別sessionの友達応答は現在の画面状態へ反映しない")
+    func staleFriendshipResponseIsIgnored() async {
+        var state = AppFeature.State()
+        state.route = .main
+        state.authenticationSession = AuthenticationSession(userID: "current-user", accessToken: "access")
+        state.snapshot = .empty(profileName: "ひまり", profileIcon: PresetProfileIcon.sun.rawValue)
+        let stale = FriendshipSnapshot(
+            inviteCode: InviteCode(
+                value: "HIMA-ABCD-EFGH-JKMP-QRST",
+                expiresAt: Date(timeIntervalSince1970: 2_000_000_000)
+            ),
+            friends: [],
+            requests: []
+        )
+        let store = TestStore(initialState: state) { AppFeature() }
+
+        await store.send(.friendshipsLoaded(stale, userID: "previous-user"))
+
+        #expect(store.state.snapshot?.inviteCode == nil)
     }
 
     @Test("削除受付結果はセッションを停止して状態を保持する")

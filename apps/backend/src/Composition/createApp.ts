@@ -15,6 +15,9 @@ import {
   SupabaseDeletionStatusAdapter,
 } from "../AccountDeletion/Infrastructure/Adapter/SupabaseDeletionAdminAdapter";
 import { createAccountDeletionRoutes } from "../AccountDeletion/Presentation/AccountDeletionRoutes";
+import { ManageFriendships } from "../Friendship/Application/UseCase/ManageFriendships";
+import { SupabaseFriendshipRepository } from "../Friendship/Infrastructure/Repository/SupabaseFriendshipRepository";
+import { createFriendshipRoutes } from "../Friendship/Presentation/FriendshipRoutes";
 
 export interface BackendBindings {
   readonly SUPABASE_URL?: string;
@@ -30,6 +33,10 @@ export interface BackendBindings {
 export interface AppDependencies {
   readonly tokenVerifier: AccessTokenVerifier;
   readonly manageProfile: Pick<ManageProfile, "get" | "put">;
+  readonly manageFriendships: Pick<
+    ManageFriendships,
+    "snapshot" | "rotateCode" | "resolveCode" | "sendRequest" | "transitionRequest" | "removeFriend"
+  >;
   readonly requestDeletion: Pick<RequestAccountDeletion, "execute">;
   readonly deletionStatus: AccountDeletionStatusPort;
 }
@@ -61,11 +68,42 @@ export const createApp = (
   const lazyDeletionStatus: AccountDeletionStatusPort = {
     get: (reference, token) => dependencies().deletionStatus.get(reference, token),
   };
+  const lazyFriendships: AppDependencies["manageFriendships"] = {
+    snapshot: (actorId, token) => dependencies().manageFriendships.snapshot(actorId, token),
+    rotateCode: (actorId, token) => dependencies().manageFriendships.rotateCode(actorId, token),
+    resolveCode: (actorId, token, code) => dependencies().manageFriendships.resolveCode(actorId, token, code),
+    sendRequest: (actorId, token, code, operationId) =>
+      dependencies().manageFriendships.sendRequest(actorId, token, code, operationId),
+    transitionRequest: (actorId, token, requestId, transition, operationId, expectedVersion) =>
+      dependencies().manageFriendships.transitionRequest(
+        actorId,
+        token,
+        requestId,
+        transition,
+        operationId,
+        expectedVersion,
+      ),
+    removeFriend: (actorId, token, friendId, operationId, expectedVersion) =>
+      dependencies().manageFriendships.removeFriend(
+        actorId,
+        token,
+        friendId,
+        operationId,
+        expectedVersion,
+      ),
+  };
 
   app.get("/healthz", healthRoute);
   app.route(
     "/v1",
     createUserRoutes({ tokenVerifier: lazyTokenVerifier, manageProfile: lazyProfile }),
+  );
+  app.route(
+    "/v1",
+    createFriendshipRoutes({
+      tokenVerifier: lazyTokenVerifier,
+      manageFriendships: lazyFriendships,
+    }),
   );
   app.route(
     "/v1",
@@ -105,6 +143,9 @@ const createRuntimeDependencies = (bindings: BackendBindings): AppDependencies =
   return {
     tokenVerifier: new SupabaseJwtVerifier(deriveSupabaseAuthConfiguration(supabaseUrl)),
     manageProfile: new ManageProfile(new SupabaseProfileRepository(userConfiguration)),
+    manageFriendships: new ManageFriendships(
+      new SupabaseFriendshipRepository(userConfiguration),
+    ),
     requestDeletion: new RequestAccountDeletion(
       deletionAdmin,
       apple,

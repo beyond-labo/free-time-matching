@@ -3,6 +3,11 @@ import { InvalidAccessTokenError } from "../../Auth/Application/Port/AccessToken
 import { AppleReauthenticationError } from "../../AccountDeletion/Application/Port/AccountDeletionPorts";
 import { InvalidProfileError } from "../../User/Domain/Model/UserProfile";
 import { AccountDeletionInProgressError } from "../../User/Application/Port/ProfileRepository";
+import {
+  FriendshipConflictError,
+  FriendshipUnavailableError,
+  InviteCodeUnavailableError,
+} from "../../Friendship/Domain/Model/Friendship";
 
 export class InvalidRequestError extends Error {
   constructor(
@@ -66,6 +71,39 @@ export const apiErrorResponse = (context: Context, error: unknown): Response => 
         },
       },
       400,
+    );
+  }
+  if (error instanceof InviteCodeUnavailableError) {
+    return context.json(
+      {
+        error: {
+          code: "invite_code_unavailable",
+          message: "この招待コードは利用できません。共有した相手に新しいコードを確認してください。",
+        },
+      },
+      404,
+    );
+  }
+  if (error instanceof FriendshipUnavailableError) {
+    return context.json(
+      {
+        error: {
+          code: "friendship_unavailable",
+          message: "この友達関係は利用できません。最新の状態を確認してください。",
+        },
+      },
+      404,
+    );
+  }
+  if (error instanceof FriendshipConflictError) {
+    return context.json(
+      {
+        error: {
+          code: "friendship_conflict",
+          message: "友達の状態が更新されました。最新の状態を確認してください。",
+        },
+      },
+      409,
     );
   }
 

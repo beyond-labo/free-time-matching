@@ -57,6 +57,46 @@ struct BackendAdapterTests {
         #expect(receipt.statusToken == "status-token")
     }
 
+    @Test("Friendship adapter loads issued code and sends versioned operations")
+    func friendshipContract() async throws {
+        let recorder = RequestRecorder()
+        let snapshot = #"{"inviteCode":{"value":"HIMA-ABCD-EFGH-JKMP-QRST","expiresAt":"2026-09-30T00:00:00.000Z"},"friends":[{"profile":{"userId":"00000000-0000-4000-8000-000000000002","nickname":"りく","presetIconKey":"figure.run"},"version":3,"createdAt":"2026-09-23T00:00:00.000Z"}],"incomingRequests":[],"outgoingRequests":[]}"#
+        let candidate = #"{"candidate":{"userId":"00000000-0000-4000-8000-000000000002","nickname":"りく","presetIconKey":"figure.run"}}"#
+        let session = stubSession { request in
+            recorder.append(request)
+            return request.url?.path.hasSuffix("/resolve") == true
+                ? (200, Data(candidate.utf8))
+                : (200, Data(snapshot.utf8))
+        }
+        let client = BackendFriendshipAdapter(
+            baseURL: URL(string: "https://api-staging.example.com/")!,
+            session: session
+        ).client()
+
+        let loaded = try await client.load("access")
+        let resolved = try await client.resolveCode("HIMA-ABCD-EFGH-JKMP-QRST", "access")
+        _ = try await client.removeFriend(
+            UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
+            3,
+            UUID(uuidString: "00000000-0000-4000-8000-000000000099")!,
+            "access"
+        )
+
+        #expect(loaded.inviteCode?.value == "HIMA-ABCD-EFGH-JKMP-QRST")
+        #expect(loaded.friends.first?.relationshipVersion == 3)
+        #expect(resolved.displayName == "りく")
+        #expect(recorder.requests.map { $0.url?.path } == [
+            "/v1/friendships",
+            "/v1/friendship-invite-code/resolve",
+            "/v1/friendships/00000000-0000-4000-8000-000000000002",
+        ])
+        #expect(recorder.requests.allSatisfy {
+            $0.value(forHTTPHeaderField: "Authorization") == "Bearer access"
+        })
+        let body = try #require(recorder.requests.last?.httpBody)
+        #expect(String(data: body, encoding: .utf8)?.contains(#""expectedVersion":3"#) == true)
+    }
+
     @Test("Deletion adapter restores pending status with deletion authorization")
     func deletionStatusContract() async throws {
         let recorder = RequestRecorder()

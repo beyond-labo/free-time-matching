@@ -3,7 +3,7 @@ import Foundation
 struct AppSnapshot: Equatable, Sendable {
     var profileName: String
     var profileIcon: String
-    var inviteCode: InviteCode
+    var inviteCode: InviteCode?
     var availability: [AvailabilitySlot]
     var friends: [FriendProfile]
     var requests: [FriendRequest]
@@ -43,7 +43,7 @@ extension AppSnapshot {
         Self(
             profileName: profileName,
             profileIcon: profileIcon,
-            inviteCode: InviteCode(value: "", expiresAt: .distantPast),
+            inviteCode: nil,
             availability: [],
             friends: [],
             requests: [],
@@ -53,6 +53,12 @@ extension AppSnapshot {
             blocked: [],
             deletionStatus: .idle
         )
+    }
+
+    mutating func apply(_ friendship: FriendshipSnapshot) {
+        inviteCode = friendship.inviteCode
+        friends = friendship.friends
+        requests = friendship.requests
     }
 }
 

@@ -75,6 +75,7 @@ Cloudflareへの配布経路、必要なvariables/secrets、rollbackは[Backend 
 - 実装済み: Workers module entrypoint、Hono の route composition、`GET /healthz`、Workers Runtime 契約テスト、secretless Backend／Supabase CI、Terraform環境scaffold、環境別Custom Domain、DB migrationを先行するstaging/production配布workflow。
 - 外部bootstrap後に実行可能: R2 remote state、staging自動deploy、production承認deploy。
 - 実装済み（認証・ユーザー最小範囲）: Supabase JWT検証、本人プロフィール、RLS migration、Apple再認証を伴う同期アカウント削除、opaque tokenによる削除状況照会。
-- 未実装（後続範囲）: OpenAPI生成、友達・暇・募集等の業務API、非同期削除Queue、実Cloudflare/Supabase resourceのbootstrap。
+- 実装済み: JWT認証、本人プロフィール、友達コード・申請・相互承認・解除、アカウント削除受付。
+- 未実装（後続範囲）: OpenAPI生成、暇・募集等の業務API、非同期削除Queue、実Cloudflare/Supabase resourceのbootstrap。
 
 [技術方針](../../docs/architecture/technology.md)と[配置規則](../../docs/architecture/package-structure.md)に従い、機能が増えたときだけ Domain / Application / Infrastructure を追加します。

@@ -71,3 +71,17 @@ kiro:
 1. The iOS app shall 申請・承認・拒否・取消・解除に一意な操作識別子または version を付けて Port へ渡す
 2. If 最新状態と競合した, the iOS app shall 最新一覧を取得し直して結果を再確認させる
 3. The iOS app shall 友達グラフのサーバー保存が App Store の Contacts データ分類に該当し得ることをプライバシー文書・申告タスクへ渡す
+
+### Requirement 5: STG 実 API 接続
+
+**Objective:** As a STG 利用者, I want 実 Backend の友達状態を端末間で共有したい, so that DEBUG fixture に依存せず友達を追加できる
+
+#### Acceptance Criteria
+
+1. When 認証済みプロフィールでメイン画面へ進んだ, the iOS app shall access token 付きで Backend Friendship snapshot を取得する
+2. When 有効な招待コードがまだない, the iOS app shall Backend が自動発行したコードを取得して表示する
+3. When コード確認、申請、承認、拒否、取消、解除、再発行を行った, the iOS app shall Backend 応答後の snapshot を表示する
+4. If Backend がコード利用不可を返した, the iOS app shall 原因を区別しない共通エラーを表示する
+5. If Backend が version conflict を返した, the iOS app shall snapshot を再取得して再確認を促す
+6. While DEBUG デモを利用している, the iOS app shall Backend Friendship に接続せず再現可能な Prototype snapshot を使用する
+7. The iOS app shall 接続先を build-time configuration から取得し、最初の内部 TestFlight では staging Supabase と staging API を使用する

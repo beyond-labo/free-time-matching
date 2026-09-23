@@ -334,12 +334,32 @@ private struct FriendsView: View {
                             HStack {
                                 FriendLabel(friend: request.person)
                                 Spacer()
+                                Button("拒否") { store.send(.rejectRequest(request.id)) }
+                                    .buttonStyle(.bordered)
+                                    .disabled(store.isLoading)
                                 Button("承認") { store.send(.acceptRequest(request.id)) }
                                     .buttonStyle(.borderedProminent)
+                                    .disabled(store.isLoading)
                             }
                         }
                     } else {
                         Text("受信中の申請はありません").foregroundStyle(.secondary)
+                    }
+                }
+
+                Section("送信した申請") {
+                    if let requests = store.snapshot?.requests.filter({ $0.direction == .outgoing }), !requests.isEmpty {
+                        ForEach(requests) { request in
+                            HStack {
+                                FriendLabel(friend: request.person)
+                                Spacer()
+                                Button("取消") { store.send(.cancelRequest(request.id)) }
+                                    .buttonStyle(.bordered)
+                                    .disabled(store.isLoading)
+                            }
+                        }
+                    } else {
+                        Text("送信中の申請はありません").foregroundStyle(.secondary)
                     }
                 }
 
@@ -357,16 +377,31 @@ private struct FriendsView: View {
                     }
                 }
 
-                if let code = store.snapshot?.inviteCode {
+                if let code = store.snapshot?.inviteCode, !code.value.isEmpty {
                     Section("招待コード") {
                         LabeledContent("あなたのコード", value: code.value)
                         Text("有効期限: \(code.expiresAt.formatted(date: .abbreviated, time: .omitted))")
                             .font(.caption).foregroundStyle(.secondary)
+                        ShareLink(item: code.value) {
+                            Label("コードを共有", systemImage: "square.and.arrow.up")
+                        }
+                        Button("コードを再発行", role: .destructive) {
+                            store.send(.rotateInviteCode)
+                        }
+                        .disabled(store.isLoading)
+                    }
+                } else if !store.isDemo {
+                    Section("招待コード") {
+                        ProgressView("コードを発行しています")
+                        Button("再読み込み") { store.send(.reloadFriendships) }
                     }
                 }
             }
             .navigationTitle("友達")
             .toolbar {
+                Button { store.send(.reloadFriendships) } label: { Image(systemName: "arrow.clockwise") }
+                    .accessibilityLabel("友達情報を再読み込み")
+                    .disabled(store.isLoading || store.isDemo)
                 Button { store.send(.showAddFriend(true)) } label: { Image(systemName: "person.badge.plus") }
                     .accessibilityLabel("友達を追加")
             }
@@ -573,16 +608,27 @@ private struct AddFriendView: View {
         NavigationStack {
             Form {
                 Section("招待コードを入力") {
-                    TextField("HIMA-0000", text: Binding(get: { store.inviteCodeInput }, set: { store.send(.inviteCodeChanged($0.uppercased())) }))
+                    TextField("HIMA-ABCD-EFGH-JKMP-QRST", text: Binding(get: { store.inviteCodeInput }, set: { store.send(.inviteCodeChanged($0.uppercased())) }))
                         .textInputAutocapitalization(.characters)
                     Text("無効・期限切れ・ブロックなどの違いは表示しません。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section {
                     Button("プロフィールを確認") {
-                        store.send(.operationFailed("デモでは招待コード HIMA-2741 を共有できます。実検索はBackend接続後に利用できます。"))
+                        store.send(.resolveInviteCode)
                     }
-                    .disabled(store.inviteCodeInput.isEmpty)
+                    .disabled(store.inviteCodeInput.isEmpty || store.isLoading)
+                }
+                if let candidate = store.friendCandidate {
+                    Section("申請する相手") {
+                        FriendLabel(friend: candidate)
+                        Text("この相手に友達申請を送信します。相手が承認すると友達になります。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("友達申請を送る") { store.send(.sendFriendRequest) }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(store.isLoading)
+                    }
                 }
             }
             .navigationTitle("友達を追加")
@@ -592,8 +638,10 @@ private struct AddFriendView: View {
 }
 
 private struct FriendDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     let store: StoreOf<AppFeature>
     let friend: FriendProfile
+    @State private var removeConfirmationPresented = false
 
     var body: some View {
         List {
@@ -605,7 +653,7 @@ private struct FriendDetailView: View {
                 Button("友達を誘う") { store.send(.selectTab(.home)); store.send(.showHostingEditor(true)) }
                 Button("通報") { store.send(.showReport(true)) }
                 Button("ブロック", role: .destructive) { store.send(.setBlockTarget(friend)) }
-                Button("友達を解除", role: .destructive) { store.send(.removeFriend(friend.id)) }
+                Button("友達を解除", role: .destructive) { removeConfirmationPresented = true }
             }
             Text("友達の暇一覧や、友達の友達は表示しません。")
                 .font(.caption).foregroundStyle(.secondary)
@@ -625,6 +673,20 @@ private struct FriendDetailView: View {
             Button("ブロック", role: .destructive) { store.send(.confirmBlock(friend.id)) }
         } message: {
             Text("友達関係を解除し、新しい申請・招待を止めます。関連する未確定回答と予定も更新されます。解除しても友達関係は復活しません。")
+        }
+        .confirmationDialog(
+            "\(friend.displayName)さんとの友達関係を解除しますか？",
+            isPresented: $removeConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("友達を解除", role: .destructive) { store.send(.removeFriend(friend.id)) }
+                .disabled(store.isLoading)
+        } message: {
+            Text("新しい招待と共有は停止します。確定済みの予定は自動では削除されません。")
+        }
+        .onChange(of: store.snapshot?.friends.contains(where: { $0.id == friend.id }) ?? false) {
+            _, remainsFriend in
+            if !remainsFriend { dismiss() }
         }
     }
 }

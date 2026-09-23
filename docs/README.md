@@ -30,4 +30,4 @@
 
 機能実装へ進む際は、AGENTS.md に従って要件、設計、タスクを作成し、各段階をレビューします。
 Backend CI/CDの仕様は`.kiro/specs/backend-ci-cd/`、iOS CI/CDの仕様は`.kiro/specs/ios-ci-cd/`、Android CI/CDの仕様は`.kiro/specs/android-ci-cd/`にあります。
-iOS初版の依存順は`.kiro/steering/roadmap.md`、各機能仕様は`.kiro/specs/ios-*`、Backendのユーザー管理仕様は`.kiro/specs/backend-user-account-management`にあります。iOSは認証・プロフィール・削除をProductionへ接続し、それ以外はPrototype、AndroidはCI/CD用の最小アプリです。
+iOS初版の依存順は`.kiro/steering/roadmap.md`、各機能仕様は`.kiro/specs/ios-*`、Backendのユーザー管理と友達関係の仕様は`.kiro/specs/backend-*`にあります。iOSは認証・プロフィール・友達関係・削除を実Backendへ接続し、最初の内部TestFlightはstagingを使用します。暇・募集はPrototype、AndroidはCI/CD用の最小アプリです。

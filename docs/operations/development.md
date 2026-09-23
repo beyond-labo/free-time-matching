@@ -44,7 +44,7 @@ pnpm --dir apps/backend build
 
 Backend の現在の実装範囲はhealth、Supabase JWT検証、本人プロフィール、アカウント削除です。
 Terraform環境scaffoldとGitHub Actions CI/CDは実装済みですが、実apply/deployにはR2 bucket、Cloudflare token、GitHub Environmentの外部bootstrapが必要です。
-OpenAPI生成、友達・暇・募集の業務APIは後続仕様です。
+OpenAPI生成、暇・募集の業務APIは後続仕様です。友達関係APIは固定契約で実装し、最初にstagingで検証します。
 
 ## Cloudflare Terraform のローカル検証
 
@@ -91,7 +91,7 @@ CI と App Store upload の build 環境は Xcode 26.6 に固定します。
 5. 生成ツールと入力契約を固定し、DTO の変換を機能内へ閉じ込める。
 6. Composition で依存を注入し、TestStore と Simulator で検証する。
 
-TCA 1.26.1とsupabase-swiftの解決結果を固定し、認証・プロフィール・削除のProduction Compositionを検証します。
+TCA 1.26.1とsupabase-swiftの解決結果を固定し、認証・プロフィール・削除とFriendshipの実Backend Compositionを検証します。Friendshipの最初の内部TestFlight接続先はSTGです。
 
 ### iOSのローカル構成値
 

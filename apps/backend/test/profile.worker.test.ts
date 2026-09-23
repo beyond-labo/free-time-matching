@@ -37,6 +37,14 @@ const buildApp = (repository: MemoryProfileRepository) => {
   const dependencies: AppDependencies = {
     tokenVerifier,
     manageProfile: new ManageProfile(repository),
+    manageFriendships: {
+      snapshot: async () => { throw new Error("unused"); },
+      rotateCode: async () => { throw new Error("unused"); },
+      resolveCode: async () => { throw new Error("unused"); },
+      sendRequest: async () => { throw new Error("unused"); },
+      transitionRequest: async () => { throw new Error("unused"); },
+      removeFriend: async () => { throw new Error("unused"); },
+    },
     requestDeletion: {
       execute: async () => {
         throw new Error("unused");
