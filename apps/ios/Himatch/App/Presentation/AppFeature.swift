@@ -35,11 +35,9 @@ struct AppFeature {
         var profileIcon = PresetProfileIcon.sun.rawValue
         var profileValidationMessage: String?
 
-        var availabilityEditorPresented = false
-        var availabilityStart = AvailabilityPolicy.nextQuarterHour(after: Date())
-        var availabilityDurationHours = 2
-        var availabilityCategory: ActivityCategory?
-        var availabilityVisibility: AvailabilityVisibility = .privateUntilAccepted
+        var homeTimeline = HomeTimelineFeature.State()
+        @Presents var availabilityEditor: AvailabilityEditorFeature.State?
+        var hostingListPresented = false
 
         var hostingEditorPresented = false
         var hostingMode: HostingMode = .online
@@ -113,14 +111,12 @@ struct AppFeature {
         case logoutTapped
         case logoutCompleted
 
-        case showAvailabilityEditor(Bool)
-        case availabilityStartChanged(Date)
-        case availabilityDurationChanged(Int)
-        case availabilityCategoryChanged(ActivityCategory?)
-        case availabilityVisibilityChanged(AvailabilityVisibility)
-        case saveAvailabilityTapped
-        case availabilitySaved(AppSnapshot)
+        case homeTimeline(HomeTimelineFeature.Action)
+        case availabilityEditor(PresentationAction<AvailabilityEditorFeature.Action>)
         case removeAvailability(UUID)
+        case quickSaveSucceeded(AppSnapshot, slotID: UUID)
+        case quickSaveFailed(String)
+        case showHostingList(Bool)
 
         case showHostingEditor(Bool)
         case hostingModeChanged(HostingMode)
@@ -175,8 +171,14 @@ struct AppFeature {
     @Dependency(\.profileClient) var profileClient
     @Dependency(\.accountDeletionClient) var accountDeletionClient
     @Dependency(\.deletionStatusTokenStore) var deletionStatusTokenStore
+    @Dependency(\.date.now) var now
+    @Dependency(\.calendar) var calendar
+    @Dependency(\.uuid) var uuid
 
     var body: some ReducerOf<Self> {
+        Scope(state: \.homeTimeline, action: \.homeTimeline) {
+            HomeTimelineFeature()
+        }
         Reduce { state, action in
             switch action {
             case .task:
@@ -260,6 +262,7 @@ struct AppFeature {
                     state.snapshot?.profileName = profileName
                     state.snapshot?.profileIcon = profileIcon
                 }
+                revalidateSelection(&state)
                 return .none
 
             case let .sessionRestored(session):
@@ -464,52 +467,108 @@ struct AppFeature {
                 state.isLoading = false
                 return .cancel(id: CancelID.friendship)
 
-            case let .showAvailabilityEditor(presented):
-                state.availabilityEditorPresented = presented
-                if presented {
-                    state.availabilityStart = AvailabilityPolicy.nextQuarterHour(after: Date())
-                    state.availabilityDurationHours = 2
-                    state.availabilityCategory = nil
-                    state.availabilityVisibility = .privateUntilAccepted
+            case let .homeTimeline(.delegate(.startAvailability(anchor))):
+                guard let editor = AvailabilityEditorFeature.State(
+                    anchor: anchor,
+                    now: now,
+                    calendar: calendar,
+                    existing: state.snapshot?.availability ?? [],
+                    slotID: uuid()
+                ) else {
+                    state.alertMessage = "この時間からは登録できません。今後14日以内の時間を選んでください。"
+                    return .none
                 }
+                state.availabilityEditor = editor
                 return .none
 
-            case let .availabilityStartChanged(date):
-                state.availabilityStart = date
-                return .none
+            case let .homeTimeline(.delegate(.removeAvailability(id))):
+                return .send(.removeAvailability(id))
 
-            case let .availabilityDurationChanged(hours):
-                state.availabilityDurationHours = hours
-                return .none
-
-            case let .availabilityCategoryChanged(category):
-                state.availabilityCategory = category
-                return .none
-
-            case let .availabilityVisibilityChanged(visibility):
-                state.availabilityVisibility = visibility
-                return .none
-
-            case .saveAvailabilityTapped:
-                let start = state.availabilityStart
+            case let .homeTimeline(.delegate(.quickSave(range))):
+                guard let selection = state.homeTimeline.selection,
+                      selection.range == range,
+                      !selection.isSaving
+                else { return .none }
+                // Re-validate right before saving: the clock or the own slots may have changed.
+                if let issue = availabilityIssue(range, existing: state.snapshot?.availability ?? []) {
+                    state.homeTimeline.selection?.issue = issue
+                    return .none
+                }
+                let slotID = uuid()
                 let slot = AvailabilitySlot(
-                    interval: TimeIntervalRange(
-                        start: start,
-                        end: start.addingTimeInterval(TimeInterval(state.availabilityDurationHours) * 60 * 60)
-                    ),
-                    category: state.availabilityCategory,
-                    visibility: state.availabilityVisibility
+                    id: slotID,
+                    interval: TimeIntervalRange(id: slotID, start: range.start, end: range.end),
+                    category: nil,
+                    visibility: .privateUntilAccepted
                 )
-                state.isLoading = true
+                state.homeTimeline.selection?.isSaving = true
+                state.homeTimeline.selection?.saveError = nil
                 return .run { send in
-                    do { await send(.availabilitySaved(try await client.addAvailability(slot))) }
-                    catch { await send(.operationFailed(error.localizedDescription)) }
+                    do {
+                        await send(.quickSaveSucceeded(try await client.addAvailability(slot), slotID: slotID))
+                    } catch let error as AvailabilityValidationError {
+                        await send(.quickSaveFailed(error.message))
+                    } catch {
+                        await send(.quickSaveFailed(error.localizedDescription))
+                    }
                 }
 
-            case let .availabilitySaved(snapshot):
+            case let .homeTimeline(.delegate(.adjustSelection(range))):
+                state.availabilityEditor = AvailabilityEditorFeature.State(
+                    range: range,
+                    now: now,
+                    calendar: calendar,
+                    existing: state.snapshot?.availability ?? [],
+                    slotID: uuid()
+                )
+                return .none
+
+            case .homeTimeline(.delegate):
+                return .none
+
+            case .homeTimeline:
+                revalidateSelection(&state)
+                return .none
+
+            case let .quickSaveSucceeded(snapshot, slotID):
                 state.snapshot = snapshot
-                state.availabilityEditorPresented = false
-                state.isLoading = false
+                state.homeTimeline.selection = nil
+                state.homeTimeline.lastSavedItem = .availability(slotID)
+                state.homeTimeline.quickSaveSuccessCount += 1
+                return .none
+
+            case let .quickSaveFailed(message):
+                state.homeTimeline.selection?.isSaving = false
+                state.homeTimeline.selection?.saveError = message
+                return .none
+
+            case let .availabilityEditor(.presented(.delegate(.saved(snapshot)))):
+                let savedStart = state.availabilityEditor?.start
+                state.snapshot = snapshot
+                state.availabilityEditor = nil
+                state.homeTimeline.selection = nil
+                if let savedStart {
+                    state.homeTimeline.focus(on: savedStart, item: nil, now: now, calendar: calendar)
+                }
+                return .none
+
+            case let .availabilityEditor(.presented(.delegate(.showExistingSlot(id)))):
+                state.availabilityEditor = nil
+                if let slot = state.snapshot?.availability.first(where: { $0.id == id }) {
+                    state.homeTimeline.focus(
+                        on: slot.interval.start,
+                        item: .availability(id),
+                        now: now,
+                        calendar: calendar
+                    )
+                }
+                return .none
+
+            case .availabilityEditor:
+                return .none
+
+            case let .showHostingList(presented):
+                state.hostingListPresented = presented
                 return .none
 
             case let .removeAvailability(id):
@@ -850,6 +909,7 @@ struct AppFeature {
             case let .snapshotMutationCompleted(snapshot):
                 state.snapshot = snapshot
                 state.isLoading = false
+                revalidateSelection(&state)
                 return .none
 
             case let .showReport(presented):
@@ -1019,7 +1079,38 @@ struct AppFeature {
                 return .none
             }
         }
+        .ifLet(\.$availabilityEditor, action: \.availabilityEditor) {
+            AvailabilityEditorFeature()
+        }
     }
+
+    /// Writes the Domain validation result of the current timeline selection back to it,
+    /// so past, out-of-window and overlapping ranges are marked as soon as they are picked.
+    private func revalidateSelection(_ state: inout State) {
+        guard let selection = state.homeTimeline.selection, !selection.isSaving else { return }
+        let existing = state.snapshot?.availability ?? []
+        state.homeTimeline.selection?.issue = availabilityIssue(selection.range, existing: existing)
+    }
+
+    private func availabilityIssue(_ range: QuarterRange, existing: [AvailabilitySlot]) -> AvailabilityValidationError? {
+        let candidate = AvailabilitySlot(
+            id: Self.selectionCandidateID,
+            interval: TimeIntervalRange(id: Self.selectionCandidateID, start: range.start, end: range.end),
+            category: nil,
+            visibility: .privateUntilAccepted
+        )
+        do {
+            try AvailabilityPolicy.validate(candidate, now: now, existing: existing, calendar: calendar)
+            return nil
+        } catch let error as AvailabilityValidationError {
+            return error
+        } catch {
+            return .invalidInterval
+        }
+    }
+
+    /// Placeholder id for validating a not-yet-created selection.
+    private static let selectionCandidateID = UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE")!
 
     private func loadProfile(session: AuthenticationSession) -> Effect<Action> {
         .run { send in
