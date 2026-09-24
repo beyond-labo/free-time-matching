@@ -1,7 +1,7 @@
 {
   "feature_name": "ios-availability",
   "created_at": "2026-09-20T17:45:00+09:00",
-  "updated_at": "2026-09-21T00:30:00+09:00",
+  "updated_at": "2026-09-24T07:14:00+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
@@ -28,10 +28,10 @@
       ".kiro/specs/ios-app-foundation/requirements.md": "b486f614c357c0a1dfdd43f06b84c4f5707d021c461abd994bb489d9801927fc",
       ".kiro/specs/ios-app-foundation/research.md": "0996bd0987e8c660ae97dccb9005fdce06cc816ba3a12cec9fc56c7d4f3b8e72",
       ".kiro/specs/ios-availability/brief.md": "981e124762caf1338ea89b48baf35c4b34f1558c1be7bc09d068ff92a3d64b12",
-      ".kiro/specs/ios-availability/design.md": "f094098e1eee9995fa870669a31b788bf6aeb9d17ce5b83ac32f1fe0bb00b3fd",
-      ".kiro/specs/ios-availability/requirements.md": "a4e374f65d798c33a98d33831e959368ec8e817359be205e02a567c899a58654",
-      ".kiro/specs/ios-availability/research.md": "ed8788616131c597eda2c145b0e8710c8ff51b1923fe5f5adeaa4be4e6398373",
-      ".kiro/specs/ios-availability/tasks.md": "6a640673debe6702dbd2b025ad98d24e58d26340d49197b8b2685e95206f0a02",
+      ".kiro/specs/ios-availability/design.md": "e841cb30b2689a3f4ea4fce8db09eef7bf875a0d56fa6f1cfed93b4e4cbbcfc2",
+      ".kiro/specs/ios-availability/requirements.md": "69a759c8cbcc8eadb13095c4dc8d2e0aed8b22fb25703355db847ef07e1d99f4",
+      ".kiro/specs/ios-availability/research.md": "52a78aae86ea2b91c4cb4073c577d29a76223fee6007e6a1faa1c80f5835948c",
+      ".kiro/specs/ios-availability/tasks.md": "1dc857dbdb586e2fe851a80a3cba8844ebb678f580c0ffe1eed5bb7af55ea967",
       ".kiro/steering/roadmap.md": "51eccd341e28a4219ea54c1fd191c33997778e9d60f9e1ebed10f3a263e5907f",
       "apps/ios/Himatch.xcodeproj/project.pbxproj": "47746412fb4d13329939fb941757f282c7c316820563417c6b5cb0cb233687c4",
       "docs/architecture/api-contracts.md": "a94c6bedadd8f9eb46ca2d2aaa6648dc43b91d01f7cf745824735a7aff2170c8",

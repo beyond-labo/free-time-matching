@@ -7,6 +7,9 @@ sources:
   - id: user-ios-first-release
     resource: conversation://2026-09-20/ios-first-release
     title: iOS 初版の必要要件・画面仕様案
+  - id: user-direct-selection
+    resource: conversation://2026-09-24/availability-direct-selection
+    title: タップと長押しドラッグによる最小操作の暇時間入力
 kiro:
   depends_on:
     - .kiro/specs/ios-availability/brief.md
@@ -35,8 +38,11 @@ kiro:
 
 1. The iOS app shall 現在から14日先までを縦方向に移動できる時間軸として表示する
 2. The iOS app shall 時間軸上に自分の暇枠と確定予定だけを表示し、友達の暇、オンライン状態、最終アクセスを表示しない
-3. When 利用者が表示中の日時で暇登録を開始した, the iOS app shall その日時をシートへ固定して引き継ぐ
+3. When 利用者が日表示の時間軸をタップした, the iOS app shall その位置を含む15分枠を画面内で選択し、編集シートを自動で開かない
 4. If 暇枠がない, the iOS app shall 通信失敗と区別して登録を促す空状態を表示する
+5. When 利用者が日表示の時間軸を長押しして上下へドラッグした, the iOS app shall 開始位置と現在位置を含む連続範囲を15分境界へ合わせて選択する
+6. When 長押し成立前に利用者が縦方向へ移動した, the iOS app shall 範囲選択を開始せず時間軸のスクロールを優先する
+7. While 範囲を選択または調整している, the iOS app shall 15分の区切り、選択範囲、開始・終了時刻、長さ、調整ハンドルを即時表示する
 
 ### Requirement 2: 暇枠の入力と検証
 
@@ -44,11 +50,13 @@ kiro:
 
 #### Acceptance Criteria
 
-1. When 新規登録を開始した, the iOS app shall 時間軸から引き継いだ表示日時を15分境界へ丸め、現在位置からの登録に限って現在の次の15分境界を開始とし、2時間後の終了と未選択カテゴリを初期値にする
+1. When 常設の新規登録または詳細調整を開始した, the iOS app shall 時間軸から引き継いだ表示日時を15分境界へ丸め、位置指定がない場合は現在の次の15分境界を開始とし、2時間後の終了と未選択カテゴリを初期値にする
 2. The iOS app shall 開始と終了を15分単位で調整し、日付またぎを許可する
 3. If 終了が開始以前、開始が過去、または14日範囲外である, the iOS app shall 保存を止めて理由を表示する
 4. If 新規枠が既存枠と重複する, the iOS app shall 重複を警告し既存枠の編集へ誘導する
 5. The iOS app shall ゲーム、ご飯、通話、作業など定義済みカテゴリだけを送信し、未選択も許可する
+6. When 時間軸上の有効な選択を確認した, the iOS app shall 明示的な登録操作だけで未選択カテゴリかつ「参加OKするまで非公開」の暇枠を保存し、詳細調整を選んだ場合は選択範囲を変更せず編集シートへ引き継ぐ
+7. If 選択が過去、14日範囲外、または既存枠と重複する, the iOS app shall 選択を保持して理由をその場に表示し、登録操作を無効にする
 
 ### Requirement 3: 公開設定
 
@@ -80,4 +88,5 @@ kiro:
 
 1. The iOS app shall 保存・比較用の絶対時刻と表示用タイムゾーンを区別し、画面に現在のタイムゾーンを表示する
 2. When 端末タイムゾーンが変わった, the iOS app shall 同じ絶対時刻を新しいローカル表示へ変換する
-3. The iOS app shall 15分枠を小さなマスへのタップだけで選択させず、44×44ptを一般基準とする入力コントロールを提供する
+3. The iOS app shall 15分枠を小さなマスへのタップだけに依存させず、44×44ptを一般基準とするハンドル、ボタン、VoiceOver代替操作を提供する
+4. The iOS app shall タップ、長押し成立、15分境界の変更、登録成功、登録失敗を視覚表示と触覚フィードバックで区別し、色だけを状態の手掛かりにしない

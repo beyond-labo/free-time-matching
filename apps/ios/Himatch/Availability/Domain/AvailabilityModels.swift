@@ -71,6 +71,45 @@ enum AvailabilityValidationError: Error, Equatable, Sendable {
 }
 
 enum AvailabilityPolicy {
+    static let quarterHour: TimeInterval = 15 * 60
+    static let window: TimeInterval = 14 * 24 * 60 * 60
+    static let defaultDuration: TimeInterval = 2 * 60 * 60
+
+    static func isQuarterHourAligned(_ date: Date, calendar: Calendar = .current) -> Bool {
+        let components = calendar.dateComponents([.minute, .second, .nanosecond], from: date)
+        return (components.minute ?? 0) % 15 == 0
+            && (components.second ?? 0) == 0
+            && (components.nanosecond ?? 0) == 0
+    }
+
+    /// Returns the quarter-hour boundary at or before `date`.
+    static func floorToQuarterHour(_ date: Date, calendar: Calendar = .current) -> Date {
+        let components = calendar.dateComponents([.era, .year, .month, .day, .hour, .minute], from: date)
+        let startOfMinute = calendar.date(from: components) ?? date
+        let remainder = (components.minute ?? 0) % 15
+        return calendar.date(byAdding: .minute, value: -remainder, to: startOfMinute) ?? startOfMinute
+    }
+
+    /// The latest quarter-hour end that stays inside the 14-day window.
+    static func latestEnd(now: Date, calendar: Calendar = .current) -> Date {
+        floorToQuarterHour(now.addingTimeInterval(window), calendar: calendar)
+    }
+
+    /// Builds the initial interval for a new slot. A timeline anchor is floored to its quarter hour;
+    /// without an anchor (or when the anchor is already past) the slot starts at the next quarter hour.
+    /// Returns nil when not even a 15-minute slot fits before the window ends.
+    static func draftInterval(
+        anchor: Date?,
+        now: Date,
+        calendar: Calendar = .current
+    ) -> TimeIntervalRange? {
+        let earliest = nextQuarterHour(after: now, calendar: calendar)
+        let start = anchor.map { max(floorToQuarterHour($0, calendar: calendar), earliest) } ?? earliest
+        let latest = latestEnd(now: now, calendar: calendar)
+        guard start.addingTimeInterval(quarterHour) <= latest else { return nil }
+        return TimeIntervalRange(start: start, end: min(start.addingTimeInterval(defaultDuration), latest))
+    }
+
     static func nextQuarterHour(after date: Date, calendar: Calendar = .current) -> Date {
         let minute = calendar.component(.minute, from: date)
         let remainder = minute % 15
@@ -91,12 +130,12 @@ enum AvailabilityPolicy {
     ) throws {
         guard slot.interval.start < slot.interval.end else { throw AvailabilityValidationError.invalidInterval }
         guard slot.interval.start >= now else { throw AvailabilityValidationError.past }
-        guard slot.interval.end <= now.addingTimeInterval(14 * 24 * 60 * 60) else {
+        guard slot.interval.end <= now.addingTimeInterval(window) else {
             throw AvailabilityValidationError.outsideWindow
         }
-        let startMinute = calendar.component(.minute, from: slot.interval.start)
-        let endMinute = calendar.component(.minute, from: slot.interval.end)
-        guard startMinute % 15 == 0, endMinute % 15 == 0 else {
+        guard isQuarterHourAligned(slot.interval.start, calendar: calendar),
+              isQuarterHourAligned(slot.interval.end, calendar: calendar)
+        else {
             throw AvailabilityValidationError.notQuarterHour
         }
         if let match = existing.first(where: { $0.id != slot.id && $0.interval.overlaps(slot.interval) }) {
