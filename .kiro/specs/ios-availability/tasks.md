@@ -46,3 +46,9 @@ kiro:
   - _Requirements: 1.1, 1.3, 1.5, 1.6, 1.7, 2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 3.1, 3.4, 4.1, 4.4, 5.1, 5.2, 5.3, 5.4_
   - _Boundary: AvailabilityValidation_
   - _Depends: 1, 2, 3, 4_
+
+- [ ] 6. Release の暇登録・再読込・削除を Backend へ接続する
+  - 認証済み利用者JWTで本人の枠を登録・取得・削除し、再起動後の再読込と失敗時の入力保持を Adapter/Reducer テストで確認する。STGへの実通信は配備後に別途確認する。
+  - _Requirements: 1.4, 4.4, 6.1, 6.2, 6.3, 6.4_
+  - _Boundary: BackendAvailabilityAdapter, AppCompositionRoot, AppFeature_
+  - _Depends: 3, backend-availability_

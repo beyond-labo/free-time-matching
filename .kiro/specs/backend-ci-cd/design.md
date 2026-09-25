@@ -2,7 +2,7 @@
 type: Design
 title: "Backend CI/CD と Cloudflare 配布設計"
 description: "Backend の secretless CI、Terraform state 境界、staging/production 配布の責務と運用契約"
-status: stable
+status: draft
 sources:
   - id: backend-requirements
     resource: ./requirements.md
@@ -10,6 +10,12 @@ sources:
   - id: backend-research
     resource: ./research.md
     title: Backend CI/CD と Cloudflare 配布調査
+  - id: supabase-terraform
+    resource: ../../../infra/supabase/README.md
+    title: Supabase Terraform の段階導入
+  - id: supabase-ci
+    resource: ../../../.github/workflows/ci-supabase.yml
+    title: Supabase migration/RLS CI
 kiro:
   depends_on:
     - .kiro/specs/backend-user-account-management/requirements.md
@@ -18,16 +24,20 @@ kiro:
     - apps/backend/package.json
     - apps/backend/wrangler.jsonc
     - docs/operations/backend-ci-cd.md
+    - infra/supabase/environments/staging/main.tf
+    - infra/supabase/environments/production/main.tf
+    - .github/workflows/ci-backend.yml
+    - .github/workflows/ci-supabase.yml
 ---
 
 # Design Document
 
 ## Overview
 
-本設計は、既存の TypeScript/Hono Cloudflare Worker に、秘密情報なしで実行できる Backend PR CI、Terraform の Cloudflare 長寿命 infrastructure scaffold、`main` から staging への自動配布、タグまたは手動実行から production への承認配布を追加する。
+本設計は、既存の TypeScript/Hono Cloudflare Worker に、秘密情報なしで実行できる Backend PR CI、Cloudflare と Supabase の環境別 Terraform scaffold、Supabase migration/RLS の local CI、`main` から staging への自動配布、タグまたは手動実行から production への承認配布を追加する。
 公開 API の hostname は Cloudflare Workers Custom Domain の `api-staging.beyond-labo.com` と `api.beyond-labo.com` に固定し、Terraform と Wrangler の所有境界を明示して環境別 state と credential を分離する。
 
-実 Cloudflare account、R2 bucket、GitHub Environment、secret、required reviewer の bootstrap は外部運用の責務であり、今回のローカル完了条件には含めない。初期 Terraform root は provider/state/環境境界と検証可能な scaffold のみを持ち、未決定の Cloudflare resource は宣言しない。
+実 Cloudflare/Supabase account、R2 bucket、GitHub Environment、secret、required reviewer の bootstrap は外部運用の責務であり、今回のローカル完了条件には含めない。初期 Terraform root は provider/state/環境境界と検証可能な scaffold のみを持ち、未決定の Cloudflare/Supabase resource は宣言しない。
 
 ### Goals
 
@@ -42,6 +52,7 @@ kiro:
 
 - Cloudflare account/R2 bucket bootstrap、credential 発行、GitHub Environment/branch protection/reviewer の設定。
 - Terraform による Worker script、version、deployment、binding、route の管理。
+- Supabase Project の作成・import・apply、Management API resource の選定、hosted staging/production への実 apply。
 - D1/KV/R2/Queue、追加の DNS レコード、WAF、認証、業務 API、OpenAPI 公開、production gradual deployment。
 - 実 Cloudflare 資格情報を使う apply/deploy のローカル検証。
 
@@ -50,14 +61,18 @@ kiro:
 ### This Spec Owns
 
 - `.github/workflows/ci-backend.yml` の secretless verify と Terraform static validation。
+- `.github/workflows/ci-supabase.yml` の credential-free local migration、DB lint、pgTAP 検証との接続契約。
 - `.github/workflows/cd-backend-staging.yml` と `cd-backend-production.yml` の trigger、順序、Environment、concurrency、smoke、summary。
 - `apps/backend/wrangler.jsonc` の Worker 名、environment 別 Custom Domain、`custom_domain: true`、`workers_dev: false`。
 - `infra/cloudflare/environments/{staging,production}` の独立 root、provider constraint、partial S3 backend、空の長寿命 resource scaffold、lockfile 契約。
+- `infra/supabase/environments/{staging,production}` の独立 root、Supabase provider constraint、partial S3 backend、空の resource scaffold、lockfile 契約。
+- Supabase Terraform と Supabase CLI migration/RLS の所有境界、および apply/import を保留する条件。
 - secret/vars 契約、Custom Domain の account/zone/DNS preflight、state/plan の非公開方針、Worker version rollback の runbook。
 
 ### Out of Boundary
 
 - R2 state bucket の作成、Terraform backend credential の保管、Cloudflare account/zone の移管判断。
+- Supabase Project の作成、既存 Project の inventory/import、Management API token の発行・保管、hosted Project への Terraform apply。
 - 具体的な永続化 resource とその schema、追加 DNS/WAF/Access policy の値。
 - GitHub repository settings の実変更。workflow は必要な Environment/branch protection 契約を参照し、bootstrap は運用手順で実施する。
 
@@ -66,11 +81,13 @@ kiro:
 - root pnpm workspace と `apps/backend` の既存 script、Wrangler configuration、`/healthz` 契約。
 - GitHub-hosted `ubuntu-24.04` runner、GitHub Actions の protected Environment/vars/secrets。
 - Terraform CLI と Cloudflare provider、Cloudflare R2 の S3-compatible endpoint。
+- Terraform CLI と Supabase provider、Cloudflare R2 の S3-compatible endpoint、Supabase CLI の local database test。
 
 ### Revalidation Triggers
 
 - Worker name、Wrangler environment、entrypoint、binding、Custom Domain、`workers_dev`、health URL の変更。
 - Terraform provider、Terraform CLI、R2 backend の互換性、state key、resource ownership の変更。
+- Supabase provider が管理できる resource、Project inventory/import 方針、Supabase CLI/migration の適用順、state key の変更。
 - action SHA、Node.js/pnpm/Wrangler version、Environment 名、secret/vars 名、trigger、approval rule の変更。
 - rollback 対象 version、smoke 契約、production tag 規則の変更。
 
@@ -138,6 +155,21 @@ Cloudflare は R2 で Terraform S3 backend の native lockfile 互換性を保�
 `api-staging.beyond-labo.com` と `api.beyond-labo.com` の Custom Domain、Cloudflare が自動作成する DNS レコードと TLS 証明書は Wrangler の所有とする。
 Terraform には同じ hostname の `cloudflare_record`、Workers Route、Custom Domain resource を定義しない。
 
+### Supabase Terraform Boundary
+
+```text
+infra/supabase/
+└── environments/
+    ├── staging/{versions,providers,backend,main}.tf
+    └── production/{versions,providers,backend,main}.tf
+```
+
+Supabase の staging と production root は provider `supabase/supabase` の version constraint、資格情報を含まない partial S3 backend、空の `main.tf`、環境別 lockfile だけを持つ。Supabase Project、Auth provider、API key、Edge Function、DB password、service-role key、既存 Project の `import` block は inventory と ownership review が完了するまで宣言しない。
+
+Supabase Terraform は Management API で管理できる長寿命設定の候補を将来管理する境界である。DB schema、RLS、private function、migration、Auth 利用者・session は `supabase/migrations/` と Supabase CLI/稼働 DB が所有し、Terraform に複製しない。Cloudflare の Worker script/version/deployment/binding/Custom Domain と同じ resource を Supabase root に置くことはない。
+
+CI では `terraform -chdir=infra/supabase/environments/{staging,production} fmt -check -recursive`、`init -backend=false -input=false`、`validate` を credential なしで実行する。Supabase CLI の `db start`、`db lint --local`、`test db --local` は hosted Project の apply/import を行わず、local migration/RLS の証拠だけを提供する。実 Supabase token、DB password、state credential が未設定または inventory 未承認なら plan/apply/import は停止条件とする。
+
 `scripts/terraform/init-r2-backend.sh` は環境名と Terraform root を検証し、環境別 state key と R2 endpoint を `mktemp` の一時 backend config へ書き、終了時に削除する。R2 credential は `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` のプロセス環境だけで渡し、一時 HCL やコマンド引数へ書かない。
 
 `scripts/backend/smoke-health.mjs` は `BACKEND_HEALTH_URL` または引数の base URL へ `/healthz` を追加し、timeout 内の 2xx と正確な `{ "status": "ok" }` だけを成功とする。
@@ -167,6 +199,7 @@ Workflow は step の環境変数へ必要な値だけをマッピングし、so
 - `pull_request`、`push` on `main`、`workflow_dispatch` で起動する。`pull_request_target` は使わず、PR は untrusted checkout として扱う。
 - `permissions: contents: read`、GitHub-hosted `ubuntu-24.04`、第三者 action は完全な commit SHA pin、`concurrency: backend-ci-${{ github.workflow }}-${{ github.ref }}` を使う。
 - `pnpm install --frozen-lockfile` → generated types diff → `pnpm --dir apps/backend typecheck` → Worker test → Wrangler dry-run → 各 Terraform root の `fmt -check/init -backend=false/validate` の順に失敗を伝播させる。
+- Terraform static validation は `infra/cloudflare` と `infra/supabase` の staging/production 全 root を対象とし、provider token、DB password、R2 credential を参照しない。
 - Cloudflare API/R2 credential と protected Environment は参照しない。
 
 #### Staging (`.github/workflows/cd-backend-staging.yml`)
@@ -198,6 +231,8 @@ deploy 後 smoke が失敗した場合、workflow は自動でSupabaseなどのD
 | IaC | Terraform + Cloudflare provider | long-lived resource/state boundary | env root と lockfile を分離 |
 | State | Cloudflare R2 S3-compatible backend | remote state | bucket bootstrap 外部、partial config |
 | Deploy | Wrangler | Worker code/version/deployment | Terraform と二重管理しない |
+| Database migration | Supabase CLI | local/hosted migration、RLS、pgTAP | Terraform と schema を二重管理しない |
+| Supabase IaC | Terraform + Supabase provider | Management API 設定の将来境界 | 現在は空 root、apply/import 未実施 |
 
 ## File Structure Plan
 
@@ -212,6 +247,11 @@ infra/cloudflare/
 └── environments/
     ├── staging/{versions,providers,backend,main,variables,outputs}.tf
     └── production/{versions,providers,backend,main,variables,outputs}.tf
+
+infra/supabase/
+└── environments/
+    ├── staging/{versions,providers,backend,main}.tf
+    └── production/{versions,providers,backend,main}.tf
 ```
 
 ### Modified Files
@@ -220,6 +260,7 @@ infra/cloudflare/
 - `docs/operations/backend-ci-cd.md` — Backend workflow、secretless PR、staging/production の順序と rollback を記載する。
 - `scripts/verify.mjs` — workflow、Terraform root、禁止 artifact/secret path の欠落を検出する。
 - `.gitignore` — Terraform state、plan、`.terraform`、secret tfvars を除外する。
+- `infra/supabase/README.md` — Supabase Terraform の空 root、migration/RLS 所有境界、inventory/import/apply の保留条件を記載する。
 
 ## Components and Interfaces
 
@@ -227,6 +268,8 @@ infra/cloudflare/
 |---|---|---|---|
 | BackendCiWorkflow | 秘密情報なしの全検証 | 5, 9 | CI job |
 | TerraformEnvironmentRoot | 環境別 provider/state 境界 | 6 | Terraform root |
+| SupabaseTerraformRoot | Supabase Management API の将来境界 | 11 | Terraform root |
+| SupabaseMigrationCI | credential-free local migration/RLS 検証 | 11 | CI job |
 | StagingDeployWorkflow | main の自動配布 | 7, 9, 10 | deployment job |
 | ProductionDeployWorkflow | main 包含・plan・承認・再計算配布 | 8, 9, 10 | deployment job |
 | DeploymentRunbook | rollback と外部 bootstrap 契約 | 10 | Operations |
@@ -237,6 +280,18 @@ infra/cloudflare/
 - **Responsibilities**: provider constraint、partial S3 backend、environment-specific state key、将来の長寿命 resource の所有境界。
 - **Constraints**: backend bucket を作成しない、credential を commit しない、Worker script/version/deploy/binding/Route/Custom Domain/DNS を宣言しない。
 - **Verification**: `fmt -check`、`init -backend=false`、`validate`、禁止ファイル検査。
+
+### SupabaseTerraformRoot
+
+- **Responsibilities**: Supabase provider/version、環境別 state 境界、将来の Management API resource の所有候補。
+- **Constraints**: Project 作成/import/apply、DB schema/RLS/migration、API key、DB password、service-role key を宣言しない。
+- **Verification**: staging/production 各 root の `fmt -check`、`init -backend=false`、`validate`。hosted credential が無い状態でも成功すること。
+
+### SupabaseMigrationCI
+
+- **Responsibilities**: Supabase CLI の local database 起動、migration 適用、schema lint、pgTAP を credential-free で実行する。
+- **Constraints**: hosted Project へ link/push/apply/import しない。local test の成功を staging/production 成功と表示しない。
+- **Verification**: `supabase db start`、`db lint --local`、`test db --local` が失敗時に non-zero で終了し、workflow が deploy job の前提になる。
 
 ### Deployment Workflows
 
@@ -287,3 +342,4 @@ Production の `plan` と `apply` は別 job である。approval 前の plan ou
 | 8 | ProductionDeployWorkflow、Custom Domain Preflight | tag/manual、main ancestor、read-only plan、approval、再計算/apply、Custom Domain deploy、有限 retry smoke |
 | 9 | workflow permissions/action pin/secret contract | YAML static check、untrusted PR check、Workers/zone token scope、ownership review |
 | 10 | DeploymentRunbook、Rollback Contract | docs review、外部未設定時の local verify、DNS/TLS反映待機、rollback 手順 |
+| 11 | SupabaseTerraformRoot、SupabaseMigrationCI | Supabase root の secretless fmt/init/validate、local migration/RLS CI、apply/import 保留条件 |

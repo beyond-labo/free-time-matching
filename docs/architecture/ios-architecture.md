@@ -4,7 +4,9 @@
 
 SwiftUI と TCA を Presentation に使用し、業務の処理と外部接続を Clean Architecture の依存方向で分離します。
 これはこのプロジェクトの組み合わせ方であり、TCA 公式が要求するディレクトリ構成ではありません。
-TCA 1.26.1による初版UIが存在し、認証・プロフィール・友達関係・削除をsupabase-swiftとBackend APIへ接続します。最初の内部TestFlightはstagingを使用し、暇・募集は引き続きPrototype Adapterで状態遷移を検証します。
+TCA 1.26.1による初版UIが存在し、認証・プロフィール・友達関係・削除をsupabase-swiftとBackend APIへ接続します。暇時間は本人限定のBackend APIへ接続します。最初の内部TestFlightはstagingを使用し、募集は引き続きPrototype Adapterで状態遷移を検証します。
+
+起動時は削除受付状態・セッション・プロフィールの順に遷移先を確定する。メイン画面へ進んだ後、友達情報と本人の暇時間は並行取得し、それぞれの画面内に読み込み状態と再試行を表示する。読み取り中に共通の全面オーバーレイは出さない。
 
 TCA は State、Action、Reducer、Effect、Store によって状態変化と副作用を扱います。
 Store は状態と Action の処理を駆動し、Reducer が遷移と実行する Effect を定義します。

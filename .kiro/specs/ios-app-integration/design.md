@@ -21,7 +21,9 @@ kiro:
 
 ## Overview
 
-`AppCompositionRoot` が全機能のPort実装とTCA Storeを組み立てる。認証・プロフィール・削除とFriendshipは実Backend Adapterを標準とし、最初の内部TestFlightではSTGへ接続する。`HimatchPrototypeScenario` actorはDEBUGの明示的なデモと未接続の業務機能だけに限定する。
+`AppCompositionRoot` が全機能のPort実装とTCA Storeを組み立てる。認証・プロフィール・削除・Friendship・本人の暇時間は実Backend Adapterを標準とし、最初の内部TestFlightではSTGへ接続する。`HimatchPrototypeScenario` actorはDEBUGの明示的なデモと未接続の業務機能だけに限定する。
+
+起動時は削除受付状態とセッションを先に判定し、プロフィールの有無でメイン画面か初期設定画面を決める。プロフィール確定後はメイン画面を表示し、友達と本人の暇時間を独立した Effect で並行取得する。各取得状態は専用フラグで Home / Friends の領域に表示し、共通 `isLoading` の全面オーバーレイは読み取りに使わない。失敗時は各領域から再試行でき、片方の失敗で他方の表示を消さない。
 
 ## Boundary Commitments
 
@@ -31,7 +33,7 @@ kiro:
 
 ### Out of Boundary
 
-- 個別機能の業務規則、暇・募集の実BackendトランザクションとAPI、Push。
+- 個別機能の業務規則、暇の実BackendトランザクションとAPI自体、募集の実Backend、Push。暇AdapterのRelease注入は本仕様が所有する。
 
 ### Allowed Dependencies
 
@@ -49,6 +51,7 @@ graph LR
     AppCompositionRoot --> FeatureAdapters
     AppCompositionRoot --> ProductionAccountAdapters
     AppCompositionRoot --> BackendFriendshipAdapter
+    AppCompositionRoot --> BackendAvailabilityAdapter
     FeatureAdapters --> PrototypeScenario
     ProjectionRepository --> PrototypeScenario
     Home --> ProjectionRepository

@@ -46,6 +46,7 @@ Backend CIの`Build Worker bundle` stepは、[package.json](../../apps/backend/p
 
 Terraform stateはCloudflare R2へ保存します。
 stagingは`cloudflare/staging/terraform.tfstate`、productionは`cloudflare/production/terraform.tfstate`を使います。
+Supabase Terraform の宣言のみの root は別 key `supabase/staging/terraform.tfstate`、`supabase/production/terraform.tfstate` を使います。管理対象resourceとimportはまだなく、現在のCDではSupabase rootへ `plan/apply` しません。
 R2 bucket自体は、そのbucketをbackendにするTerraform rootでは作成しません。
 
 現在のTerraform rootにはCloudflare resourceがないため、最初のplanが`No changes.`になるのは正常です。
@@ -529,12 +530,16 @@ terraform -chdir=infra/cloudflare/environments/staging init -backend=false
 terraform -chdir=infra/cloudflare/environments/staging validate
 terraform -chdir=infra/cloudflare/environments/production init -backend=false
 terraform -chdir=infra/cloudflare/environments/production validate
+terraform -chdir=infra/supabase/environments/staging init -backend=false
+terraform -chdir=infra/supabase/environments/staging validate
+terraform -chdir=infra/supabase/environments/production init -backend=false
+terraform -chdir=infra/supabase/environments/production validate
 
 node scripts/verify.mjs
 ```
 
 `init -backend=false`はR2へ接続せず、Terraform構成とprovider lockだけを検査します。
-このローカル検証にCloudflare tokenとR2 credentialは不要です。
+このローカル検証にCloudflare token、Supabase Management API token、R2 credentialは不要です。
 
 すべて成功したらpull requestを作成し、GitHub上の`Backend CI`も成功することを確認します。
 失敗した検証をrulesetのbypassで回避しません。
@@ -708,3 +713,4 @@ resource追加後は、Cloudflare API tokenのscope、planの出力、rollback�
 R2 native lockを有効にする場合は、実R2上で並行plan/applyの排他とstale lock回復を検証してから設定を変更します。
 
 Terraformのディレクトリ構成とremote backendの手動初期化は[Cloudflare Terraform](../../infra/cloudflare/README.md)も参照してください。
+Supabaseの既存Projectと今後の設定をTerraformへ取り込む前には、[Supabase Terraform](../../infra/supabase/README.md)と[具体的な移行手順](supabase-terraform-adoption.md)に従い、実資産の棚卸しとimport-only planを確認してください。

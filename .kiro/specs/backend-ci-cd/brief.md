@@ -1,7 +1,7 @@
 ---
 type: Brief
 title: "Backend CI/CD 構成案"
-description: "Cloudflare Workers と TypeScript/Hono を使う Backend の検証・環境分離・配布境界"
+description: "Cloudflare Workers、Supabase Terraform scaffold、TypeScript/Hono Backend の検証・環境分離・配布境界"
 status: stable
 sources:
   - id: local-technology-policy
@@ -68,7 +68,7 @@ kiro:
 
 ## Problem
 
-Backend は private pnpm workspace として登録されているだけで、HTTP 実行基盤、テスト、OpenAPI 生成、Cloudflare 構成、Backend CI/CD は未実装である。
+Backend は private pnpm workspace の TypeScript/Hono Worker として実装され、Cloudflare と Supabase の環境別 Terraform root、migration/RLS 検証、Backend CI/CD が配置されている。
 既存方針は Backend、iOS、Android の独立リリース、Backend 所有の OpenAPI、Clean Architecture の依存方向を要求しているため、Cloudflare 固有型や Hono を Domain / Application へ流入させずに実行可能な検証・配布経路を作る必要がある。[^local-technology-policy][^local-api-contract-policy]
 
 ## Current State
@@ -76,9 +76,10 @@ Backend は private pnpm workspace として登録されているだけで、HTT
 - GitHub Actions は repository 検査、iOS CI / TestFlight 配布、Android CI / Google Play internal 配布を所有している。
 - `apps/backend/package.json` には依存、script、TypeScript 設定がない。
 - `apps/backend/openapi/openapi.yaml`、Wrangler 設定、Cloudflare resource、Backend workflow は存在しない。
-- DB、認証、非同期処理は未決定である。
+- Supabase の staging / production Terraform root は provider、partial backend、version constraint、空の `main.tf` に限定され、既存 Project の resource/import はまだ宣言していない。
+- Supabase DB schema、RLS、migration は Terraform ではなく `supabase/migrations/` と Supabase CLI が所有する。
 - 公開 API は `beyond-labo.com` 配下の Cloudflare Workers Custom Domain で提供する。
-- IaC は Terraform を採用し、実装時に `infra/cloudflare/` へ環境別の Cloudflare 構成を置く。
+- IaC は Terraform を採用し、`infra/cloudflare/` と `infra/supabase/` を provider・state の異なる環境別 root として扱う。
 
 ## Desired Outcome
 
@@ -87,6 +88,7 @@ Backend は private pnpm workspace として登録されているだけで、HTT
 - production は専用 GitHub Environment の保護を通過した tag または手動実行だけが変更でき、配布 commit と Cloudflare の version を追跡できる。
 - staging と production の Worker、bindings、runtime secrets、観測データを分離する。
 - Hono / Cloudflare の依存範囲と、機能ごとの Clean Architecture の境界を両立する。
+- Supabase Terraform は secretless な `fmt`、`init -backend=false`、`validate` のみを CI で行い、Project の apply/import は棚卸しと承認後の別工程にする。
 
 ## Approach
 

@@ -17,7 +17,7 @@ kiro:
 
 ## Overview
 
-Availability を独立機能として、Domain の `AvailabilitySlot` と `AvailabilityPolicy`、Application の Repository / UseCase、Infrastructure の Prototype Adapter、Presentation の HomeTimeline / AvailabilityEditor へ分ける。時間は `Date` の半開区間 `[start, end)` として扱う。
+Availability を独立機能として、Domain の `AvailabilitySlot` と `AvailabilityPolicy`、Presentation の HomeTimeline / AvailabilityEditor、DEBUG 用 Prototype、Release 用 Backend Adapter を使う。Application の独立 Repository / UseCase は後続タスクで分離する。時間は `Date` の半開区間 `[start, end)` として扱う。
 
 ## Boundary Commitments
 
@@ -46,12 +46,13 @@ graph LR
     Features --> AvailabilityUseCase
     AvailabilityUseCase --> AvailabilityRepository
     PrototypeAdapter --> AvailabilityRepository
+    BackendAvailabilityAdapter --> AvailabilityRepository
     AvailabilityPolicy --> AvailabilityUseCase
 ```
 
 `AvailabilityPolicy` は15分境界、範囲、重複を純粋関数で検証する。Reducer は入力中の表示状態を所有し、保存判断を UseCase へ委譲する。
 
-現行実装では Repository / UseCase は未実装で、保存は App の `HimatchClient.addAvailability` / `removeAvailability`（DEBUG は Prototype scenario）を Reducer の Effect から呼ぶ。Port 化はタスク1・2で行い、その際も下記の Presentation 契約は維持する。
+現行実装では独立した Repository / UseCase は未実装で、保存は App の `HimatchClient.addAvailability` / `removeAvailability` を Reducer の Effect から呼ぶ。DEBUG デモは Prototype scenario、Release は `BackendAvailabilityAdapter` が `GET/PUT/DELETE /v1/availability` を使う。認証SDKから現在のsessionを取得し、利用者JWTでBackendへ送る。登録・削除成功後は一覧 GET で本人枠を再取得して snapshot に反映し、認証後にも GET で再読込する。認証後の GET は友達情報の GET と並行させ、Home 内に読み込み中・失敗・再試行を表示する。GET 失敗は空一覧に変換せず、全面オーバーレイで画面を塞がない。認証後の読み込み応答は利用者 ID と更新番号が変わっていない場合だけ反映し、保存後の枠を古い応答で上書きしない。iOS HTTP 区間は `AvailabilityHTTP` signpost で計測し、Worker の `X-Request-ID` だけを診断ログへ記録する。Port 化はタスク1・2で行い、その際も下記の Presentation 契約を維持する。サーバー認可と保存の所有者は backend-availability 仕様とする。
 
 ### Domain ポリシー
 
@@ -108,9 +109,9 @@ apps/ios/HimatchTests/Domain/AvailabilityPolicyTests.swift
 
 ## Data Model and Contracts
 
-- `AvailabilitySlot`: id、start、end、optional category、visibility、version。
+- 現行の `AvailabilitySlot`: id、start、end、optional category、visibility。端末間の内容編集を導入する際に version を追加する。
 - `AvailabilityVisibility`: `privateUntilAccepted` / `shareOnHosting`。
-- Repository: list(range)、create(command,idempotencyKey)、update(id,version,command)、delete(id,version)。
+- 現行Backend契約: 本人の list、UUID指定の create と同内容の再送、delete。異なる内容で同じUUIDを再利用すると競合。将来の Repository 契約では create(command,idempotencyKey)、update(id,version,command)、delete(id,version) を提供する。
 - `AvailabilityError`: invalidInterval、past、outsideWindow、overlap(existingID)、conflict、transport。
 - `HomeScheduleProjection` は Availability と Hosting の表示用項目を Integration から受け取る読み取り契約で、確定予定の変更を提供しない。
 

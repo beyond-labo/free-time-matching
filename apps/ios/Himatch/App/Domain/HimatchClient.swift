@@ -25,9 +25,10 @@ struct HostingDraft: Equatable, Sendable {
 
 struct HimatchClient: Sendable {
     var load: @Sendable () async -> AppSnapshot
+    var loadAvailability: @Sendable () async throws -> [AvailabilitySlot]
     var saveProfile: @Sendable (String, String) async throws -> AppSnapshot
     var addAvailability: @Sendable (AvailabilitySlot) async throws -> AppSnapshot
-    var removeAvailability: @Sendable (UUID) async -> AppSnapshot
+    var removeAvailability: @Sendable (UUID) async throws -> AppSnapshot
     var createHosting: @Sendable (HostingDraft) async throws -> AppSnapshot
     var acceptInvitation: @Sendable (UUID, TimeIntervalRange) async throws -> AppSnapshot
     var confirmHosting: @Sendable (UUID) async throws -> AppSnapshot
@@ -55,6 +56,12 @@ extension AppSnapshot {
         )
     }
 
+    static func empty(availability: [AvailabilitySlot]) -> Self {
+        var snapshot = Self.empty()
+        snapshot.availability = availability
+        return snapshot
+    }
+
     mutating func apply(_ friendship: FriendshipSnapshot) {
         inviteCode = friendship.inviteCode
         friends = friendship.friends
@@ -65,6 +72,7 @@ extension AppSnapshot {
 extension HimatchClient {
     static let productionPlaceholder = Self(
         load: { .empty() },
+        loadAvailability: { throw PrototypeError.notFound },
         saveProfile: { _, _ in throw PrototypeError.notFound },
         addAvailability: { _ in throw PrototypeError.notFound },
         removeAvailability: { _ in .empty() },

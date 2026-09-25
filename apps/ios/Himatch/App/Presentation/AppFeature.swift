@@ -26,9 +26,14 @@ struct AppFeature {
         var route: Route = .launching
         var selectedTab: Tab = .home
         var snapshot: AppSnapshot?
+        var availabilityRevision = 0
         var authenticationSession: AuthenticationSession?
         var isDemo = false
         var isLoading = false
+        var isAvailabilityLoading = false
+        var availabilityLoadError = false
+        var isFriendshipLoading = false
+        var friendshipLoadError = false
         var alertMessage: String?
 
         var profileName = "ひまり"
@@ -100,6 +105,9 @@ struct AppFeature {
         case appleAuthorizationFailed(String?)
         case authenticationSucceeded(AuthenticationSession)
         case profileLoaded(UserProfile?)
+        case reloadAvailability
+        case availabilityLoaded([AvailabilitySlot], revision: Int, userID: String)
+        case availabilityLoadFailed(String, revision: Int, userID: String)
         case profileLoadFailed(String)
         case startDemo
         case profileNameChanged(String)
@@ -135,6 +143,7 @@ struct AppFeature {
         case inviteCodeChanged(String)
         case reloadFriendships
         case friendshipsLoaded(FriendshipSnapshot, userID: String)
+        case friendshipLoadFailed(String, userID: String)
         case rotateInviteCode
         case resolveInviteCode
         case inviteCodeResolved(FriendProfile, userID: String)
@@ -300,6 +309,8 @@ struct AppFeature {
                 case .signedOut:
                     guard state.route != .launching else { return .none }
                     state.authenticationSession = nil
+                    state.isAvailabilityLoading = false
+                    state.isFriendshipLoading = false
                     guard state.route != .deletionAccepted else { return .none }
                     state.snapshot = nil
                     state.route = .onboarding
@@ -309,6 +320,8 @@ struct AppFeature {
 
             case let .authenticationInvalidated(message):
                 state.authenticationSession = nil
+                state.isAvailabilityLoading = false
+                state.isFriendshipLoading = false
                 state.snapshot = nil
                 state.isDemo = false
                 state.isLoading = false
@@ -355,9 +368,38 @@ struct AppFeature {
                 state.snapshot?.profileName = profile.nickname
                 state.snapshot?.profileIcon = profile.presetIcon.rawValue
                 state.route = .main
-                return state.isDemo || state.authenticationSession == nil
-                    ? .none
-                    : .send(.reloadFriendships)
+                guard !state.isDemo, state.authenticationSession != nil else { return .none }
+                return .merge(.send(.reloadFriendships), .send(.reloadAvailability))
+
+            case .reloadAvailability:
+                guard !state.isDemo, let session = state.authenticationSession else { return .none }
+                state.isAvailabilityLoading = true
+                state.availabilityLoadError = false
+                let revision = state.availabilityRevision
+                let userID = session.userID
+                return .run { [client] send in
+                    do {
+                        await send(.availabilityLoaded(try await client.loadAvailability(), revision: revision, userID: userID))
+                    } catch {
+                        await send(.availabilityLoadFailed(error.localizedDescription, revision: revision, userID: userID))
+                    }
+                }
+
+            case let .availabilityLoaded(availability, revision, userID):
+                guard revision == state.availabilityRevision, state.authenticationSession?.userID == userID else { return .none }
+                state.isAvailabilityLoading = false
+                state.availabilityLoadError = false
+                if state.snapshot == nil { state.snapshot = .empty() }
+                state.snapshot?.availability = availability
+                revalidateSelection(&state)
+                return .none
+
+            case let .availabilityLoadFailed(message, revision, userID):
+                guard revision == state.availabilityRevision, state.authenticationSession?.userID == userID else { return .none }
+                state.isAvailabilityLoading = false
+                state.availabilityLoadError = true
+                state.alertMessage = message
+                return .none
 
             case let .profileLoadFailed(message):
                 state.isLoading = false
@@ -531,7 +573,9 @@ struct AppFeature {
                 return .none
 
             case let .quickSaveSucceeded(snapshot, slotID):
-                state.snapshot = snapshot
+                state.availabilityRevision += 1
+                state.isAvailabilityLoading = false
+                applyBusinessSnapshot(snapshot, to: &state)
                 state.homeTimeline.selection = nil
                 state.homeTimeline.lastSavedItem = .availability(slotID)
                 state.homeTimeline.quickSaveSuccessCount += 1
@@ -543,8 +587,10 @@ struct AppFeature {
                 return .none
 
             case let .availabilityEditor(.presented(.delegate(.saved(snapshot)))):
+                state.availabilityRevision += 1
+                state.isAvailabilityLoading = false
                 let savedStart = state.availabilityEditor?.start
-                state.snapshot = snapshot
+                applyBusinessSnapshot(snapshot, to: &state)
                 state.availabilityEditor = nil
                 state.homeTimeline.selection = nil
                 if let savedStart {
@@ -574,7 +620,11 @@ struct AppFeature {
             case let .removeAvailability(id):
                 state.isLoading = true
                 return .run { send in
-                    await send(.snapshotMutationCompleted(client.removeAvailability(id)))
+                    do {
+                        await send(.snapshotMutationCompleted(try await client.removeAvailability(id)))
+                    } catch {
+                        await send(.operationFailed(error.localizedDescription))
+                    }
                 }
 
             case let .showHostingEditor(presented):
@@ -674,7 +724,8 @@ struct AppFeature {
 
             case .reloadFriendships:
                 guard !state.isDemo, let session = state.authenticationSession else { return .none }
-                state.isLoading = true
+                state.isFriendshipLoading = true
+                state.friendshipLoadError = false
                 return .run { send in
                     do {
                         await send(.friendshipsLoaded(
@@ -686,11 +737,7 @@ struct AppFeature {
                             try? await authenticationClient.signOut()
                             await send(.authenticationInvalidated(message))
                         } else {
-                            await send(.friendshipMutationFailed(
-                                error.localizedDescription,
-                                reload: false,
-                                userID: session.userID
-                            ))
+                            await send(.friendshipLoadFailed(error.localizedDescription, userID: session.userID))
                         }
                     }
                 }
@@ -700,7 +747,15 @@ struct AppFeature {
                 guard state.authenticationSession?.userID == userID else { return .none }
                 if state.snapshot == nil { state.snapshot = .empty() }
                 state.snapshot?.apply(friendship)
-                state.isLoading = false
+                state.isFriendshipLoading = false
+                state.friendshipLoadError = false
+                return .none
+
+            case let .friendshipLoadFailed(message, userID):
+                guard state.authenticationSession?.userID == userID else { return .none }
+                state.isFriendshipLoading = false
+                state.friendshipLoadError = true
+                state.alertMessage = message
                 return .none
 
             case .rotateInviteCode:
@@ -907,7 +962,9 @@ struct AppFeature {
                 return reload ? .send(.reloadFriendships) : .none
 
             case let .snapshotMutationCompleted(snapshot):
-                state.snapshot = snapshot
+                state.availabilityRevision += 1
+                state.isAvailabilityLoading = false
+                applyBusinessSnapshot(snapshot, to: &state)
                 state.isLoading = false
                 revalidateSelection(&state)
                 return .none
@@ -1123,6 +1180,14 @@ struct AppFeature {
                     await send(.profileLoadFailed(error.localizedDescription))
                 }
             }
+        }
+    }
+
+    private func applyBusinessSnapshot(_ snapshot: AppSnapshot, to state: inout State) {
+        if !state.isDemo, state.authenticationSession != nil, state.snapshot != nil {
+            state.snapshot?.availability = snapshot.availability
+        } else {
+            state.snapshot = snapshot
         }
     }
 

@@ -25,7 +25,7 @@ kiro:
 ## Boundary Context
 
 - **In scope**: 自分の時間軸、暇枠、定型カテゴリ、公開設定、日時検証、空・失敗状態。
-- **Out of scope**: 友達の暇表示、常時公開、サーバー認可、募集照合、確定予定の変更。
+- **Out of scope**: 友達の暇表示、常時公開、サーバー認可の実装、募集照合、確定予定の変更。Release Adapter は本人限定 Backend API を利用する。
 - **Adjacent expectations**: Hosting は暇枠を参照するが、参加回答と確定予定を別に所有する。
 
 ## Requirements
@@ -90,3 +90,14 @@ kiro:
 2. When 端末タイムゾーンが変わった, the iOS app shall 同じ絶対時刻を新しいローカル表示へ変換する
 3. The iOS app shall 15分枠を小さなマスへのタップだけに依存させず、44×44ptを一般基準とするハンドル、ボタン、VoiceOver代替操作を提供する
 4. The iOS app shall タップ、長押し成立、15分境界の変更、登録成功、登録失敗を視覚表示と触覚フィードバックで区別し、色だけを状態の手掛かりにしない
+
+### Requirement 6: Release の暇時間永続化
+
+**Objective:** As a 利用者, I want TestFlight で登録した自分の暇が保存され再表示される, so that アプリを再起動しても入力を失わない
+
+#### Acceptance Criteria
+
+1. The iOS app shall Releaseで認証済み本人の暇登録・参照・削除をBackend APIへ送り、固定のPrototypeエラーを返す Adapter を使用しない
+2. When 登録APIが成功した, the iOS app shall サーバーが返した枠を表示し、再起動後も本人の枠を取得する
+3. If APIが失敗した, the iOS app shall 成功状態へ遷移せず、入力を保持して再試行可能にし、通信・認証・競合の失敗を区別する
+4. The iOS app shall access token、個人の暇日時、エラー応答本文を計測ログへ記録しない

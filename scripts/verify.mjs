@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { join, dirname, resolve, extname } from "node:path";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const ignored = new Set([".git", ".agents", ".codex", ".kiro", "node_modules", ".pnpm-store"]);
+const ignored = new Set([".git", ".agents", ".codex", ".kiro", ".terraform", "node_modules", ".pnpm-store"]);
 function* filesIn(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (ignored.has(entry.name)) continue;

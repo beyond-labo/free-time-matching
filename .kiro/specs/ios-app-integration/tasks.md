@@ -26,9 +26,10 @@ kiro:
   - _Boundary: AppProjectionRepository_
   - _Depends: 1_
 
-- [x] 3. Root Composition と Navigation を接続する
-  - 全Adapter / UseCase / Reducerを注入し、Releaseでは認証・プロフィール・削除とFriendshipを実Backendへ固定し、3タブと各詳細をdelegate actionで遷移できる。
-  - _Requirements: 3.1, 3.2, 3.6, 3.8_
+- [ ] 3. Root Composition と Navigation を接続する
+  - 全Adapter / UseCase / Reducerを注入し、Releaseでは認証・プロフィール・削除・Friendship・本人の暇時間を実Backendへ固定し、3タブと各詳細をdelegate actionで遷移できる。暇登録の成功・失敗をBackend応答で判定する。
+  - プロフィール確定後の友達・暇時間の取得を並行し、領域別の読み込み・失敗・再試行を実装して、全画面の操作を塞がないことを検証する。
+  - _Requirements: 3.1, 3.2, 3.6, 3.8, 3.9_
   - _Boundary: AppCompositionRoot, AppFeature_
   - _Depends: 1, 2_
 

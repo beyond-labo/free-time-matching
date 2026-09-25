@@ -2,7 +2,7 @@
 type: Research
 title: "Backend CI/CD と Cloudflare 配布調査"
 description: "pnpm、Workers Runtime、Terraform R2 state、GitHub Actions CI/CD の採用根拠"
-status: stable
+status: draft
 sources:
   - id: backend-brief
     resource: ./brief.md
@@ -49,12 +49,25 @@ sources:
   - id: local-package-structure
     resource: ../../../docs/architecture/package-structure.md
     title: パッケージ構成
+  - id: supabase-terraform-scaffold
+    resource: ../../../infra/supabase/README.md
+    title: Supabase Terraform の段階導入
+  - id: backend-ci-workflow
+    resource: ../../../.github/workflows/ci-backend.yml
+    title: Backend CI
+  - id: supabase-ci-workflow
+    resource: ../../../.github/workflows/ci-supabase.yml
+    title: Supabase CI
 kiro:
   depends_on:
     - docs/architecture/technology.md
     - docs/architecture/package-structure.md
     - docs/architecture/api-contracts.md
     - docs/operations/development.md
+    - infra/supabase/environments/staging/main.tf
+    - infra/supabase/environments/production/main.tf
+    - .github/workflows/ci-backend.yml
+    - .github/workflows/ci-supabase.yml
 ---
 
 # 調査と設計判断
@@ -74,6 +87,10 @@ kiro:
   - 初回 deploy 前に同一 account 内の `beyond-labo.com` zone が Active であることと、`api-staging` / `api` の A、AAAA、CNAME 競合がないことを確認する。
   - Custom Domain 変更には初回 Workers product-level Admin、通常は product-level Editor と `beyond-labo.com` に限定した `Zone > Workers Routes > Edit` を使う。Custom Domains は per-Worker roles 非対応で、DNS Write は自動 DNS 作成だけでは不要である。
   - staging は `main` push、production は `backend-vX.Y.Z` tag または manual で trigger し、production は read-only plan と protected approval 後の plan 再計算を必須にする。
+  - `infra/supabase/environments/staging` と `production` は provider、version constraint、partial S3 backend、空の `main.tf`、lockfile を持つが、resource/import block はまだない。
+  - `.github/workflows/ci-backend.yml` は Cloudflare と Supabase の全 environment root に対して `fmt -check`、`init -backend=false`、`validate` を credential なしで実行する。
+  - `.github/workflows/ci-supabase.yml` は hosted credential を使わず local database を起動し、migration、DB lint、pgTAP を実行する。これは staging/production Project への apply 証拠ではない。
+  - Supabase Terraform は Management API 設定の将来境界であり、DB schema、RLS、関数、migration、Auth 利用者・session は Supabase CLI/稼働 DB の所有として分離する。
 
 ## Research Log
 
@@ -125,6 +142,20 @@ kiro:
 - **Sources Consulted**: [Cloudflare Terraform best practices](https://developers.cloudflare.com/terraform/advanced-topics/best-practices/)、[Cloudflare Workers environments](https://developers.cloudflare.com/workers/wrangler/environments/)、[Wrangler deploy](https://developers.cloudflare.com/workers/wrangler/commands/#deploy)（2026-09-20確認）。
 - **Findings**: Terraform は長寿命 infrastructure に適し、Wrangler は Worker code/version/deployment に対応する。resource を複数 tool で管理すると drift と競合を生むため、項目ごとに唯一の所有者を定義する必要がある。
 - **Implications**: 初期 Terraform scaffold は provider/state 境界のみとし、Worker script、version、deployment、binding、Route、Custom Domain は Wrangler の唯一所有とする。D1/KV/R2/Queue 等の長寿命 resource は product 要件が確定してから別タスクで選定する。
+
+### Supabase Terraform root と local CI
+
+- **Context**: 現行リポジトリに Supabase の staging/production Terraform root と、DB migration/RLS の secretless CI が追加されたため、既存の Cloudflare-only 設計との責務境界を同期する必要がある。
+- **Sources Consulted**: `infra/supabase/environments/{staging,production}`、`infra/supabase/README.md`、`.github/workflows/ci-backend.yml`、`.github/workflows/ci-supabase.yml`、`docs/operations/development.md`（2026-09-25確認）。
+- **Findings**: 両 Supabase root は `supabase/supabase` provider 1.9.0、Terraform `>=1.10.0,<2.0.0`、credential-free partial S3 backend、空の `main.tf`、lockfile を持つ。Backend CI は Cloudflare/Supabase の全 root を `fmt`、`init -backend=false`、`validate` する。Supabase CI は `supabase db start`、`db lint --local`、`test db --local` を実行する。
+- **Implications**: Supabase root の存在と static/local CI の成功は、hosted Project の Terraform apply/import、Supabase token、DB password、staging/production migration の成功を意味しない。既存 Cloudflare/Wrangler の所有境界は維持し、Supabase schema/RLS/migration は Supabase CLI/稼働 DB に残す。
+
+### Supabase 管理対象の保留条件
+
+- **Context**: 空 root に将来 resource を追加する際の誤 apply と secret state 混入を防ぐ必要がある。
+- **Sources Consulted**: `infra/supabase/README.md`（2026-09-25確認）。
+- **Findings**: Project ID、組織、リージョン、Auth/Settings の inventory を値を伏せてレビューし、一つの staging resource から import-only plan、refresh-only plan、通常 plan を確認してから管理対象を決める手順が既に文書化されている。API key、Edge Function secret は state に残り得るため当面取り込まない。
+- **Implications**: inventory、ownership、read-only plan、import review、prevent_destroy、Environment protection が揃うまで Supabase Terraform の apply/import を行わず、CI の static validation と local DB test を完了条件にする。
 
 ### Cloudflare Workers Custom Domain と権限
 
@@ -191,3 +222,7 @@ Wrangler の `custom_domain: true` と `workers_dev: false` を環境別設定�
 Cloudflare 公式資料で Custom Domain の zone 所有、DNS/TLS 自動作成、証明書状態、Workers 権限、per-Worker role 非対応を確認した。
 同日、指定された Google account の Cloudflare Dashboard を read-only で確認し、`beyond-labo.com` の管理画面が同一 account に表示され、公開 DNS では `api-staging` と `api` の A/AAAA/CNAME 応答がなかった。
 実際の Custom Domain 作成、DNS変更、Worker deploy、証明書発行は実行していない。
+
+### 2026-09-25 Supabase Terraform scaffold 同期
+
+`infra/supabase/environments/staging` と `production` の空 Terraform root、provider/version constraint、partial backend、lockfile、および Backend CI の全 root static validation、Supabase local migration/RLS CI を現行根拠として追加した。DB schema/RLS/migration の Supabase CLI 所有と Cloudflare/Wrangler の既存所有境界は維持した。Supabase Project の apply/import、hosted staging/production migration、実 credential による plan/deploy は未実施であり、既存の承認と実装完了フラグを失効させた。

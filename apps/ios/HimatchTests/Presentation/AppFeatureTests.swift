@@ -94,12 +94,38 @@ struct AppFeatureTests {
         }
 
         await store.send(.reloadFriendships) {
-            $0.isLoading = true
+            $0.isFriendshipLoading = true
         }
         await store.receive(\.friendshipsLoaded) {
             $0.snapshot?.apply(friendship)
-            $0.isLoading = false
+            $0.isFriendshipLoading = false
         }
+        #expect(store.state.isLoading == false)
+    }
+
+    @Test("暇の初回GETはホーム全体を塞がず本人枠を反映する")
+    func availabilityLoadIsPartial() async {
+        let slot = AvailabilitySlot(
+            interval: TimeIntervalRange(start: date(3, 10, 0), end: date(3, 11, 0))
+        )
+        var state = AppFeature.State()
+        state.route = .main
+        state.authenticationSession = AuthenticationSession(userID: "owner", accessToken: "access")
+        state.snapshot = .empty()
+        var client = HimatchClient.productionPlaceholder
+        client.loadAvailability = { [slot] in [slot] }
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.himatchClient = client
+        }
+
+        await store.send(.reloadAvailability) {
+            $0.isAvailabilityLoading = true
+        }
+        await store.receive(\.availabilityLoaded) {
+            $0.isAvailabilityLoading = false
+            $0.snapshot?.availability = [slot]
+        }
+        #expect(store.state.isLoading == false)
     }
 
     @Test("認証拒否時はsessionと機密画面状態を破棄する")
@@ -381,6 +407,7 @@ struct AppFeatureTests {
         var withoutSlot = store.state.snapshot!
         withoutSlot.availability = []
         await store.send(.snapshotMutationCompleted(withoutSlot)) {
+            $0.availabilityRevision = 1
             $0.snapshot = withoutSlot
             $0.homeTimeline.selection?.issue = nil
         }
@@ -421,6 +448,7 @@ struct AppFeatureTests {
             visibility: .privateUntilAccepted
         )
         await store.receive(\.quickSaveSucceeded) {
+            $0.availabilityRevision = 1
             $0.snapshot?.availability = [slot]
             $0.homeTimeline.selection = nil
             $0.homeTimeline.lastSavedItem = .availability(UUID(0))
@@ -462,6 +490,7 @@ struct AppFeatureTests {
             $0.homeTimeline.selection?.saveError = nil
         }
         await store.receive(\.quickSaveSucceeded) {
+            $0.availabilityRevision = 1
             $0.snapshot?.availability = [
                 AvailabilitySlot(
                     id: UUID(1),
@@ -568,6 +597,7 @@ struct AppFeatureTests {
             $0.availabilityEditor?.isSaving = false
         }
         await store.receive(\.availabilityEditor.presented.delegate.saved) {
+            $0.availabilityRevision = 1
             $0.snapshot?.availability = [slot]
             $0.availabilityEditor = nil
             $0.homeTimeline.selection = nil
@@ -640,6 +670,23 @@ struct AppFeatureTests {
             $0.uuid = .incrementing
             $0.himatchClient = client
         }
+    }
+
+    @Test("保存後に届いた古い本人枠GETは登録結果を上書きしない")
+    func staleAvailabilityLoadDoesNotOverwriteSave() async {
+        let saved = AvailabilitySlot(
+            interval: TimeIntervalRange(start: date(3, 10, 0), end: date(3, 11, 0))
+        )
+        var state = AppFeature.State()
+        state.route = .main
+        state.snapshot = .empty(availability: [saved])
+        state.authenticationSession = AuthenticationSession(userID: "owner", accessToken: "access")
+        state.availabilityRevision = 1
+        let store = TestStore(initialState: state) { AppFeature() }
+
+        await store.send(.availabilityLoaded([], revision: 0, userID: "owner"))
+        await store.send(.availabilityLoaded([], revision: 1, userID: "other"))
+        #expect(store.state.snapshot?.availability == [saved])
     }
 
     @Test("プロフィール保存結果を共有シナリオから取得できる")

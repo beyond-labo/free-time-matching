@@ -62,9 +62,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for environment in staging production; do
-            root="infra/cloudflare/environments/${environment}"
-            terraform -chdir="${root}" fmt -check -recursive
-            terraform -chdir="${root}" init -backend=false -input=false -no-color
-            terraform -chdir="${root}" validate -no-color
+          for provider in cloudflare supabase; do
+            for environment in staging production; do
+              root="infra/${provider}/environments/${environment}"
+              terraform -chdir="${root}" fmt -check -recursive
+              terraform -chdir="${root}" init -backend=false -input=false -no-color
+              terraform -chdir="${root}" validate -no-color
+            done
           done

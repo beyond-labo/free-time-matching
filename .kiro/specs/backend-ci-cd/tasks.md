@@ -2,7 +2,7 @@
 type: Implementation Plan
 title: "Backend CI/CD と Cloudflare 配布実装計画"
 description: "pnpm 管理の Worker、Terraform 環境別 state、secretless CI、staging/production 配布の実装順"
-status: stable
+status: draft
 sources:
   - id: backend-design
     resource: ./design.md
@@ -111,3 +111,13 @@ kiro:
   - _Requirements: 6.5, 6.6, 7.2, 7.3, 8.4, 8.5, 8.6, 9.2, 10.3, 10.4_
   - _Boundary: WorkerCustomDomain, DeploymentPreflight, DeploymentRunbook_
   - _Depends: 6, 7, 8, 9, 10_
+
+- [x] 12. Supabase Terraform root と secretless local CI を同期する
+  - `infra/supabase/environments/staging` と `production` の provider/version constraint、partial S3 backend、空の `main.tf`、lockfile を確認し、Cloudflare root と state/credential を混在させない。
+  - `.github/workflows/ci-backend.yml` が Cloudflare と Supabase の全 environment root で `fmt -check`、`init -backend=false`、`validate` を credential なしで実行することを確認する。
+  - `.github/workflows/ci-supabase.yml` が hosted credential なしで local migration、DB lint、pgTAP を実行し、local 成功を hosted staging/production の apply 成功として表示しないことを確認する。
+  - `supabase/migrations/`、RLS、DB functions は Supabase CLI/稼働 DB が所有し、Terraform へ重複定義しない。Project resource、import block、apply は inventory/ownership review 後まで追加しない。
+  - 完了条件: Supabase root と secretless CI の静的契約が現行ファイルと一致し、実 Supabase Project の Terraform apply/import、hosted migration、deploy は未実施として残る。
+  - _Requirements: 5.3, 6.2, 6.3, 6.4, 9.2, 10.4, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
+  - _Boundary: SupabaseTerraformRoot, SupabaseMigrationCI_
+  - _Depends: 6, 7, 8, 10_

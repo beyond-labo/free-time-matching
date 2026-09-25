@@ -54,6 +54,8 @@ kiro:
 3. The repository verification shall filesystem-synchronized app/test group、TCA 1.26.1、Package.resolved、entitlements の存在と整合を検査する
 4. The integration tests shall デモ開始、暇登録、友達確認、募集、回答、確定、通報、ブロック、削除受付の主要経路を fixture で検証する
 5. The repository verification shall iOSテストがSwift Testingを使用し、XCTestのimportまたはXCTestCase継承を含まないことを検査する
-6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除とFriendshipの実Backend Adapterを注入し、DEBUGの明示的なデモだけでPrototype Friendship Adapterを使用する
+6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除・Friendship・本人の暇時間の実Backend Adapterを注入し、DEBUGの明示的なデモだけでPrototype Adapterを使用する
 7. The integration tests shall セッション復元、未設定プロフィール、ログアウト、削除後アクセス停止を検証する
 8. The AppCompositionRoot shall 最初の内部TestFlightでbuild-time configurationからSTG SupabaseとSTG APIを選択する
+9. The integration tests shall Release構成の暇登録が固定エラーを返さず、認証済み利用者のBackend応答で成功・失敗を判定することを検証する
+10. When 認証済み利用者のプロフィールを取得してメイン画面へ遷移した, the iOS app shall 友達情報と本人の暇時間を並行して読み込み、各領域に読み込み中・失敗・再試行を表示し、片方の完了をもう片方や画面操作の条件にしない

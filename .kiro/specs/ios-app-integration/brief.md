@@ -25,7 +25,7 @@ Home は Availability と Hosting、統合受信箱は Friendship と Hosting、
 
 ## Current State
 
-各機能の独立 Port、Root Composition、共有 fixture、横断 read model、reset、統合テストがある。Release Composition は認証・プロフィール・削除に加えて Friendship を実 Backend Adapter へ接続し、最初の内部 TestFlight は STG を向く。暇・募集など未接続の業務機能は DEBUG Prototype 境界に残す。
+各機能の独立 Port、Root Composition、共有 fixture、横断 read model、reset、統合テストがある。Release Composition は認証・プロフィール・削除・Friendship・本人の暇時間を実 Backend Adapter へ接続し、最初の内部 TestFlight は STG を向く。募集など未接続の業務機能は DEBUG Prototype 境界に残す。
 
 ## Desired Outcome
 
@@ -33,7 +33,7 @@ Home は Availability と Hosting、統合受信箱は Friendship と Hosting、
 
 ## Approach
 
-Composition 配下の `HimatchPrototypeScenario` actor を未接続業務機能のプロトタイプ整合性境界とし、各機能 Adapter へ facet を注入する。認証・プロフィール・削除と Friendship は実 Backend Adapter を標準とする。UI集約は `AppProjectionRepository` が読み取り DTO として提供し、変更は所有機能の UseCase だけが行う。
+Composition 配下の `HimatchPrototypeScenario` actor を未接続業務機能のプロトタイプ整合性境界とし、各機能 Adapter へ facet を注入する。認証・プロフィール・削除・Friendship・本人の暇時間は実 Backend Adapter を標準とする。UI集約は `AppProjectionRepository` が読み取り DTO として提供し、変更は所有機能の UseCase だけが行う。
 
 ## Scope
 
@@ -46,7 +46,7 @@ Composition 配下の `HimatchPrototypeScenario` actor を未接続業務機能�
 
 ### Out
 
-- 暇・募集の実 Backend トランザクション、Push、運営処理、Friendship 以外の業務 DB。
+- 暇の実 Backend トランザクションと API 自体、募集の実 Backend、Push、運営処理。Root Composition は暇 Adapter の注入を所有する。
 
 ## Boundary Candidates
 
