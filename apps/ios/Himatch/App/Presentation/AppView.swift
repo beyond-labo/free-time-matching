@@ -312,8 +312,15 @@ private struct FriendsView: View {
                     }
                 } else if !store.isDemo {
                     Section("招待コード") {
-                        ProgressView("コードを発行しています")
+                        if store.isFriendshipLoading {
+                            ProgressView("友達情報を読み込み中…")
+                        } else if store.friendshipLoadError {
+                            Text("友達情報を読み込めませんでした")
+                        } else {
+                            Text("招待コードがありません")
+                        }
                         Button("再読み込み") { store.send(.reloadFriendships) }
+                            .disabled(store.isFriendshipLoading)
                     }
                 }
             }
@@ -321,7 +328,7 @@ private struct FriendsView: View {
             .toolbar {
                 Button { store.send(.reloadFriendships) } label: { Image(systemName: "arrow.clockwise") }
                     .accessibilityLabel("友達情報を再読み込み")
-                    .disabled(store.isLoading || store.isDemo)
+                    .disabled(store.isLoading || store.isFriendshipLoading || store.isDemo)
                 Button { store.send(.showAddFriend(true)) } label: { Image(systemName: "person.badge.plus") }
                     .accessibilityLabel("友達を追加")
             }

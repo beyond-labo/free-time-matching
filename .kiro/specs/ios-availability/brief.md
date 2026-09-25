@@ -21,7 +21,7 @@ kiro:
 
 ## Current State
 
-時間モデル、ホーム時間軸、登録・編集画面、公開設定は未実装である。
+時間モデル、ホーム時間軸、登録画面、公開設定は実装済み。内部TestFlightのRelease構成では暇の保存先が `productionPlaceholder` だったため、登録時に通信せず固定エラーを返していた。既存枠の内容編集と関連Hosting導線は未実装。
 
 ## Desired Outcome
 
@@ -37,13 +37,13 @@ Availability の Domain / Application / Infrastructure / Presentation を featur
 
 - 14日間の縦時間軸、今日へ戻る操作、表示日時の固定。
 - 15分単位、初期2時間、日付またぎ、過去時刻防止、重複警告。
-- 定型カテゴリ、非公開／募集時共有、登録・編集・削除。
+- 定型カテゴリ、非公開／募集時共有、登録・編集・削除。Releaseでは本人限定Backend APIへ登録・参照・削除を接続する。
 - 暇なし、通信失敗、読み込みの異なる空状態。
 
 ### Out
 
 - 他人の暇一覧、常時公開、カレンダー同期、通知リマインダー設定。
-- サーバー認可と募集照合。
+- サーバー認可の実装自体と募集照合。サーバー認可は backend-availability が所有する。
 
 ## Boundary Candidates
 

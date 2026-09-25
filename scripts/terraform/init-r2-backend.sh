@@ -37,14 +37,15 @@ for variable_name in "${required_vars[@]}"; do
 done
 
 case "$terraform_root" in
-  */"$environment") ;;
+  */infra/cloudflare/environments/"$environment") state_scope="cloudflare" ;;
+  */infra/supabase/environments/"$environment") state_scope="supabase" ;;
   *)
-    printf 'Terraform root must end with /%s: %s\n' "$environment" "$terraform_root" >&2
+    printf 'Terraform root must be a supported environment root: %s\n' "$terraform_root" >&2
     exit 64
     ;;
 esac
 
-state_key="cloudflare/${environment}/terraform.tfstate"
+state_key="${state_scope}/${environment}/terraform.tfstate"
 backend_config="$(mktemp "${TMPDIR:-/tmp}/terraform-backend.XXXXXX")"
 cleanup() {
   rm -f "$backend_config"

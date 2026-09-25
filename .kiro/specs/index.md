@@ -5,6 +5,7 @@ okf_version: "0.2"
 # 文書一覧
 
 - [android-ci-cd](android-ci-cd/index.md)
+- [backend-availability](backend-availability/index.md)
 - [backend-ci-cd](backend-ci-cd/index.md)
 - [backend-friendship](backend-friendship/index.md)
 - [backend-user-account-management](backend-user-account-management/index.md)

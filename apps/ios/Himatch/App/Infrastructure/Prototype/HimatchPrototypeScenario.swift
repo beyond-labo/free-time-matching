@@ -11,6 +11,7 @@ actor HimatchPrototypeScenario {
     nonisolated func client() -> HimatchClient {
         HimatchClient(
             load: { await self.snapshot() },
+            loadAvailability: { await self.snapshot().availability },
             saveProfile: { try await self.saveProfile(name: $0, icon: $1) },
             addAvailability: { try await self.addAvailability($0) },
             removeAvailability: { await self.removeAvailability($0) },

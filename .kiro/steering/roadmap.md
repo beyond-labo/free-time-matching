@@ -19,7 +19,7 @@ kiro:
 ## Overview
 
 暇時間を常時公開せず、招待への参加承認を境界として友達との予定を成立させる iOS 初版を実装する。
-Backend のうちユーザーアカウント管理と友達関係を実 Backend 境界とし、Sign in with Apple、Supabaseセッション、プロフィール、期限付き招待コード、友達申請・承認・解除、アカウント削除を接続する。友達関係の初回接続先は STG とし、production 環境への deploy は別工程とする。暇・募集・Push・運営処理は引き続きプロトタイプ境界とし、実環境の複数ユーザー整合性を実装済みとは扱わない。
+Backend のうちユーザーアカウント管理、友達関係、本人限定の暇時間を実 Backend 境界とし、Sign in with Apple、Supabaseセッション、プロフィール、期限付き招待コード、友達申請・承認・解除、暇枠の登録・参照・削除、アカウント削除を接続する。初回接続先は STG とし、production 環境への deploy は別工程とする。募集・Push・運営処理は引き続きプロトタイプ境界とし、実環境の複数ユーザー整合性を実装済みとは扱わない。
 
 ## Approach Decision
 
@@ -31,10 +31,10 @@ Backend のうちユーザーアカウント管理と友達関係を実 Backend 
 - iOS 17 以降の SwiftUI / TCA クライアント。
 - Sign in with Apple のクライアント境界、初期説明、プロフィール、ホーム・友達・設定の3タブ。
 - 暇時間、友達、募集・招待・回答・確定予定、安全機能、設定・退会の画面とクライアント状態遷移。
-- 認証・プロフィール・友達関係・削除の実 Backend Adapter（友達関係は初回 STG）と、それ以外の主要フローを再現するDEBUG専用Prototype Adapter。
+- 認証・プロフィール・友達関係・本人の暇時間・削除の実 Backend Adapter（初回 STG）と、それ以外の主要フローを再現するDEBUG専用Prototype Adapter。
 - Apple の UGC、アカウント削除、Push 非必須、プライバシー申告に関する iOS 側の導線と説明。
 
-対象外は暇・募集のBackend API・DB、友達ブロック・通報のBackend保存、APNs 配信、運営管理画面、非同期削除Queue、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
+対象外は暇の友達向け共有・募集照合、募集のBackend API・DB、友達ブロック・通報のBackend保存、APNs 配信、運営管理画面、非同期削除Queue、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
 
 ## Constraints
 
@@ -55,12 +55,14 @@ Backend のうちユーザーアカウント管理と友達関係を実 Backend 
 - `ios-app-integration`: Home・Inbox の読み取り投影、共有 Prototype scenario、Root Composition、全機能統合検証を所有する。
 - `backend-user-account-management`: Supabase JWT検証、本人プロフィール、Apple再認証を伴うアカウント削除を所有する。
 - `backend-friendship`: 招待コード、申請、相互承認、友達一覧・解除の実 API・DB を所有し、最初に STG で検証する。
+- `backend-availability`: 本人の暇枠を JWT・RLS 境界で登録・参照・削除する API・DB を所有し、最初に STG で検証する。
 
 ## Specs (dependency order)
 
 - [x] ios-app-foundation -- 起動説明、Sign in with Apple 境界、プロフィール、3タブと共通画面状態。Dependencies: none
 - [x] backend-user-account-management -- Supabase認証済み本人、プロフィール、アカウント削除。Dependencies: ios-app-foundation, ios-safety-settings
 - [x] backend-friendship -- 期限付き招待コード、申請、相互承認、友達一覧・解除。Dependencies: backend-user-account-management
+- [x] backend-availability -- 本人限定の暇枠登録・参照・削除。Dependencies: backend-user-account-management, ios-availability
 - [x] ios-availability -- ホーム時間軸と暇時間の登録・編集・公開設定。Dependencies: ios-app-foundation
 - [x] ios-friendship -- 友達一覧、招待コード、申請、プロフィールのSTG実接続。Dependencies: ios-app-foundation, backend-friendship
 - [x] ios-hosting -- 募集作成、招待、回答、確定予定、進行中一覧。Dependencies: ios-app-foundation, ios-availability, ios-friendship
@@ -71,10 +73,14 @@ Backend のうちユーザーアカウント管理と友達関係を実 Backend 
 
 - `ios-app-foundation`: Production Apple認証、セッション復元、プロフィールAPIを対象へ追加する。
 - `ios-safety-settings`: fresh Apple再認証、削除API、ローカルアクセス停止を対象へ追加する。
-- `ios-app-integration`: Release Compositionで実 Backend Adapterを必須にし、Friendship の初回接続先を STG、PrototypeをDEBUGへ限定する。
+- `ios-app-integration`: Release Compositionで認証・友達関係・暇の実 Backend Adapterを必須にし、初回接続先を STG、PrototypeをDEBUGへ限定する。
 - `ios-friendship`: Release CompositionでBackend Friendship Adapterを必須にし、最初の内部 TestFlight ではコード・申請・友達をSTGへ接続する。
 - `ios-ci-cd`: 製品実装と TCA 追加後も既存 build/test/TestFlight 経路が成立することを再検証する。CI/CD の責務や秘密管理契約は変更しない。
 
 ## Direct Implementation Candidates
 
-- `docs/product/overview.md` と iOS 関連文書を、認証・プロフィール・削除・友達関係の実 Backend 境界（友達関係は初回 STG）と、その他機能のPrototype境界へ同期する。
+- `docs/product/overview.md` と iOS 関連文書を、認証・プロフィール・削除・友達関係・本人の暇の実 Backend 境界（初回 STG）と、その他機能のPrototype境界へ同期する。
+
+## 変更履歴
+
+- 2026-09-25: TestFlight Releaseで暇登録が固定エラーを返す事象を受け、本人限定の暇登録・参照・削除を実Backend境界へ追加した。募集照合や友達向け共有は引き続き未実装。

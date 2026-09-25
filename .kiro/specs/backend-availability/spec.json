@@ -1,0 +1,52 @@
+{
+  "feature_name": "backend-availability",
+  "created_at": "2026-09-25T00:00:00+09:00",
+  "updated_at": "2026-09-25T00:20:00+09:00",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": false
+    },
+    "design": {
+      "generated": true,
+      "approved": false
+    },
+    "tasks": {
+      "generated": true,
+      "approved": false
+    }
+  },
+  "ready_for_implementation": false,
+  "freshness": {
+    "status": "current",
+    "pending": [],
+    "checked_inputs": {
+      ".kiro/specs/backend-availability/brief.md": "9e890ac420e13c8cca55f875b2b93951ff392fb9b456367857f22f4a6c5a29cc",
+      ".kiro/specs/backend-availability/design.md": "81902ee689aaca0b7ff6c18942e97764d32cddef16bd1305849710f7e5cd14b8",
+      ".kiro/specs/backend-availability/requirements.md": "19f6227683556267bb9c2a11d571350f70bc30e890122b31bcd99cfd1b33a4fb",
+      ".kiro/specs/backend-availability/research.md": "8ec8270fd950f269c1ad30a4807a6d88ded3544eca7ec506ee767122c6563f3a",
+      ".kiro/specs/backend-availability/tasks.md": "5e631cb7996d2e15e9003ab7ed0eb817ed8fe2a0954142a1a4a1f4d08f975795",
+      ".kiro/specs/ios-app-foundation/brief.md": "df5f1326e2a2e0ab86c80285b0aecb1512abd918dd1bd4d2619d6d726f6cd1b6",
+      ".kiro/specs/ios-app-foundation/requirements.md": "b486f614c357c0a1dfdd43f06b84c4f5707d021c461abd994bb489d9801927fc",
+      ".kiro/specs/ios-availability/brief.md": "dfa7152cab01f792afd751e2d14eccdca1404e376a699f1def7ca9f2ab93b054",
+      ".kiro/specs/ios-availability/requirements.md": "a6e8d3378fca42577e35b5617d1a89a5bb706a11276ffe43bef01ba8ac29c0c3",
+      ".kiro/steering/roadmap.md": "1496be2f383dee99a60e1032f6de509eb174cf8afb25caef915dcb780abec1f7",
+      "apps/backend/src/Auth/Infrastructure/Adapter/SupabaseJwtVerifier.ts": "4215e99da006c965016feb918c9f0ef03b5670067b6916c703cb302b84424b5c",
+      "apps/backend/src/Availability/Application/Port/AvailabilityRepository.ts": "c3ea7fc55e95b2b5e190c0b25f78dd91f1382483a0fd2024b81d5b454767b479",
+      "apps/backend/src/Availability/Domain/Model/Availability.ts": "5872795c18e85af82b5d3ce0e56b98e597843fa26fe8c816032add2432cd9550",
+      "apps/backend/src/Availability/Infrastructure/Repository/SupabaseAvailabilityRepository.ts": "9537c8bccad5c258c6da291969491fcedecec38fcfe071e27c7e6127b2cb647b",
+      "apps/backend/src/Availability/Presentation/AvailabilityRoutes.ts": "9700939aedc7ee09147bb83c2163dce8237025c136708b7d722224c121d2301a",
+      "apps/backend/src/Composition/createApp.ts": "b784706d2ba71a003983f0667c81f6ae26bab572e99b6c23f63d0dc5b5cd2936",
+      "apps/backend/src/Shared/Presentation/ApiError.ts": "a9e84d95f67af4ebb29b53f6ca7be3af1e946f22bc782a6681379deef083858f",
+      "apps/backend/test/availability.worker.test.ts": "84ccb72d71a94ad298c3c6726ae898befe9e3b831c62f0eb02a85db99c73ff40",
+      "docs/architecture/api-contracts.md": "3c66ddcb9399e3f27061fd22e132f23b3b33d7268eb85310628069d1fcc6f886",
+      "docs/architecture/ios-architecture.md": "816f3882006f6116798463599069fa39d1b9ed5904ade54065ebf273feb7fc02",
+      "docs/product/overview.md": "bd08856abc8a9bcb5adbe7df623aacddc4fc78d25cc8d5c55d627b05ca6c4fe6",
+      "supabase/migrations/202609210001_auth_profile_and_deletion.sql": "e14e80ff831e426c7a43f66b1c96d4396072a19d315000b7af11e38775a46fe6",
+      "supabase/migrations/202609250001_availability.sql": "b0f6a567a9e5393558a73f70175405ec44f3501e686b07af841695f2faea0128",
+      "supabase/tests/availability.test.sql": "c7ab969a3a452ed1df915e26f5a67c41e32c497094f72f5dfa2bded1c3f67d33"
+    }
+  }
+}

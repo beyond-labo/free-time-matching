@@ -3,6 +3,17 @@ import type { AccessTokenVerifier } from "../../Application/Port/AccessTokenVeri
 import { InvalidAccessTokenError } from "../../Application/Port/AccessTokenVerifier";
 import { isUuid, type AuthenticatedUser } from "../../Domain/AuthenticatedUser";
 
+type CloudflareTracing = Pick<Tracing, "enterSpan">;
+
+let cloudflareTracing: Promise<CloudflareTracing | undefined> | undefined;
+
+const loadCloudflareTracing = (): Promise<CloudflareTracing | undefined> => {
+  cloudflareTracing ??= import("cloudflare:workers")
+    .then(({ tracing }) => tracing)
+    .catch(() => undefined);
+  return cloudflareTracing;
+};
+
 export interface SupabaseJwtVerifierConfiguration {
   readonly issuer: string;
   readonly jwksUrl: string;
@@ -20,6 +31,14 @@ export class SupabaseJwtVerifier implements AccessTokenVerifier {
   }
 
   async verify(accessToken: string): Promise<AuthenticatedUser> {
+    const tracing = await loadCloudflareTracing();
+    if (tracing) {
+      return tracing.enterSpan("auth.jwt.verify", () => this.verifyToken(accessToken));
+    }
+    return this.verifyToken(accessToken);
+  }
+
+  private async verifyToken(accessToken: string): Promise<AuthenticatedUser> {
     try {
       const result = await jwtVerify(accessToken, this.jwks, {
         issuer: this.configuration.issuer,

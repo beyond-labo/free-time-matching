@@ -2,7 +2,7 @@
 type: Requirements
 title: "Backend CI/CD と Cloudflare 配布要件"
 description: "pnpm 管理の Backend、Terraform 基盤、GitHub Actions CI/CD、Cloudflare 環境別配布の要件"
-status: stable
+status: draft
 sources:
   - id: approved-scope
     resource: user-request://2026-09-20/backend-minimum-worker
@@ -10,6 +10,12 @@ sources:
   - id: backend-brief
     resource: ./brief.md
     title: Backend CI/CD 構成案
+  - id: supabase-terraform-roots
+    resource: ../../../infra/supabase/README.md
+    title: Supabase Terraform 段階導入
+  - id: backend-ci-workflow
+    resource: ../../../.github/workflows/ci-backend.yml
+    title: Backend secretless CI
 kiro:
   depends_on:
     - .kiro/specs/backend-user-account-management/requirements.md
@@ -17,6 +23,10 @@ kiro:
     - docs/architecture/package-structure.md
     - docs/architecture/api-contracts.md
     - docs/operations/development.md
+    - infra/supabase/environments/staging/main.tf
+    - infra/supabase/environments/production/main.tf
+    - .github/workflows/ci-backend.yml
+    - .github/workflows/ci-supabase.yml
 ---
 
 # Requirements Document
@@ -27,9 +37,9 @@ Backend の実装入口を pnpm workspace の `apps/backend` に置き、TypeScr
 
 ## Boundary Context
 
-- **In scope**: `apps/backend` の pnpm package、TypeScript/Hono Worker、`GET /healthz` の JSON 契約、Workers Runtime テスト、型検査、bundle の dry-run、Terraform の環境別 root/state scaffold、R2 S3 remote state の partial config、Wrangler 管理の環境別 Custom Domain、Backend PR CI、staging 自動配布、production 承認配布、smoke/rollback 手順、関連 README と検証。
-- **Out of scope**: Cloudflare account、R2 state bucket、GitHub Environment、branch protection、reviewer、secret の初期作成と実資格情報による apply/deploy、OpenAPI 自動生成・公開、認証・DB・業務 APIそのものの設計、remote preview、production gradual deployment。
-- **Adjacent expectations**: Backend は iOS/Android と独立してビルド・リリースし、公開契約は Backend が所有する。認証・DB migrationと実行時設定の追加契約は`backend-user-account-management`仕様が所有し、本仕様の配布順序へ合成する。Terraform は長寿命 resource と state、Wrangler は Worker script/version/deploy/binding/Custom Domain と対応する自動 DNS/TLS を所有し、同一 resource を二重管理しない。
+- **In scope**: `apps/backend` の pnpm package、TypeScript/Hono Worker、`GET /healthz` の JSON 契約、Workers Runtime テスト、型検査、bundle の dry-run、`infra/cloudflare` と `infra/supabase` の環境別 Terraform root/state scaffold、R2 S3 remote state の partial config、Wrangler 管理の環境別 Custom Domain、Backend PR CI、Supabase migration/RLS CI、staging 自動配布、production 承認配布、smoke/rollback 手順、関連 README と検証。
+- **Out of scope**: Cloudflare/Supabase account、R2 state bucket、GitHub Environment、branch protection、reviewer、secret の初期作成、実資格情報による Terraform apply/import/deploy、OpenAPI 自動生成・公開、認証・DB・業務 APIそのものの設計、remote preview、production gradual deployment。
+- **Adjacent expectations**: Backend は iOS/Android と独立してビルド・リリースし、公開契約は Backend が所有する。DB schema、RLS、関数、migration は Supabase CLI と `supabase/migrations/` が所有し、Supabase Terraform は Management API の設定を inventory/import 判断後にだけ管理する。Terraform は長寿命 resource と state、Wrangler は Worker script/version/deploy/binding/Custom Domain と対応する自動 DNS/TLS を所有し、同一 resource を二重管理しない。
 
 ## Requirements
 
@@ -149,3 +159,17 @@ Backend の実装入口を pnpm workspace の `apps/backend` に置き、TypeScr
 3. Before the first Custom Domain deployment, the deployment runbook shall Cloudflare Dashboard で `beyond-labo.com` zone の account 一致と Active 状態を確認し、DNS Records で `api-staging` と `api` の A、AAAA、CNAME を確認し、既存レコードがあれば削除せず競合解消を停止条件にする
 4. While Cloudflare credentials、R2 bucket、GitHub Environment、reviewer、health URL が未設定である, local verification shall scaffold、fmt、backend=false init、validate、secretless CI 検査までを完了条件とし、実 Cloudflare apply/deploy の成功を主張しない
 5. The project documentation shall staging/production の secret・vars 契約、bootstrap の担当境界、account/zone preflight、DNS競合、Custom Domain の DNS/TLS 自動作成、証明書反映直後の有限 retry、rollback の開始条件と実行者を具体的なパスから参照できるようにする
+
+### Requirement 11: Supabase Terraform scaffold と secretless 検証
+
+**Objective:** As a インフラ担当者, I want Supabase の環境境界を Terraform で検証可能にしたい, so that Cloudflare と DB migration の所有権を混ぜずに将来の管理対象を安全に選定できる
+
+#### Acceptance Criteria
+
+1. The infrastructure code shall `infra/supabase/environments/staging` と `infra/supabase/environments/production` を独立した Terraform root として持ち、各 root に Supabase provider/version constraint、資格情報を含まない partial S3 backend、空の検証可能な `main.tf` を置く
+2. The infrastructure code shall staging と production の Supabase state key、backend credential、実行 Environment を分離し、R2 bucket の作成、Supabase Project の作成、既存 Project の import を root に含めない
+3. The infrastructure code shall Supabase provider の API token、DB password、service-role key、API key を source、`*.tfvars`、backend config、state、plan、CI artifact に書き込まない
+4. The infrastructure ownership contract shall `supabase/migrations/`、Postgres schema、RLS、関数、Auth 利用者・セッションを Supabase CLI/稼働 DB の所有として維持し、Terraform に重複定義しない
+5. When secretless Backend CI が Terraform を検証した, the Backend CI shall Cloudflare と Supabase の各 staging/production root で `terraform fmt -check`、`terraform init -backend=false`、`terraform validate` を実行する
+6. While Supabase Project の inventory、import、read-only plan、provider resource ownership が承認されていない, the CI/CD system shall Supabase Terraform の apply/import を実行せず、空 root の static validation と local migration/RLS test だけを成功証拠として扱う
+7. The Supabase CI shall 外部 credential なしで local database へ migration を適用し、DB lint と pgTAP を実行して失敗を non-zero で返す。これは hosted staging/production の migration 適用成功を意味しない

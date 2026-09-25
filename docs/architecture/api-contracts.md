@@ -57,7 +57,7 @@ GitHub Releases、オブジェクトストレージ等の配布先と保存期�
 初版の業務 API は `/v1` を接頭辞とする方針です。
 `/v1/me`は本人プロフィールのGET/PUT、`/v1/account-deletion-requests`はApple再認証を伴う削除受付・状況照会として定義します。
 保護APIは`Authorization: Bearer <Supabase access token>`を要求し、本人IDはJWTのsubjectからのみ確定します。
-友達の`/v1/friendships`と関連 mutation は下記の固定契約として実装済みです。暇、募集の`/v1/availability-days`、`/v1/hostings`は引き続き候補であり未定義です。
+友達の`/v1/friendships`と関連 mutation、本人限定の`/v1/availability`は下記の固定契約として実装済みです。募集の`/v1/hostings`は引き続き候補であり未定義です。
 古い iOS が残る前提で、既存クライアントの動作を維持します。
 
 フィールド削除、名前変更、意味変更、リクエストの必須項目追加、レスポンス形状変更は互換性を検討します。
@@ -98,6 +98,20 @@ Producer と Consumer で TypeScript interface を直接共有しません。
 - `DELETE /v1/friendships/{friendId}` ← `{ operationId, expectedVersion }` → mutation 後の snapshot。
 
 `friends` は `{ profile, version, createdAt }`、申請は `{ id, profile, version, createdAt }` を要素とします。profile は `userId`、`nickname`、`presetIconKey` だけです。コードの無効・期限切れ・失効・自己所有・不存在は `invite_code_unavailable` に統一し、version 競合は `friendship_conflict` として返します。mutation の operation ID は利用者ごとの再送安全性、version は楽観的競合検出に使用します。
+
+## 暇時間契約
+
+すべての endpoint は `Authorization: Bearer <Supabase access token>` を要求し、本人IDは検証済みJWT subjectから決める。Supabaseへの処理は publishable key と利用者JWTで行い、RLSを通す。削除受付後の利用者はRLSで読み書きを止める。
+
+- `GET /v1/availability` → `{ slots: AvailabilitySlot[] }`。本人の枠だけを開始順で返す。
+- `PUT /v1/availability/{id}` ← `{ start, end, category, visibility }` → `{ slot: AvailabilitySlot }`。`id` はクライアント生成UUIDで、新規作成と同じ入力の再送に限る。既存IDへ異なる入力を送ると `409 availability_conflict`。編集APIとしては使わない。
+- `DELETE /v1/availability/{id}` → `204`。存在しない本人枠の削除は冪等に成功する。他人の枠はRLSにより変更されない。
+
+`AvailabilitySlot` は `{ id, start, end, category, visibility }`。日時はISO 8601で送信し、サーバーはUTCへ正規化する。時刻は絶対時刻で15分境界、開始が未来、終了は開始より後かつ現在から14日以内。カテゴリは `game`、`meal`、`call`、`work`、`null`。共有設定は `privateUntilAccepted` または `shareOnHosting` で、未指定時は前者。同一利用者の時間重複はDBでも禁止する。`shareOnHosting` を保存しても、現段階では友達向け共有と募集照合を実行しない。
+
+Availability の応答は `Cache-Control: private, no-store` とし、端末や中間キャッシュへ本人の暇を残さない。
+
+初回実装は登録・参照・削除に限定する。既存枠の内容編集には version と条件付き更新・削除の公開契約を別途追加し、端末間の競合と再送を検証する。
 
 ## 現在の配置
 

@@ -18,6 +18,9 @@ import { createAccountDeletionRoutes } from "../AccountDeletion/Presentation/Acc
 import { ManageFriendships } from "../Friendship/Application/UseCase/ManageFriendships";
 import { SupabaseFriendshipRepository } from "../Friendship/Infrastructure/Repository/SupabaseFriendshipRepository";
 import { createFriendshipRoutes } from "../Friendship/Presentation/FriendshipRoutes";
+import type { AvailabilityRepository } from "../Availability/Application/Port/AvailabilityRepository";
+import { SupabaseAvailabilityRepository } from "../Availability/Infrastructure/Repository/SupabaseAvailabilityRepository";
+import { createAvailabilityRoutes } from "../Availability/Presentation/AvailabilityRoutes";
 
 export interface BackendBindings {
   readonly SUPABASE_URL?: string;
@@ -39,6 +42,7 @@ export interface AppDependencies {
   >;
   readonly requestDeletion: Pick<RequestAccountDeletion, "execute">;
   readonly deletionStatus: AccountDeletionStatusPort;
+  readonly availability?: AvailabilityRepository;
 }
 
 export const createApp = (
@@ -46,6 +50,20 @@ export const createApp = (
   injectedDependencies?: AppDependencies,
 ) => {
   const app = new Hono();
+  app.use("*", async (context, next) => {
+    if (!/^\/v1\/availability(?:\/|$)/.test(context.req.path)) return next();
+    const requestId = crypto.randomUUID();
+    const started = performance.now();
+    await next();
+    context.header("X-Request-ID", requestId);
+    console.info(JSON.stringify({
+      event: "availability_request",
+      requestId,
+      method: context.req.method,
+      status: context.res.status,
+      durationMs: Math.round(performance.now() - started),
+    }));
+  });
   let runtimeDependencies: AppDependencies | undefined;
   const dependencies = (): AppDependencies => {
     runtimeDependencies ??= injectedDependencies ?? createRuntimeDependencies(bindings);
@@ -92,6 +110,11 @@ export const createApp = (
         expectedVersion,
       ),
   };
+  const lazyAvailability: AvailabilityRepository = {
+    list: (actorId, token) => dependencies().availability!.list(actorId, token),
+    upsert: (actorId, token, id, input) => dependencies().availability!.upsert(actorId, token, id, input),
+    remove: (actorId, token, id) => dependencies().availability!.remove(actorId, token, id),
+  };
 
   app.get("/healthz", healthRoute);
   app.route(
@@ -105,6 +128,7 @@ export const createApp = (
       manageFriendships: lazyFriendships,
     }),
   );
+  app.route("/v1", createAvailabilityRoutes({ tokenVerifier: lazyTokenVerifier, availability: lazyAvailability }));
   app.route(
     "/v1",
     createAccountDeletionRoutes({
@@ -153,6 +177,7 @@ const createRuntimeDependencies = (bindings: BackendBindings): AppDependencies =
       statusTokens,
     ),
     deletionStatus: new SupabaseDeletionStatusAdapter(userConfiguration),
+    availability: new SupabaseAvailabilityRepository(userConfiguration),
   };
 };
 

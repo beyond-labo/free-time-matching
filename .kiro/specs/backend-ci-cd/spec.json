@@ -1,55 +1,60 @@
 {
   "feature_name": "backend-ci-cd",
   "created_at": "2026-09-20T00:00:00+09:00",
-  "updated_at": "2026-09-20T14:20:00+09:00",
+  "updated_at": "2026-09-25T00:40:00+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "design": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "tasks": {
       "generated": true,
-      "approved": true
+      "approved": false
     }
   },
-  "ready_for_implementation": true,
+  "ready_for_implementation": false,
   "freshness": {
     "status": "current",
     "pending": [],
     "checked_inputs": {
-      ".kiro/specs/backend-ci-cd/brief.md": "58f91a6b0313cb3b078b04532ef4a7bbc6f5711afde86a3aa5270925f3223813",
-      ".kiro/specs/backend-ci-cd/design.md": "ce7313f45f06f010097ee353a4831663196edc9566f22e0d3766a9534c4815ae",
-      ".kiro/specs/backend-ci-cd/requirements.md": "d25dbcd4e7e312c67ee7b9f0ef49b845b315c8399e06aff3946953598b593697",
-      ".kiro/specs/backend-ci-cd/research.md": "3a7c78dd6f6bdd9630e38a03929bf9f52572baa870098ca80a1bc3a42fa9bb94",
-      ".kiro/specs/backend-ci-cd/tasks.md": "df3a3d08a36409c5d65956302f0a93ff29e407e7215edd5b06c1e769c8460194",
+      ".github/workflows/ci-backend.yml": "8a647278ea1ebffaa1c390b80e89d35c54958c397762284891fe07b909b68c65",
+      ".github/workflows/ci-supabase.yml": "da9af5b5b65921e715c39b90b4d84565e57e397f8eb698eec7c86be920e820c9",
+      ".kiro/specs/backend-ci-cd/brief.md": "5f7216703d73fe31aa3b1a79d9db3868debe9c05ff5648746221c2221dd62144",
+      ".kiro/specs/backend-ci-cd/design.md": "800644faad9c19bb8dce5dc93588b4c057f95755e4a4625a75029b95ede997b6",
+      ".kiro/specs/backend-ci-cd/requirements.md": "806ea2acce9591719481ced99fbfc08e14d41db0c46592fe4373c15bba1ba2e6",
+      ".kiro/specs/backend-ci-cd/research.md": "69bc255aade620707e369b0a88fa429dea4e00316a27daa229ed5a63e41e0687",
+      ".kiro/specs/backend-ci-cd/tasks.md": "969567e4c6b0c61e9c7d0cfb3f4da83df26082bd0246f873b81e6c0acc9e5e14",
       ".kiro/specs/backend-user-account-management/brief.md": "4edb2a5fadf8d2789acaa552f3c879bf1c38ff74ed522f9c081ceee90fddf8ad",
       ".kiro/specs/backend-user-account-management/requirements.md": "67155122f8d078e85ba9f2181bda0ca26720fd0b5e5ab8c991b01859d4c84a8a",
       ".kiro/specs/ios-app-foundation/brief.md": "df5f1326e2a2e0ab86c80285b0aecb1512abd918dd1bd4d2619d6d726f6cd1b6",
       ".kiro/specs/ios-app-foundation/requirements.md": "b486f614c357c0a1dfdd43f06b84c4f5707d021c461abd994bb489d9801927fc",
-      ".kiro/specs/ios-availability/brief.md": "981e124762caf1338ea89b48baf35c4b34f1558c1be7bc09d068ff92a3d64b12",
-      ".kiro/specs/ios-availability/requirements.md": "a4e374f65d798c33a98d33831e959368ec8e817359be205e02a567c899a58654",
+      ".kiro/specs/ios-availability/brief.md": "dfa7152cab01f792afd751e2d14eccdca1404e376a699f1def7ca9f2ab93b054",
+      ".kiro/specs/ios-availability/requirements.md": "a6e8d3378fca42577e35b5617d1a89a5bb706a11276ffe43bef01ba8ac29c0c3",
       ".kiro/specs/ios-friendship/brief.md": "396b8575ce798f9c00c5c08f0f14c2f997dfe982cde3431b9b8d4620b868efee",
       ".kiro/specs/ios-friendship/requirements.md": "4673d21eaf08ebb4265ccd0a3a6a34da9ee6e0557cc2436c6863920f36f06606",
       ".kiro/specs/ios-hosting/brief.md": "c5a9a950ef8c684206041bbcfdc52306e5abd2286241605a2befdca8567a86f8",
       ".kiro/specs/ios-hosting/requirements.md": "5a9bc2fbd5dfeec1dd2728c04c78849ef6f944bb543bc750b242d7d5001fc8ae",
       ".kiro/specs/ios-safety-settings/brief.md": "f3087a3c0ca27323f26414cb587af044f8dfcc0d1d26a2ee6b6f81fde843fdc9",
       ".kiro/specs/ios-safety-settings/requirements.md": "976a865b5bd2c72837aa25718944f944d76e2e55e82fefbdf12e2cea17f152eb",
-      ".kiro/steering/roadmap.md": "51eccd341e28a4219ea54c1fd191c33997778e9d60f9e1ebed10f3a263e5907f",
+      ".kiro/steering/roadmap.md": "1496be2f383dee99a60e1032f6de509eb174cf8afb25caef915dcb780abec1f7",
       "apps/backend/package.json": "19dfd76a991b49741b756c020a93014534ff084ccb8a17228592341210a5fa65",
-      "apps/backend/wrangler.jsonc": "02d0839b84aec545bd1ef698ac7ca8a3f0fa6f651472f21bfc86f88b19ba0c5c",
-      "docs/architecture/api-contracts.md": "a94c6bedadd8f9eb46ca2d2aaa6648dc43b91d01f7cf745824735a7aff2170c8",
-      "docs/architecture/ios-architecture.md": "792b54ae63ed3fdf2c7db2a3842fadc50093ba089f925f507a4d8aff0e7fe85a",
+      "apps/backend/wrangler.jsonc": "08ac9727845651cdd93c9c8cee945558e7278b13d7e1a3129eaf333602adceaf",
+      "docs/architecture/api-contracts.md": "3c66ddcb9399e3f27061fd22e132f23b3b33d7268eb85310628069d1fcc6f886",
+      "docs/architecture/ios-architecture.md": "816f3882006f6116798463599069fa39d1b9ed5904ade54065ebf273feb7fc02",
       "docs/architecture/package-structure.md": "4344bd39c94cf6f3e60186206b9ba4b0ebe1795677ad5aa79a6efde86fba60f9",
       "docs/architecture/technology.md": "b19a95745c5afb1f3f391f6f13e2c804ee72bdc88c0e505ee694a837b36e87e7",
-      "docs/operations/backend-ci-cd.md": "47ff8355288506bc7fdfecb1d69c748c3bce11cd04a5128dd7b932c4608bb464",
+      "docs/operations/backend-ci-cd.md": "33f27edccbd68756784033f87eced26c1b3a9435b6310790e3f6364ac4b2a185",
       "docs/operations/development.md": "bb3ab1a13d1e13105553e40d77882ebf5ede4755f941320c9a496f3652506d7a",
-      "docs/product/overview.md": "b4bcbae1b735d5007ee3f0b24601b1a016b414c534be0803575c2a0a429265bd"
+      "docs/product/overview.md": "bd08856abc8a9bcb5adbe7df623aacddc4fc78d25cc8d5c55d627b05ca6c4fe6",
+      "infra/supabase/README.md": "c4d0bf1b0a948c0d3c498d6504e9b55834a6e74e210dcab8808f56f067f0344a",
+      "infra/supabase/environments/production/main.tf": "c69f2dcef7cb16708e154d6e275a578856451ae43af7b76589e9209bf747cda9",
+      "infra/supabase/environments/staging/main.tf": "c69f2dcef7cb16708e154d6e275a578856451ae43af7b76589e9209bf747cda9"
     }
   }
 }

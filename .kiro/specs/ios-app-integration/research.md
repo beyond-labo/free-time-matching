@@ -35,6 +35,12 @@ kiro:
 
 ## Change Log
 
+### 2026-09-25
+
+内部TestFlightのReleaseで暇登録が `HimatchClient.productionPlaceholder` から `PrototypeError.notFound` を返し、通信に到達しないことをコードで確認した。ユーザーの実接続依頼により、Release Compositionへ `BackendAvailabilityAdapter` を追加する。DEBUGデモのPrototypeは維持する。要件3.6、3.9と設計・タスク3を改訂し、旧タスク完了と工程承認は新しい契約の証拠にならないため再評価する。
+
+2026-09-25: 初回起動の読み込みを再点検したところ、友達の GET がメイン画面遷移後も共通 `isLoading` の全面オーバーレイを出していた。ユーザーの部分読み込み要求に合わせ、友達と暇の取得状態を独立させ、画面内の進捗・失敗・再試行へ移した。セッションと削除受付状態、プロフィール有無の判定は遷移先とアクセス可否を決めるため先行する。根拠は `AppFeature.swift`、`AppView.swift`、`HomeView.swift` と Swift Testing の部分読み込みテスト。
+
 ### 2026-09-21
 
 ユーザーのiOSテスト戦略に合わせ、単体・Reducer・統合テストをSwift Testingへ統一した。`xcodebuild test`と既存test targetは維持し、repository verifyとCIでXCTestのimport・継承の再混入とテスト0件を拒否する。

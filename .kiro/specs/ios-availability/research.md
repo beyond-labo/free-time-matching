@@ -62,6 +62,10 @@ kiro:
 
 ## Change Log
 
+- 2026-09-25: 初回起動時の友達・暇 GET を各領域の読み込み状態で表示する方針に同期した。暇 GET の失敗時は空枠と区別して再試行を表示し、全面オーバーレイを使わない。根拠は `AppFeature.swift`、`HomeView.swift`、`ios-app-integration` 要件3.10。
+- 2026-09-25: Release の本人枠 GET が失敗した場合の空一覧への握り潰しと、保存中に古い GET が返る競合を修正した。利用者 ID と更新番号で反映を制限し、HTTP 区間の signpost と安全な request ID 記録を追加した。登録・削除後の GET は現行 snapshot 契約の整合性を保つため継続し、遅延分析上の直列通信として記録した。根拠は `AppCompositionRoot.swift`、`AppFeature.swift`、`BackendAvailabilityAdapter.swift`、`docs/operations/availability-latency.md`。
+- 2026-09-25: 内部TestFlightのReleaseで暇登録が `productionPlaceholder` の固定エラーに終わり、Workerへ到達しないことをコードで確認。ユーザー指示により本人限定の登録・参照・削除をBackendへ接続する要件6とタスク6を追加した。既存の編集・version契約は将来の課題として残し、初回APIのPUTは新規作成と同内容再送だけに限定する。根拠は `AppCompositionRoot.swift`、`HimatchClient.swift`、`docs/architecture/api-contracts.md`。
+
 - 2026-09-20: ユーザー提示の時間・公開ルールを新規仕様へ反映。
 - 2026-09-24: ユーザー依頼（暇登録動線とデザイン品質の改善）に基づき、日／週カレンダー、15分入力、秒を含む境界判定、共通デザイン部品の判断を追加した。要件は変更せず、設計の Presentation 契約とファイル構成を実装に合わせて具体化した。根拠は `apps/ios/Himatch/Availability/` と `apps/ios/HimatchTests/` の実装、および Swift Testing 81件の成功。
 - 2026-09-24: 追加のユーザー指示に基づき、時間軸タップと長押しドラッグを主動線へ変更した。スクロール競合は UIKit 認識器の所有権と0.3秒・10ptの成立条件で分離し、明示確認、無効理由、ハンドル、触覚、VoiceOver代替操作を追加した。根拠は直接選択の実装、補助テスト13件・Swift Testing 105件の成功、Simulator での通常スクロール非誤発火と長押し15分選択の確認。

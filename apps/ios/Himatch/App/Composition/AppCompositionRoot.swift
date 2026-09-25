@@ -9,6 +9,7 @@ enum AppCompositionRoot {
         let profile: ProfileClient
         let deletion: AccountDeletionClient
         let friendship: FriendshipClient
+        let availability: BackendAvailabilityAdapter
 
         do {
             let configuration = try AppConfiguration(bundle: bundle)
@@ -20,19 +21,21 @@ enum AppCompositionRoot {
             profile = BackendProfileAdapter(baseURL: configuration.apiBaseURL).client()
             deletion = BackendAccountDeletionAdapter(baseURL: configuration.apiBaseURL).client()
             friendship = BackendFriendshipAdapter(baseURL: configuration.apiBaseURL).client()
+            availability = BackendAvailabilityAdapter(baseURL: configuration.apiBaseURL)
         } catch {
             let message = error.localizedDescription
             authentication = .unconfigured(message)
             profile = .unconfigured(message)
             deletion = .unconfigured(message)
             friendship = .unconfigured(message)
+            availability = BackendAvailabilityAdapter(baseURL: URL(string: "https://invalid.local/")!)
         }
 
         let business: HimatchClient
 #if DEBUG
         business = HimatchPrototypeScenario().client()
 #else
-        business = .productionPlaceholder
+        business = Self.productionBusiness(authentication: authentication, availability: availability)
 #endif
 
         return Store(initialState: AppFeature.State()) {
@@ -45,5 +48,31 @@ enum AppCompositionRoot {
             $0.deletionStatusTokenStore = KeychainDeletionStatusTokenStore().client()
             $0.himatchClient = business
         }
+    }
+
+    private static func productionBusiness(
+        authentication: AuthenticationClient,
+        availability: BackendAvailabilityAdapter
+    ) -> HimatchClient {
+        var client = HimatchClient.productionPlaceholder
+        client.loadAvailability = {
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            return try await availability.load(accessToken: session.accessToken)
+        }
+        client.addAvailability = { slot in
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            return AppSnapshot.empty(availability: try await availability.put(slot, accessToken: session.accessToken))
+        }
+        client.removeAvailability = { id in
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            return AppSnapshot.empty(availability: try await availability.delete(id: id, accessToken: session.accessToken))
+        }
+        return client
     }
 }

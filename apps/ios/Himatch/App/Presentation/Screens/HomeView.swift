@@ -61,7 +61,7 @@ struct HomeView: View {
     @ViewBuilder
     private func notices(_ snapshot: AppSnapshot) -> some View {
         let pending = snapshot.invitations.count + snapshot.requests.count
-        let showsNotices = pending > 0 || !snapshot.hostings.isEmpty || snapshot.availability.isEmpty
+        let showsNotices = pending > 0 || !snapshot.hostings.isEmpty || snapshot.availability.isEmpty || store.isAvailabilityLoading || store.availabilityLoadError
         if showsNotices {
             VStack(spacing: HimatchSpacing.xs) {
                 if pending > 0 {
@@ -79,7 +79,20 @@ struct HomeView: View {
                         store.send(.showHostingList(true))
                     }
                 }
-                if snapshot.availability.isEmpty {
+                if store.isAvailabilityLoading {
+                    ProgressView("暇の予定を読み込み中…")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(HimatchSpacing.m)
+                        .himatchCard()
+                } else if store.availabilityLoadError {
+                    VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
+                        Text("暇の予定を読み込めませんでした")
+                        Button("再読み込み") { store.send(.reloadAvailability) }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(HimatchSpacing.m)
+                    .himatchCard()
+                } else if snapshot.availability.isEmpty {
                     InfoRow(
                         icon: "clock.badge.plus",
                         title: "まだ暇が登録されていません",

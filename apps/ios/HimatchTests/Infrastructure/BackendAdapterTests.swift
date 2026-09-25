@@ -97,6 +97,41 @@ struct BackendAdapterTests {
         #expect(String(data: body, encoding: .utf8)?.contains(#""expectedVersion":3"#) == true)
     }
 
+    @Test("Availability adapter uses owner slots contract")
+    func availabilityContract() async throws {
+        let recorder = RequestRecorder()
+        let id = UUID(uuidString: "00000000-0000-4000-8000-000000000010")!
+        let slot = #"{"id":"00000000-0000-4000-8000-000000000010","start":"2026-09-26T01:00:00.000Z","end":"2026-09-26T03:00:00.000Z","category":"game","visibility":"privateUntilAccepted"}"#
+        let session = stubSession { request in
+            recorder.append(request)
+            if request.httpMethod == "GET" { return (200, Data(("{\"slots\":[" + slot + "]}").utf8)) }
+            if request.httpMethod == "DELETE" { return (204, Data()) }
+            return (200, Data(("{\"slot\":" + slot + "}").utf8))
+        }
+        let client = BackendAvailabilityAdapter(
+            baseURL: URL(string: "https://api.example.com/")!,
+            session: session
+        )
+        let model = AvailabilitySlot(
+            id: id,
+            interval: TimeIntervalRange(
+                id: id,
+                start: Date(timeIntervalSince1970: 1_790_380_800),
+                end: Date(timeIntervalSince1970: 1_790_388_000)
+            ),
+            category: .game
+        )
+
+        #expect(try await client.load(accessToken: "access").first?.id == id)
+        #expect(try await client.put(model, accessToken: "access").first?.category == .game)
+        #expect(try await client.delete(id: id, accessToken: "access").first?.id == id)
+        #expect(recorder.requests.map(\.httpMethod) == ["GET", "PUT", "GET", "DELETE", "GET"])
+        #expect(recorder.requests.allSatisfy { $0.value(forHTTPHeaderField: "Authorization") == "Bearer access" })
+        let body = try #require(recorder.requests[1].httpBody)
+        #expect(String(data: body, encoding: .utf8)?.contains(#""start":"#) == true)
+        #expect(String(data: body, encoding: .utf8)?.contains(#""category":"game"#) == true)
+    }
+
     @Test("Deletion adapter restores pending status with deletion authorization")
     func deletionStatusContract() async throws {
         let recorder = RequestRecorder()

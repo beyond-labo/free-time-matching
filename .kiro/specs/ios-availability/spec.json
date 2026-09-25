@@ -1,24 +1,24 @@
 {
   "feature_name": "ios-availability",
   "created_at": "2026-09-20T17:45:00+09:00",
-  "updated_at": "2026-09-24T07:14:00+09:00",
+  "updated_at": "2026-09-25T06:20:00+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "design": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "tasks": {
       "generated": true,
-      "approved": true
+      "approved": false
     }
   },
-  "ready_for_implementation": true,
+  "ready_for_implementation": false,
   "freshness": {
     "status": "current",
     "pending": [],
@@ -27,17 +27,17 @@
       ".kiro/specs/ios-app-foundation/design.md": "d1131494fd9f9c0669da193377b01cf5851926956620f99a91a3da9503b0124f",
       ".kiro/specs/ios-app-foundation/requirements.md": "b486f614c357c0a1dfdd43f06b84c4f5707d021c461abd994bb489d9801927fc",
       ".kiro/specs/ios-app-foundation/research.md": "0996bd0987e8c660ae97dccb9005fdce06cc816ba3a12cec9fc56c7d4f3b8e72",
-      ".kiro/specs/ios-availability/brief.md": "981e124762caf1338ea89b48baf35c4b34f1558c1be7bc09d068ff92a3d64b12",
-      ".kiro/specs/ios-availability/design.md": "e841cb30b2689a3f4ea4fce8db09eef7bf875a0d56fa6f1cfed93b4e4cbbcfc2",
-      ".kiro/specs/ios-availability/requirements.md": "69a759c8cbcc8eadb13095c4dc8d2e0aed8b22fb25703355db847ef07e1d99f4",
-      ".kiro/specs/ios-availability/research.md": "52a78aae86ea2b91c4cb4073c577d29a76223fee6007e6a1faa1c80f5835948c",
-      ".kiro/specs/ios-availability/tasks.md": "1dc857dbdb586e2fe851a80a3cba8844ebb678f580c0ffe1eed5bb7af55ea967",
-      ".kiro/steering/roadmap.md": "51eccd341e28a4219ea54c1fd191c33997778e9d60f9e1ebed10f3a263e5907f",
-      "apps/ios/Himatch.xcodeproj/project.pbxproj": "47746412fb4d13329939fb941757f282c7c316820563417c6b5cb0cb233687c4",
-      "docs/architecture/api-contracts.md": "a94c6bedadd8f9eb46ca2d2aaa6648dc43b91d01f7cf745824735a7aff2170c8",
-      "docs/architecture/ios-architecture.md": "792b54ae63ed3fdf2c7db2a3842fadc50093ba089f925f507a4d8aff0e7fe85a",
+      ".kiro/specs/ios-availability/brief.md": "dfa7152cab01f792afd751e2d14eccdca1404e376a699f1def7ca9f2ab93b054",
+      ".kiro/specs/ios-availability/design.md": "99bba74ba2066918bb3250d9b1bb44366ad4366b5f6dcaab5b66e6e591af8a6b",
+      ".kiro/specs/ios-availability/requirements.md": "a6e8d3378fca42577e35b5617d1a89a5bb706a11276ffe43bef01ba8ac29c0c3",
+      ".kiro/specs/ios-availability/research.md": "5e67e402ad8cc844cdfdb0834bbf31de9b268d8a81a49f5fbc0f8e9c1d091f4a",
+      ".kiro/specs/ios-availability/tasks.md": "8ba31082b0468fcf43a0037a40cbbea04455cb2a5659da9626d7a5072ab6a13a",
+      ".kiro/steering/roadmap.md": "1496be2f383dee99a60e1032f6de509eb174cf8afb25caef915dcb780abec1f7",
+      "apps/ios/Himatch.xcodeproj/project.pbxproj": "d54b42c7992e23d75ef15e18192ade3116bc02c153fb467772d20432f1fa6d64",
+      "docs/architecture/api-contracts.md": "3c66ddcb9399e3f27061fd22e132f23b3b33d7268eb85310628069d1fcc6f886",
+      "docs/architecture/ios-architecture.md": "816f3882006f6116798463599069fa39d1b9ed5904ade54065ebf273feb7fc02",
       "docs/architecture/technology.md": "b19a95745c5afb1f3f391f6f13e2c804ee72bdc88c0e505ee694a837b36e87e7",
-      "docs/product/overview.md": "b4bcbae1b735d5007ee3f0b24601b1a016b414c534be0803575c2a0a429265bd"
+      "docs/product/overview.md": "bd08856abc8a9bcb5adbe7df623aacddc4fc78d25cc8d5c55d627b05ca6c4fe6"
     }
   }
 }
