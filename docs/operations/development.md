@@ -44,7 +44,7 @@ pnpm --dir apps/backend build
 
 Backend の現在の実装範囲はhealth、Supabase JWT検証、本人プロフィール、アカウント削除です。
 Terraform環境scaffoldとGitHub Actions CI/CDは実装済みですが、実apply/deployにはR2 bucket、Cloudflare token、GitHub Environmentの外部bootstrapが必要です。
-OpenAPI生成、暇・募集の業務APIは後続仕様です。友達関係APIは固定契約で実装し、最初にstagingで検証します。
+OpenAPI生成は後続仕様です。友達関係、本人暇のOR・減算、募集の送信・受信・回答・取消は固定契約で実装し、最初にstagingで検証します。予定の最終確定とPush配信は後続工程です。
 
 ## Cloudflare Terraform のローカル検証
 

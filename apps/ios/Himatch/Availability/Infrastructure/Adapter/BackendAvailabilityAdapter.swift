@@ -12,6 +12,19 @@ final class BackendAvailabilityAdapter: @unchecked Sendable {
         let visibility: String
     }
 
+    private struct IntervalMutation: Encodable {
+        let start: Date
+        let end: Date
+        let category: String?
+        let visibility: String
+        let operationId: UUID
+    }
+    private struct SubtractInput: Encodable {
+        let start: Date
+        let end: Date
+        let operationId: UUID
+    }
+
     private struct Payload: Decodable {
         let id: UUID
         let start: Date
@@ -51,20 +64,25 @@ final class BackendAvailabilityAdapter: @unchecked Sendable {
     }
 
     func put(_ slot: AvailabilitySlot, accessToken: String) async throws -> [AvailabilitySlot] {
-        var request = try authorizedRequest(
-            path: "v1/availability/\(slot.id.uuidString)",
-            method: "PUT",
-            accessToken: accessToken
-        )
-        request.httpBody = try encoder.encode(Input(
+        var request = try authorizedRequest(path: "v1/availability/intervals:union", method: "POST", accessToken: accessToken)
+        request.httpBody = try encoder.encode(IntervalMutation(
             start: slot.interval.start,
             end: slot.interval.end,
             category: Self.categoryValue(slot.category),
-            visibility: slot.visibility.rawValue
+            visibility: slot.visibility.rawValue,
+            operationId: slot.id
         ))
-        let data = try await responseData(for: request)
-        _ = try decoder.decode(SlotResponse.self, from: data).slot
-        return try await load(accessToken: accessToken)
+        return try decodeSlots(try await responseData(for: request))
+    }
+
+    func subtract(_ interval: TimeIntervalRange, operationID: UUID, accessToken: String) async throws -> [AvailabilitySlot] {
+        var request = try authorizedRequest(path: "v1/availability/intervals:subtract", method: "POST", accessToken: accessToken)
+        request.httpBody = try encoder.encode(SubtractInput(
+            start: interval.start,
+            end: interval.end,
+            operationId: operationID
+        ))
+        return try decodeSlots(try await responseData(for: request))
     }
 
     func delete(id: UUID, accessToken: String) async throws -> [AvailabilitySlot] {

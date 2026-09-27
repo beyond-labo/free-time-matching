@@ -118,7 +118,7 @@ struct HomeView: View {
             .accessibilityHint("次の15分から2時間の暇を登録します。時間はあとで調整できます")
 
             Button {
-                store.send(.showHostingEditor(true))
+                store.send(.homeTimeline(.selectionModeChanged(.hosting)))
             } label: {
                 Text("友達を誘う")
             }
@@ -141,6 +141,14 @@ struct HomeView: View {
                 kind: .availability(slot.visibility)
             )
         }
+        let hostings = snapshot.hostings.filter { $0.status == .recruiting }.map { hosting in
+            HomeScheduleItem(
+                id: .hosting(hosting.id), interval: hosting.candidateRange,
+                title: "募集中", systemImage: "megaphone.fill", kind: .hosting,
+                notes: hosting.participants.map { "\($0.friend.displayName)さんが参加OK" }
+            )
+        }
+#if DEBUG
         let plans = snapshot.plans.map { plan in
             HomeScheduleItem(
                 id: .plan(plan.id),
@@ -154,7 +162,10 @@ struct HomeView: View {
                 ]
             )
         }
-        return availability + plans
+        return availability + hostings + plans
+#else
+        return availability + hostings
+#endif
     }
 }
 
@@ -166,12 +177,10 @@ private struct HostingListView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: HimatchSpacing.s) {
-                    ForEach(store.snapshot?.hostings ?? []) { hosting in
-                        HostingCard(hosting: hosting) {
-                            store.send(.confirmHosting(hosting.id))
-                        }
+                    ForEach(activeHostings) { hosting in
+                        HostingCard(hosting: hosting) { store.send(.cancelHosting(hosting.id)) }
                     }
-                    if store.snapshot?.hostings.isEmpty ?? true {
+                    if activeHostings.isEmpty {
                         EmptyStateView(icon: "megaphone", title: "募集中のお誘いはありません")
                     }
                 }
@@ -185,24 +194,30 @@ private struct HostingListView: View {
             }
         }
     }
+
+    private var activeHostings: [Hosting] {
+        (store.snapshot?.hostings ?? []).filter { $0.status == .recruiting }
+    }
 }
 
 struct HostingCard: View {
     let hosting: Hosting
-    let onConfirm: () -> Void
+    let onCancel: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
             Label(hosting.category?.rawValue ?? "遊びの募集", systemImage: "megaphone.fill")
                 .font(HimatchFont.cardTitle)
-            Text("\(hosting.mode.rawValue)・\(Int(hosting.requiredDuration / 3600))時間")
+            Text("\(hosting.mode.rawValue)・候補時間 \(AvailabilityFormatting.duration(hosting.candidateRange.duration))")
                 .font(HimatchFont.supporting)
                 .foregroundStyle(.secondary)
-            Text("参加OKの回答があると表示されます。配信人数は表示しません。")
+            Text("参加OKした人と選択時間だけを表示します。未回答・辞退は表示しません。")
                 .font(HimatchFont.caption)
                 .foregroundStyle(.secondary)
-            Button("この日時で確定") { onConfirm() }
-                .buttonStyle(.himatchSecondary(tint: HimatchColor.hosting, fullWidth: false))
+            if hosting.status == .recruiting {
+                Button("募集を取り消す", role: .destructive) { onCancel() }
+                    .buttonStyle(.himatchSecondary(tint: HimatchColor.hosting, fullWidth: false))
+            }
         }
         .himatchCard(tint: HimatchColor.hosting)
     }

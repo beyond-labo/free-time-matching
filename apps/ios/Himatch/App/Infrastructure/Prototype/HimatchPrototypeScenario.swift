@@ -15,8 +15,13 @@ actor HimatchPrototypeScenario {
             saveProfile: { try await self.saveProfile(name: $0, icon: $1) },
             addAvailability: { try await self.addAvailability($0) },
             removeAvailability: { await self.removeAvailability($0) },
+            subtractAvailability: { range, _ in await self.subtractAvailability(range) },
+            loadHostings: { let value = await self.snapshot(); return (value.hostings, value.invitations) },
             createHosting: { try await self.createHosting($0) },
-            acceptInvitation: { try await self.acceptInvitation(id: $0, interval: $1) },
+            respondInvitation: { id, status, intervals, _, _ in
+                try await self.respondInvitation(id: id, status: status, intervals: intervals)
+            },
+            cancelHosting: { id, _, _ in try await self.cancelHosting(id: id) },
             confirmHosting: { try await self.confirmHosting(id: $0) },
             acceptRequest: { await self.acceptRequest(id: $0) },
             removeFriend: { await self.removeFriend(id: $0) },
@@ -42,14 +47,50 @@ actor HimatchPrototypeScenario {
     }
 
     private func addAvailability(_ slot: AvailabilitySlot) throws -> AppSnapshot {
-        try AvailabilityPolicy.validate(slot, now: Date().addingTimeInterval(-60), existing: state.availability)
-        state.availability.append(slot)
+        var lower = slot.interval.start
+        var upper = slot.interval.end
+        var included = Set<UUID>()
+        var changed = true
+        while changed {
+            changed = false
+            for existing in state.availability where !included.contains(existing.id) {
+                if existing.interval.start <= upper && lower <= existing.interval.end {
+                    included.insert(existing.id)
+                    lower = min(lower, existing.interval.start)
+                    upper = max(upper, existing.interval.end)
+                    changed = true
+                }
+            }
+        }
+        let remaining = state.availability.filter { !included.contains($0.id) }
+        try AvailabilityPolicy.validate(slot, now: Date().addingTimeInterval(-60), existing: remaining)
+        state.availability = remaining + [AvailabilitySlot(
+            id: slot.id,
+            interval: TimeIntervalRange(id: slot.id, start: lower, end: upper),
+            category: slot.category,
+            visibility: slot.visibility
+        )]
         state.availability.sort { $0.interval.start < $1.interval.start }
         return state
     }
 
     private func removeAvailability(_ id: UUID) -> AppSnapshot {
         state.availability.removeAll { $0.id == id }
+        return state
+    }
+
+    private func subtractAvailability(_ range: TimeIntervalRange) -> AppSnapshot {
+        var result: [AvailabilitySlot] = []
+        for slot in state.availability {
+            guard slot.interval.overlaps(range) else { result.append(slot); continue }
+            if slot.interval.start < range.start {
+                result.append(AvailabilitySlot(interval: TimeIntervalRange(start: slot.interval.start, end: range.start), category: slot.category, visibility: slot.visibility))
+            }
+            if range.end < slot.interval.end {
+                result.append(AvailabilitySlot(interval: TimeIntervalRange(start: range.end, end: slot.interval.end), category: slot.category, visibility: slot.visibility))
+            }
+        }
+        state.availability = result.sorted { $0.interval.start < $1.interval.start }
         return state
     }
 
@@ -61,7 +102,7 @@ actor HimatchPrototypeScenario {
             mode: draft.mode,
             area: draft.mode == .offline ? draft.area : nil,
             category: draft.category,
-            candidateRange: TimeIntervalRange(start: draft.start, end: draft.start.addingTimeInterval(3 * 60 * 60)),
+            candidateRange: TimeIntervalRange(start: draft.start, end: draft.start.addingTimeInterval(draft.duration)),
             requiredDuration: draft.duration,
             friends: draft.friends,
             participants: [],
@@ -77,6 +118,22 @@ actor HimatchPrototypeScenario {
         }
         let me = FriendProfile(id: PrototypeIDs.me, displayName: state.profileName, icon: state.profileIcon)
         state.invitations[index].participants = [Participation(id: UUID(), friend: me, approvedIntervals: [interval])]
+        return state
+    }
+
+    private func respondInvitation(id: UUID, status: HostingInvitation.Status, intervals: [TimeIntervalRange]) throws -> AppSnapshot {
+        guard let index = state.invitations.firstIndex(where: { $0.id == id }) else { throw PrototypeError.notFound }
+        if status == .accepted, let interval = intervals.first {
+            _ = try acceptInvitation(id: id, interval: interval)
+        }
+        state.invitations[index].myInvitation = HostingInvitation(status: status, version: (state.invitations[index].myInvitation?.version ?? 0) + 1, intervals: status == .accepted ? intervals : nil)
+        state.invitations[index].isHostedByMe = false
+        return state
+    }
+
+    private func cancelHosting(id: UUID) throws -> AppSnapshot {
+        guard let index = state.hostings.firstIndex(where: { $0.id == id }) else { throw PrototypeError.notFound }
+        state.hostings[index].status = .cancelled
         return state
     }
 

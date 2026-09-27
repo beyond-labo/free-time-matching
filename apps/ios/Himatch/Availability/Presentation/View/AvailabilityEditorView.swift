@@ -11,6 +11,15 @@ struct AvailabilityEditorView: View {
                     AvailabilitySummaryCard(store: store)
                     timeSection
                     durationSection
+                    if store.hasConflictingMetadata {
+                        Label("重なる暇のカテゴリや公開設定が異なります。下の選択を統合後の全区間に適用します。", systemImage: "exclamationmark.triangle")
+                            .font(HimatchFont.supporting)
+                            .foregroundStyle(HimatchColor.danger)
+                        Button(store.metadataConfirmed ? "この設定で統合を確認済み" : "選択した設定で統合する") {
+                            store.send(.confirmMetadata)
+                        }
+                        .disabled(store.metadataConfirmed || store.isSaving)
+                    }
                     categorySection
                     visibilitySection
                     Label("暇を登録しても、参加OKや予定の確定にはなりません。", systemImage: "info.circle")

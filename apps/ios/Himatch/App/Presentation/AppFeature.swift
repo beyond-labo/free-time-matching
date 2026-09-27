@@ -27,6 +27,7 @@ struct AppFeature {
         var selectedTab: Tab = .home
         var snapshot: AppSnapshot?
         var availabilityRevision = 0
+        var hostingRevision = 0
         var authenticationSession: AuthenticationSession?
         var isDemo = false
         var isLoading = false
@@ -48,9 +49,17 @@ struct AppFeature {
         var hostingMode: HostingMode = .online
         var hostingArea: HostingArea = .discussLater
         var hostingCategory: ActivityCategory?
+        var hostingAvailabilityCategory: ActivityCategory?
+        var hostingAvailabilityVisibility: AvailabilityVisibility = .privateUntilAccepted
+        var hostingAvailabilityConflict = false
+        var hostingAvailabilityMetadataConfirmed = false
         var hostingStart = AvailabilityPolicy.nextQuarterHour(after: Date()).addingTimeInterval(24 * 60 * 60)
+        var hostingEnd = AvailabilityPolicy.nextQuarterHour(after: Date()).addingTimeInterval(25 * 60 * 60)
         var hostingDurationHours = 1
         var selectedFriendIDs: Set<UUID> = []
+        var hostingOperationID: UUID?
+        var hostingResponseOperationIDs: [String: UUID] = [:]
+        var hostingCancelOperationIDs: [String: UUID] = [:]
 
         var inboxPresented = false
         var addFriendPresented = false
@@ -106,6 +115,7 @@ struct AppFeature {
         case authenticationSucceeded(AuthenticationSession)
         case profileLoaded(UserProfile?)
         case reloadAvailability
+        case reloadHostings
         case availabilityLoaded([AvailabilitySlot], revision: Int, userID: String)
         case availabilityLoadFailed(String, revision: Int, userID: String)
         case profileLoadFailed(String)
@@ -124,19 +134,29 @@ struct AppFeature {
         case removeAvailability(UUID)
         case quickSaveSucceeded(AppSnapshot, slotID: UUID)
         case quickSaveFailed(String)
+        case availabilitySubtracted(AppSnapshot)
+        case availabilityDeletionBlocked
+        case hostingLoadCompleted([Hosting], [Hosting], revision: Int, userID: String)
+        case hostingLoadFailed(String, revision: Int, userID: String)
         case showHostingList(Bool)
 
         case showHostingEditor(Bool)
         case hostingModeChanged(HostingMode)
         case hostingAreaChanged(HostingArea)
         case hostingCategoryChanged(ActivityCategory?)
+        case hostingAvailabilityCategoryChanged(ActivityCategory?)
+        case hostingAvailabilityVisibilityChanged(AvailabilityVisibility)
+        case confirmHostingAvailabilityMetadata
         case hostingStartChanged(Date)
         case hostingDurationChanged(Int)
         case toggleFriend(UUID)
+        case inviteFriendFromProfile(UUID)
         case createHostingTapped
         case hostingCreated(AppSnapshot)
-        case confirmHosting(UUID)
-        case acceptInvitation(UUID)
+        case hostingCreationFailed(String)
+        case respondToInvitation(UUID, HostingInvitation.Status, [TimeIntervalRange])
+        case hostingMutationCompleted(UUID, Bool, AppSnapshot)
+        case cancelHosting(UUID)
 
         case showInbox(Bool)
         case showAddFriend(Bool)
@@ -369,7 +389,7 @@ struct AppFeature {
                 state.snapshot?.profileIcon = profile.presetIcon.rawValue
                 state.route = .main
                 guard !state.isDemo, state.authenticationSession != nil else { return .none }
-                return .merge(.send(.reloadFriendships), .send(.reloadAvailability))
+                return .merge(.send(.reloadFriendships), .send(.reloadAvailability), .send(.reloadHostings))
 
             case .reloadAvailability:
                 guard !state.isDemo, let session = state.authenticationSession else { return .none }
@@ -382,6 +402,19 @@ struct AppFeature {
                         await send(.availabilityLoaded(try await client.loadAvailability(), revision: revision, userID: userID))
                     } catch {
                         await send(.availabilityLoadFailed(error.localizedDescription, revision: revision, userID: userID))
+                    }
+                }
+
+            case .reloadHostings:
+                guard !state.isDemo, let session = state.authenticationSession else { return .none }
+                let revision = state.hostingRevision
+                let userID = session.userID
+                return .run { [client] send in
+                    do {
+                        let hosting = try await client.loadHostings()
+                        await send(.hostingLoadCompleted(hosting.hostings, hosting.invitations, revision: revision, userID: userID))
+                    } catch {
+                        await send(.hostingLoadFailed(error.localizedDescription, revision: revision, userID: userID))
                     }
                 }
 
@@ -526,7 +559,34 @@ struct AppFeature {
             case let .homeTimeline(.delegate(.removeAvailability(id))):
                 return .send(.removeAvailability(id))
 
-            case let .homeTimeline(.delegate(.quickSave(range))):
+            case let .homeTimeline(.delegate(.startHosting(range))):
+                state.hostingStart = range.start
+                state.hostingEnd = range.end
+                let existing = availabilityClosure(range, existing: state.snapshot?.availability ?? [])
+                state.hostingAvailabilityCategory = existing.first?.category
+                state.hostingAvailabilityVisibility = existing.first?.visibility ?? .privateUntilAccepted
+                state.hostingAvailabilityMetadataConfirmed = false
+                updateHostingAvailabilityConflict(&state)
+                state.hostingEditorPresented = true
+                state.hostingOperationID = uuid()
+                return .none
+
+            case let .homeTimeline(.delegate(.subtractAvailability(range, operationID))):
+                let interval = TimeIntervalRange(start: range.start, end: range.end)
+                if hasActiveHosting(overlapping: interval, in: state.snapshot?.hostings ?? []) {
+                    state.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+                    return .send(.showInbox(true))
+                }
+                state.homeTimeline.selection?.isSaving = true
+                return .run { send in
+                    do { await send(.availabilitySubtracted(try await client.subtractAvailability(interval, operationID))) }
+                    catch let error as BackendClientError {
+                        if case .response(409, _) = error { await send(.availabilityDeletionBlocked) }
+                        else { await send(.quickSaveFailed(error.localizedDescription)) }
+                    } catch { await send(.quickSaveFailed(error.localizedDescription)) }
+                }
+
+            case let .homeTimeline(.delegate(.quickSave(range, operationID))):
                 guard let selection = state.homeTimeline.selection,
                       selection.range == range,
                       !selection.isSaving
@@ -536,12 +596,21 @@ struct AppFeature {
                     state.homeTimeline.selection?.issue = issue
                     return .none
                 }
-                let slotID = uuid()
+                let slotID = operationID
+                let overlapping = availabilityClosure(range, existing: state.snapshot?.availability ?? [])
+                if let first = overlapping.first,
+                   overlapping.contains(where: { $0.category != first.category || $0.visibility != first.visibility }) {
+                    state.availabilityEditor = AvailabilityEditorFeature.State(
+                        range: range, now: now, calendar: calendar,
+                        existing: state.snapshot?.availability ?? [], slotID: uuid()
+                    )
+                    return .none
+                }
                 let slot = AvailabilitySlot(
                     id: slotID,
                     interval: TimeIntervalRange(id: slotID, start: range.start, end: range.end),
-                    category: nil,
-                    visibility: .privateUntilAccepted
+                    category: overlapping.first?.category,
+                    visibility: overlapping.first?.visibility ?? .privateUntilAccepted
                 )
                 state.homeTimeline.selection?.isSaving = true
                 state.homeTimeline.selection?.saveError = nil
@@ -575,9 +644,14 @@ struct AppFeature {
             case let .quickSaveSucceeded(snapshot, slotID):
                 state.availabilityRevision += 1
                 state.isAvailabilityLoading = false
+                let savedRange = state.homeTimeline.selection?.range
                 applyBusinessSnapshot(snapshot, to: &state)
                 state.homeTimeline.selection = nil
-                state.homeTimeline.lastSavedItem = .availability(slotID)
+                let actualSlotID = snapshot.availability.first(where: {
+                    guard let savedRange else { return false }
+                    return $0.interval.start <= savedRange.start && $0.interval.end >= savedRange.end
+                })?.id ?? slotID
+                state.homeTimeline.lastSavedItem = .availability(actualSlotID)
                 state.homeTimeline.quickSaveSuccessCount += 1
                 return .none
 
@@ -585,6 +659,18 @@ struct AppFeature {
                 state.homeTimeline.selection?.isSaving = false
                 state.homeTimeline.selection?.saveError = message
                 return .none
+
+            case let .availabilitySubtracted(snapshot):
+                state.availabilityRevision += 1
+                applyBusinessSnapshot(snapshot, to: &state)
+                state.homeTimeline.selection = nil
+                return .none
+
+            case .availabilityDeletionBlocked:
+                state.isLoading = false
+                state.homeTimeline.selection?.isSaving = false
+                state.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+                return .send(.showInbox(true))
 
             case let .availabilityEditor(.presented(.delegate(.saved(snapshot)))):
                 state.availabilityRevision += 1
@@ -618,10 +704,18 @@ struct AppFeature {
                 return .none
 
             case let .removeAvailability(id):
+                if let slot = state.snapshot?.availability.first(where: { $0.id == id }),
+                   hasActiveHosting(overlapping: slot.interval, in: state.snapshot?.hostings ?? []) {
+                    state.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+                    return .send(.showInbox(true))
+                }
                 state.isLoading = true
                 return .run { send in
                     do {
                         await send(.snapshotMutationCompleted(try await client.removeAvailability(id)))
+                    } catch let error as BackendClientError {
+                        if case .response(409, _) = error { await send(.availabilityDeletionBlocked) }
+                        else { await send(.operationFailed(error.localizedDescription)) }
                     } catch {
                         await send(.operationFailed(error.localizedDescription))
                     }
@@ -633,80 +727,188 @@ struct AppFeature {
                     state.hostingMode = .online
                     state.hostingArea = .discussLater
                     state.hostingCategory = nil
+                    state.hostingAvailabilityCategory = nil
+                    state.hostingAvailabilityVisibility = .privateUntilAccepted
+                    state.hostingAvailabilityConflict = false
+                    state.hostingAvailabilityMetadataConfirmed = false
                     state.hostingDurationHours = 1
                     state.selectedFriendIDs = []
+                    state.hostingEnd = state.hostingStart.addingTimeInterval(3600)
+                    state.hostingOperationID = uuid()
+                } else {
+                    state.hostingOperationID = nil
                 }
                 return .none
 
             case let .hostingModeChanged(mode):
                 state.hostingMode = mode
+                state.hostingOperationID = uuid()
                 return .none
 
             case let .hostingAreaChanged(area):
                 state.hostingArea = area
+                state.hostingOperationID = uuid()
                 return .none
 
             case let .hostingCategoryChanged(category):
                 state.hostingCategory = category
+                state.hostingOperationID = uuid()
+                return .none
+
+            case let .hostingAvailabilityCategoryChanged(category):
+                state.hostingAvailabilityCategory = category
+                state.hostingOperationID = uuid()
+                state.hostingAvailabilityMetadataConfirmed = false
+                updateHostingAvailabilityConflict(&state)
+                return .none
+
+            case let .hostingAvailabilityVisibilityChanged(visibility):
+                state.hostingAvailabilityVisibility = visibility
+                state.hostingOperationID = uuid()
+                state.hostingAvailabilityMetadataConfirmed = false
+                updateHostingAvailabilityConflict(&state)
+                return .none
+
+            case .confirmHostingAvailabilityMetadata:
+                state.hostingAvailabilityMetadataConfirmed = true
                 return .none
 
             case let .hostingStartChanged(date):
+                let duration = max(state.hostingEnd.timeIntervalSince(state.hostingStart), AvailabilityPolicy.quarterHour)
                 state.hostingStart = date
+                state.hostingEnd = date.addingTimeInterval(duration)
+                state.hostingOperationID = uuid()
+                state.hostingAvailabilityMetadataConfirmed = false
+                updateHostingAvailabilityConflict(&state)
                 return .none
 
             case let .hostingDurationChanged(hours):
-                state.hostingDurationHours = hours
+                let duration = max(hours, 1)
+                state.hostingDurationHours = duration
+                state.hostingEnd = state.hostingStart.addingTimeInterval(TimeInterval(duration * 3600))
+                state.hostingOperationID = uuid()
+                state.hostingAvailabilityMetadataConfirmed = false
+                updateHostingAvailabilityConflict(&state)
                 return .none
 
             case let .toggleFriend(id):
                 if state.selectedFriendIDs.contains(id) { state.selectedFriendIDs.remove(id) }
                 else { state.selectedFriendIDs.insert(id) }
+                state.hostingOperationID = uuid()
+                return .none
+
+            case let .inviteFriendFromProfile(id):
+                state.selectedTab = .home
+                state.homeTimeline.selectionMode = .hosting
+                state.homeTimeline.selection = nil
+                state.selectedFriendIDs = [id]
                 return .none
 
             case .createHostingTapped:
-                guard let snapshot = state.snapshot else { return .none }
+                guard !state.isLoading, !state.selectedFriendIDs.isEmpty, let snapshot = state.snapshot,
+                      !state.hostingAvailabilityConflict || state.hostingAvailabilityMetadataConfirmed
+                else { return .none }
                 let draft = HostingDraft(
                     mode: state.hostingMode,
                     area: state.hostingMode == .offline ? state.hostingArea : nil,
                     category: state.hostingCategory,
                     start: state.hostingStart,
-                    duration: TimeInterval(state.hostingDurationHours) * 60 * 60,
-                    friends: snapshot.friends.filter { state.selectedFriendIDs.contains($0.id) }
+                    duration: state.hostingEnd.timeIntervalSince(state.hostingStart),
+                    friends: snapshot.friends.filter { state.selectedFriendIDs.contains($0.id) },
+                    availabilityCategory: state.hostingAvailabilityCategory,
+                    availabilityVisibility: state.hostingAvailabilityVisibility,
+                    operationID: state.hostingOperationID ?? uuid()
                 )
+                state.hostingOperationID = draft.operationID
                 state.isLoading = true
                 return .run { send in
                     do { await send(.hostingCreated(try await client.createHosting(draft))) }
-                    catch { await send(.operationFailed(error.localizedDescription)) }
+                    catch { await send(.hostingCreationFailed(error.localizedDescription)) }
                 }
 
             case let .hostingCreated(snapshot):
-                state.snapshot = snapshot
+                state.hostingRevision += 1
+                applyBusinessSnapshot(snapshot, to: &state)
+                if let created = snapshot.hostings.first {
+                    state.snapshot?.hostings.removeAll { $0.id == created.id }
+                    state.snapshot?.hostings.append(created)
+                }
                 state.hostingEditorPresented = false
+                state.hostingOperationID = nil
+                state.selectedFriendIDs = []
+                state.homeTimeline.selection = nil
                 state.isLoading = false
                 state.alertMessage = "募集を開始しました。参加OKの回答があると、ここに表示されます。"
                 return .none
 
-            case let .confirmHosting(id):
+            case let .hostingCreationFailed(message):
+                state.isLoading = false
+                state.alertMessage = "募集を送信できませんでした。入力内容は保持しています。\n\(message)"
+                return .none
+
+            case let .respondToInvitation(id, status, intervals):
+                guard let invitation = state.snapshot?.invitations.first(where: { $0.id == id }),
+                      let version = invitation.myInvitation?.version else { return .none }
+                let responseKey = "\(id.uuidString)|\(version)|\(status.rawValue)|" + intervals.map { "\($0.start.timeIntervalSince1970):\($0.end.timeIntervalSince1970)" }.joined(separator: ",")
+                let operationID = state.hostingResponseOperationIDs[responseKey] ?? uuid()
+                state.hostingResponseOperationIDs[responseKey] = operationID
                 state.isLoading = true
                 return .run { send in
-                    do { await send(.snapshotMutationCompleted(try await client.confirmHosting(id))) }
+                    do { await send(.hostingMutationCompleted(id, true, try await client.respondInvitation(id, status, intervals, operationID, version))) }
                     catch { await send(.operationFailed(error.localizedDescription)) }
                 }
 
-            case let .acceptInvitation(id):
-                guard let invitation = state.snapshot?.invitations.first(where: { $0.id == id }) else { return .none }
-                let interval = TimeIntervalRange(
-                    start: invitation.candidateRange.start,
-                    end: invitation.candidateRange.start.addingTimeInterval(invitation.requiredDuration)
-                )
+            case let .cancelHosting(id):
+                guard let hosting = state.snapshot?.hostings.first(where: { $0.id == id }) else { return .none }
+                let cancelKey = "\(id.uuidString)|\(hosting.version)"
+                let operationID = state.hostingCancelOperationIDs[cancelKey] ?? uuid()
+                state.hostingCancelOperationIDs[cancelKey] = operationID
                 state.isLoading = true
                 return .run { send in
-                    do { await send(.snapshotMutationCompleted(try await client.acceptInvitation(id, interval))) }
+                    do { await send(.hostingMutationCompleted(id, false, try await client.cancelHosting(id, operationID, hosting.version))) }
                     catch { await send(.operationFailed(error.localizedDescription)) }
                 }
+
+            case let .hostingMutationCompleted(id, isResponse, snapshot):
+                state.isLoading = false
+                state.hostingRevision += 1
+                if let updated = snapshot.hostings.first ?? snapshot.invitations.first {
+                    if updated.isHostedByMe {
+                        state.snapshot?.hostings.removeAll { $0.id == id }
+                        state.snapshot?.hostings.append(updated)
+                    } else {
+                        state.snapshot?.invitations.removeAll { $0.id == id }
+                        state.snapshot?.invitations.append(updated)
+                    }
+                }
+                if isResponse {
+                    state.hostingResponseOperationIDs = state.hostingResponseOperationIDs.filter { !$0.key.hasPrefix("\(id.uuidString)|") }
+                } else {
+                    state.hostingCancelOperationIDs = state.hostingCancelOperationIDs.filter { !$0.key.hasPrefix("\(id.uuidString)|") }
+                }
+                return .send(.showInbox(true))
 
             case let .showInbox(presented):
                 state.inboxPresented = presented
+                guard presented, !state.isDemo, let session = state.authenticationSession else { return .none }
+                let revision = state.hostingRevision
+                let userID = session.userID
+                return .run { [client] send in
+                    do {
+                        let hosting = try await client.loadHostings()
+                        await send(.hostingLoadCompleted(hosting.hostings, hosting.invitations, revision: revision, userID: userID))
+                    } catch { await send(.hostingLoadFailed(error.localizedDescription, revision: revision, userID: userID)) }
+                }
+
+            case let .hostingLoadCompleted(hostings, invitations, revision, userID):
+                guard revision == state.hostingRevision, state.authenticationSession?.userID == userID else { return .none }
+                state.snapshot?.hostings = hostings
+                state.snapshot?.invitations = invitations
+                return .none
+
+            case let .hostingLoadFailed(message, revision, userID):
+                guard revision == state.hostingRevision, state.authenticationSession?.userID == userID else { return .none }
+                state.alertMessage = message
                 return .none
 
             case let .showAddFriend(presented):
@@ -1156,13 +1358,52 @@ struct AppFeature {
             category: nil,
             visibility: .privateUntilAccepted
         )
+        let nonOverlapping = existing.filter {
+            !$0.interval.overlaps(candidate.interval)
+        }
         do {
-            try AvailabilityPolicy.validate(candidate, now: now, existing: existing, calendar: calendar)
+            try AvailabilityPolicy.validate(candidate, now: now, existing: nonOverlapping, calendar: calendar)
             return nil
         } catch let error as AvailabilityValidationError {
             return error
         } catch {
             return .invalidInterval
+        }
+    }
+
+    private func availabilityClosure(_ range: QuarterRange, existing: [AvailabilitySlot]) -> [AvailabilitySlot] {
+        var lower = range.start
+        var upper = range.end
+        var included = Set<UUID>()
+        var changed = true
+        while changed {
+            changed = false
+            for slot in existing where !included.contains(slot.id) {
+                if slot.interval.start <= upper && lower <= slot.interval.end {
+                    included.insert(slot.id)
+                    lower = min(lower, slot.interval.start)
+                    upper = max(upper, slot.interval.end)
+                    changed = true
+                }
+            }
+        }
+        return existing.filter { included.contains($0.id) }
+    }
+
+    private func updateHostingAvailabilityConflict(_ state: inout State) {
+        let interval = QuarterRange(start: state.hostingStart, end: state.hostingEnd)
+        let connected = availabilityClosure(interval, existing: state.snapshot?.availability ?? [])
+        state.hostingAvailabilityConflict = connected.contains {
+            $0.category != state.hostingAvailabilityCategory
+                || $0.visibility != state.hostingAvailabilityVisibility
+        }
+    }
+
+    private func hasActiveHosting(overlapping interval: TimeIntervalRange, in hostings: [Hosting]) -> Bool {
+        hostings.contains {
+            $0.status == .recruiting
+                && $0.candidateRange.start < interval.end
+                && interval.start < $0.candidateRange.end
         }
     }
 

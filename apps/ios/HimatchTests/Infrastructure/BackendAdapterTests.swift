@@ -106,7 +106,7 @@ struct BackendAdapterTests {
             recorder.append(request)
             if request.httpMethod == "GET" { return (200, Data(("{\"slots\":[" + slot + "]}").utf8)) }
             if request.httpMethod == "DELETE" { return (204, Data()) }
-            return (200, Data(("{\"slot\":" + slot + "}").utf8))
+            return (200, Data(("{\"slots\":[" + slot + "]}").utf8))
         }
         let client = BackendAvailabilityAdapter(
             baseURL: URL(string: "https://api.example.com/")!,
@@ -125,11 +125,110 @@ struct BackendAdapterTests {
         #expect(try await client.load(accessToken: "access").first?.id == id)
         #expect(try await client.put(model, accessToken: "access").first?.category == .game)
         #expect(try await client.delete(id: id, accessToken: "access").first?.id == id)
-        #expect(recorder.requests.map(\.httpMethod) == ["GET", "PUT", "GET", "DELETE", "GET"])
+        #expect(recorder.requests.map(\.httpMethod) == ["GET", "POST", "DELETE", "GET"])
+        #expect(recorder.requests[1].url?.path == "/v1/availability/intervals:union")
         #expect(recorder.requests.allSatisfy { $0.value(forHTTPHeaderField: "Authorization") == "Bearer access" })
         let body = try #require(recorder.requests[1].httpBody)
         #expect(String(data: body, encoding: .utf8)?.contains(#""start":"#) == true)
         #expect(String(data: body, encoding: .utf8)?.contains(#""category":"game"#) == true)
+        #expect(String(data: body, encoding: .utf8)?.contains(#""operationId":"00000000-0000-4000-8000-000000000010"#) == true)
+    }
+
+    @Test("Hosting adapter sends typed friend target and decodes host/invitee projections")
+    func hostingContract() async throws {
+        let recorder = RequestRecorder()
+        let hostingID = UUID(uuidString: "00000000-0000-4000-8000-000000000101")!
+        let friendID = UUID(uuidString: "00000000-0000-4000-8000-000000000102")!
+        let operationID = UUID(uuidString: "00000000-0000-4000-8000-000000000103")!
+        let responseOperationID = UUID(uuidString: "00000000-0000-4000-8000-000000000104")!
+        let cancelOperationID = UUID(uuidString: "00000000-0000-4000-8000-000000000106")!
+        let hostResponse = #"{"hosting":{"id":"00000000-0000-4000-8000-000000000101","start":"2026-09-28T01:00:00.000Z","end":"2026-09-28T03:00:00.000Z","mode":"offline","area":"shibuya","category":"game","status":"open","version":1,"acceptedParticipants":[]}}"#
+        let cancelledResponse = hostResponse
+            .replacingOccurrences(of: "\"status\":\"open\"", with: "\"status\":\"cancelled\"")
+            .replacingOccurrences(of: "\"version\":1", with: "\"version\":2")
+        let inviteeResponse = #"{"hosting":{"id":"00000000-0000-4000-8000-000000000101","start":"2026-09-28T01:00:00.000Z","end":"2026-09-28T03:00:00.000Z","mode":"offline","area":"shibuya","category":"game","status":"open","version":2,"host":{"userId":"00000000-0000-4000-8000-000000000105","nickname":"さき","presetIconKey":"figure.run"},"myInvitation":{"status":"accepted","version":2,"intervals":[{"start":"2026-09-28T01:30:00.000Z","end":"2026-09-28T02:00:00.000Z"}]}}}"#
+        let session = stubSession { request in
+            recorder.append(request)
+            let response: String
+            if request.url?.path.hasSuffix("/response") == true { response = inviteeResponse }
+            else if request.url?.path.hasSuffix("/cancel") == true { response = cancelledResponse }
+            else { response = hostResponse }
+            return (200, Data(response.utf8))
+        }
+        let adapter = BackendHostingAdapter(baseURL: URL(string: "https://api.example.com/")!, session: session)
+        let friend = FriendProfile(id: friendID, displayName: "ゆう", icon: "figure.run")
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let start = formatter.date(from: "2026-09-28T01:00:00.000Z")!
+        let draft = HostingDraft(
+            mode: .offline,
+            area: .shibuya,
+            category: .game,
+            start: start,
+            duration: 7_200,
+            friends: [friend],
+            availabilityCategory: .meal,
+            availabilityVisibility: .shareOnHosting
+        )
+
+        let created = try await adapter.create(draft, operationID: operationID, accessToken: "access")
+        #expect(created.id == hostingID)
+        #expect(created.status == .recruiting)
+        let createRequest = try #require(recorder.requests.first)
+        #expect(createRequest.httpMethod == "POST")
+        #expect(createRequest.url?.path == "/v1/hostings")
+        #expect(createRequest.value(forHTTPHeaderField: "Authorization") == "Bearer access")
+        let createBody = try #require(createRequest.httpBody)
+        let createJSON = try #require(JSONSerialization.jsonObject(with: createBody) as? [String: Any])
+        #expect(createJSON["mode"] as? String == "offline")
+        #expect(createJSON["area"] as? String == "shibuya")
+        #expect(createJSON["operationId"] as? String == operationID.uuidString)
+        let targets = try #require(createJSON["targets"] as? [[String: String]])
+        #expect(targets == [["type": "friend", "id": friendID.uuidString]])
+        let metadata = try #require(createJSON["availabilityMetadata"] as? [String: String])
+        #expect(metadata["category"] == "meal")
+        #expect(metadata["visibility"] == "shareOnHosting")
+
+        let partial = TimeIntervalRange(
+            start: formatter.date(from: "2026-09-28T01:30:00.000Z")!,
+            end: formatter.date(from: "2026-09-28T02:00:00.000Z")!
+        )
+        let answered = try await adapter.respond(
+            id: hostingID,
+            status: .accepted,
+            intervals: [partial],
+            operationID: responseOperationID,
+            expectedVersion: 1,
+            accessToken: "access"
+        )
+        #expect(answered.isHostedByMe == false)
+        #expect(answered.host?.displayName == "さき")
+        #expect(answered.myInvitation?.status == .accepted)
+        let mappedPartial = try #require(answered.myInvitation?.intervals?.first)
+        #expect(mappedPartial.start == partial.start)
+        #expect(mappedPartial.end == partial.end)
+        let responseRequest = try #require(recorder.requests.last)
+        #expect(responseRequest.httpMethod == "PUT")
+        #expect(responseRequest.url?.path == "/v1/hostings/\(hostingID.uuidString)/response")
+        let responseBody = try #require(JSONSerialization.jsonObject(with: responseRequest.httpBody!) as? [String: Any])
+        #expect(responseBody["status"] as? String == "accepted")
+        #expect(responseBody["expectedVersion"] as? Int == 1)
+        #expect(responseBody["operationId"] as? String == responseOperationID.uuidString)
+        #expect((responseBody["intervals"] as? [[String: String]])?.count == 1)
+
+        let cancelled = try await adapter.cancel(
+            id: hostingID,
+            operationID: cancelOperationID,
+            expectedVersion: 1,
+            accessToken: "access"
+        )
+        #expect(cancelled.status == .cancelled)
+        let cancelRequest = try #require(recorder.requests.last)
+        #expect(cancelRequest.httpMethod == "POST")
+        #expect(cancelRequest.url?.path == "/v1/hostings/\(hostingID.uuidString)/cancel")
+        let cancelBody = try #require(JSONSerialization.jsonObject(with: cancelRequest.httpBody!) as? [String: Any])
+        #expect(cancelBody["expectedVersion"] as? Int == 1)
+        #expect(cancelBody["operationId"] as? String == cancelOperationID.uuidString)
     }
 
     @Test("Deletion adapter restores pending status with deletion authorization")

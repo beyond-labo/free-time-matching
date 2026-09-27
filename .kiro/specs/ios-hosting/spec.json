@@ -7,18 +7,18 @@
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "design": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "tasks": {
       "generated": true,
-      "approved": true
+      "approved": false
     }
   },
-  "ready_for_implementation": true,
+  "ready_for_implementation": false,
   "freshness": {
     "status": "current",
     "pending": [],
@@ -27,25 +27,25 @@
       ".kiro/specs/ios-app-foundation/design.md": "d1131494fd9f9c0669da193377b01cf5851926956620f99a91a3da9503b0124f",
       ".kiro/specs/ios-app-foundation/requirements.md": "b486f614c357c0a1dfdd43f06b84c4f5707d021c461abd994bb489d9801927fc",
       ".kiro/specs/ios-app-foundation/research.md": "0996bd0987e8c660ae97dccb9005fdce06cc816ba3a12cec9fc56c7d4f3b8e72",
-      ".kiro/specs/ios-availability/brief.md": "981e124762caf1338ea89b48baf35c4b34f1558c1be7bc09d068ff92a3d64b12",
-      ".kiro/specs/ios-availability/design.md": "f094098e1eee9995fa870669a31b788bf6aeb9d17ce5b83ac32f1fe0bb00b3fd",
-      ".kiro/specs/ios-availability/requirements.md": "a4e374f65d798c33a98d33831e959368ec8e817359be205e02a567c899a58654",
-      ".kiro/specs/ios-availability/research.md": "ed8788616131c597eda2c145b0e8710c8ff51b1923fe5f5adeaa4be4e6398373",
-      ".kiro/specs/ios-friendship/brief.md": "396b8575ce798f9c00c5c08f0f14c2f997dfe982cde3431b9b8d4620b868efee",
-      ".kiro/specs/ios-friendship/design.md": "d2b8956c52592bc846dfadccbbf8b3ddee2136c84ddd3812acdabd3ea974edb4",
-      ".kiro/specs/ios-friendship/requirements.md": "4673d21eaf08ebb4265ccd0a3a6a34da9ee6e0557cc2436c6863920f36f06606",
-      ".kiro/specs/ios-friendship/research.md": "ab7dda5ec3aca263237c1da09063a4a4aba6bf22b3d33793b087cd648589cb88",
-      ".kiro/specs/ios-hosting/brief.md": "c5a9a950ef8c684206041bbcfdc52306e5abd2286241605a2befdca8567a86f8",
-      ".kiro/specs/ios-hosting/design.md": "ea0a7da65ecdc5a448da059eaf02bfb6a0a71d322ef1bd4bb4a0479ba0acdf08",
-      ".kiro/specs/ios-hosting/requirements.md": "5a9bc2fbd5dfeec1dd2728c04c78849ef6f944bb543bc750b242d7d5001fc8ae",
-      ".kiro/specs/ios-hosting/research.md": "cbdbf6c87d63e25c230e7ba42a8e26a2b5072b5d3f8986cf58c0248b589e57a8",
-      ".kiro/specs/ios-hosting/tasks.md": "1e80ad269f59b6c60a70be370a12e993fdf8fc9fcb0e986d8981059bd27bca3f",
-      ".kiro/steering/roadmap.md": "51eccd341e28a4219ea54c1fd191c33997778e9d60f9e1ebed10f3a263e5907f",
+      ".kiro/specs/ios-availability/brief.md": "3b598bc67fa41281f8d53b9555d2fd3f6bf6477d1856bd500fbbc2af59a8dfac",
+      ".kiro/specs/ios-availability/design.md": "e7577de863e042ccdc9d7d75f2209787f088b9ce0362f22f796a732f5bd04c5a",
+      ".kiro/specs/ios-availability/requirements.md": "8c23d66d6be43f8a2a98fca754146c3462d0181ff1148c4eabd65b467f70b252",
+      ".kiro/specs/ios-availability/research.md": "459f9c17bfe91e15f056a96f720a38315a1a65240312b98e5eb7b5a786740317",
+      ".kiro/specs/ios-friendship/brief.md": "ffe24f991684507339fae3ceb44129b684326bd129ad5bb7acd488e228f4562e",
+      ".kiro/specs/ios-friendship/design.md": "0713323cb59e3102d7dae3eaf3cc336e1a4fb8770d00425ba911310228954d04",
+      ".kiro/specs/ios-friendship/requirements.md": "6e16e7a383fcdcc141f9c083a6ec22d70667334a62d33383c724d9c0ed8dbb6d",
+      ".kiro/specs/ios-friendship/research.md": "814a0f6832758220903350683b66e71cbc97e64b68aaaab690af31e7826cf435",
+      ".kiro/specs/ios-hosting/brief.md": "de79e943fbc2852badbc53c9e0cab547c971152c063f6f17707e0a3a82c28557",
+      ".kiro/specs/ios-hosting/design.md": "0fb2fcdffcfa59a8ffb62437dbd71c49402f26b2a7fca32aee3f036496ac92e0",
+      ".kiro/specs/ios-hosting/requirements.md": "76fbb34d60d02f05b2586e2ac812343f7280fb271aea4d6d4be394ff1d9cfc46",
+      ".kiro/specs/ios-hosting/research.md": "6d547d9e43a186d78e9a7a0f4dc37655dae134cb79d9c805d1619e08d823d0aa",
+      ".kiro/specs/ios-hosting/tasks.md": "14e9072e1135b5f89e8bef77d0c3f90d2e3e0b5698fc395ac4f3b2be03d0a207",
+      ".kiro/steering/roadmap.md": "3ccb2d45cbda75a0b78abf67e99622156add159c1c9a06ff22b4ede887489b43",
       "apps/ios/Himatch.xcodeproj/project.pbxproj": "47746412fb4d13329939fb941757f282c7c316820563417c6b5cb0cb233687c4",
-      "docs/architecture/api-contracts.md": "a94c6bedadd8f9eb46ca2d2aaa6648dc43b91d01f7cf745824735a7aff2170c8",
-      "docs/architecture/ios-architecture.md": "792b54ae63ed3fdf2c7db2a3842fadc50093ba089f925f507a4d8aff0e7fe85a",
+      "docs/architecture/api-contracts.md": "1b824d8d67a4eb0fbfe53d7398ac8551620e3da6e9a2f143ad7e58fa1c343c81",
+      "docs/architecture/ios-architecture.md": "a01d29004fd293c92dd2810de5731554737f90bee4c0c2ee6b410ccb8cd7d38c",
       "docs/architecture/technology.md": "b19a95745c5afb1f3f391f6f13e2c804ee72bdc88c0e505ee694a837b36e87e7",
-      "docs/product/overview.md": "b4bcbae1b735d5007ee3f0b24601b1a016b414c534be0803575c2a0a429265bd"
+      "docs/product/overview.md": "f2bda4ca965331d160aa45815a61c01c5cf2d6700eb69bf74c599aadcf529c9b"
     }
   }
 }

@@ -5,6 +5,7 @@ import Foundation
 struct HomeScheduleItem: Equatable, Identifiable, Sendable {
     enum Kind: Equatable, Sendable {
         case availability(AvailabilityVisibility)
+        case hosting
         case plan
     }
 

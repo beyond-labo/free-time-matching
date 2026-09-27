@@ -27,13 +27,13 @@ kiro:
 
 ## Introduction
 
-認証済み利用者が、自分の暇時間だけを UTC の時間区間として保存・取得・削除できる Backend 契約を定義する。認証は Supabase access token、所有者境界は JWT subject と Postgres RLS の両方で確定する。暇時間の登録は参加意思や予定確定を意味しない。
+認証済み利用者が、予定を入れたい自分の暇時間だけを UTC の時間区間として保存・取得・区間削除できる Backend 契約を定義する。重なる登録はORとして統合する。認証は Supabase access token、所有者境界は JWT subject と Postgres RLS の両方で確定する。暇時間の登録は招待への参加意思や予定確定を意味しない。
 
 ## Boundary Context
 
-- **In scope**: `/v1/availability` の認証、入力検証、本人限定 CRUD、作成専用の再送・競合、RLS、削除状態との連動、migration、エラーと観測。
+- **In scope**: `/v1/availability` の認証、入力検証、本人限定 CRUD、本人区間のOR統合・減算と操作IDの再送・競合、募集中削除guard、RLS、削除状態との連動、migration、エラーと観測。
 - **Out of scope**: 友達への直接公開、募集時の共有判定、参加回答、確定予定、Push、管理者検索、非同期アカウント削除。
-- **Adjacent expectations**: iOS は本 API の DTO を内部 `AvailabilitySlot` へ変換する。Hosting は将来、承認済みの別契約を介して共有を要求する。Account deletion は削除受付後に通常アクセスを停止する。
+- **Adjacent expectations**: iOS は本 API の DTO を内部 `AvailabilitySlot` へ変換する。Backend Hosting は本人暇の統合を募集作成と同じ取引で呼び、募集中候補への減算を Availability が拒否する。Account deletion は削除受付後に通常アクセスを停止する。
 
 ## Requirements
 
@@ -74,7 +74,7 @@ kiro:
 2. When 指定 UUID が同じ actor の既存 slot と一致し、入力の全フィールドが同じである, the Backend shall 作成済み DTO を `200` で返し、別行を作成しない
 3. When 指定 UUID が同じ actor の既存 slot と一致するが入力が異なる, the Backend shall `409` と `availability_conflict` を返し、既存 slot を上書きしない
 4. When 別 actor の slot ID を指定した, the Backend shall 所有者の存在を推測させない安全なエラーとして扱い、他 actor の行を更新または削除しない
-5. When 同一 actor の異なる UUID が時間重複する, the Backend shall `409` と `availability_conflict` を返し、Postgres の exclusion constraint を勝者判定の正本とする
+5. When 旧 `PUT /v1/availability/{id}` に同一 actor の異なる UUID が時間重複する, the Backend shall 旧クライアント契約に従い `409` と `availability_conflict` を返す。新しいOR登録は Requirement 8 の専用 endpoint で処理する
 6. The Backend shall 作成処理を「既存を検索してから無条件更新する upsert」として実装せず、同時再送でも create-only の replay/conflict semantics を保持する
 
 ### Requirement 5: 削除とアカウント状態
@@ -103,3 +103,15 @@ kiro:
 1. The Backend shall `/v1/availability` の request、response、status、error code、認証条件を Backend 所有の HTTP schema として管理する
 2. The project shall route test、JWT verifier test、pgTAP/RLS test、typecheck、build の証拠を分けて記録し、未実施の staging/production 接続を成功と報告しない
 3. The project shall 実装済みの最小テストが証明する範囲と、未検証の同時実行、実 Supabase、観測基盤、OpenAPI 生成の残件を仕様・実装計画に明記する
+
+### Requirement 8: 本人暇のOR統合と区間減算
+**Objective:** As a 利用者, I want 重ねて追加した時間を一つの暇として扱い一部だけ消したい, so that 時間軸を2値の予定候補として扱える
+
+#### Acceptance Criteria
+1. When `POST /v1/availability/intervals:union` を呼んだ, the Backend shall 本人の選択区間と重なるまたは接する暇を一つの連続区間へ統合し、リクエストのカテゴリ・公開設定を統合後の区間全体へ適用する
+2. When `POST /v1/availability/intervals:subtract` を呼んだ, the Backend shall 選択区間を重なる本人の全暇から差し引き、残った左右の区間と元の属性を保持する
+3. The Backend shall いずれの操作も UTC 半開区間、15分境界、現在から14日以内、本人 JWT、操作IDで検証し、更新後の本人暇一覧を返す
+4. When 同じ actor と操作IDで再送した, the Backend shall 同じ変更を二度適用せず、安全な最新一覧を返す
+5. The Database shall 所有者単位の処理を直列化し、統合・分割・削除を一つのトランザクションで確定する
+6. If 削除区間が本人の募集中の候補範囲と重なる, the Database shall 暇を一切変更せず削除を拒否する。取消済みまたは期限切れの募集はこの拒否条件に含めない
+7. The Backend shall 旧ID指定のPUT/DELETEのリクエスト・レスポンスを変更せず、既存クライアントの動作を維持する

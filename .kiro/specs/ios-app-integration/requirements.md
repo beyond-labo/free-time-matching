@@ -26,9 +26,9 @@ kiro:
 
 #### Acceptance Criteria
 
-1. The iOS app shall Home に自分の暇と確定予定を所有元 ID 付きの読み取り投影として表示する
+1. The iOS app shall Home に自分の暇を所有元 ID 付きの読み取り投影として表示し、確定予定の投影は DEBUG の Prototype fixture に限定する
 2. The iOS app shall 統合受信箱に友達申請と Hosting 更新を要対応・進行中・終了として表示する
-3. The iOS app shall 友達プロフィールにその友達との確定予定 ID を読み取り投影として提供する
+3. The iOS app shall 友達プロフィールの確定予定 ID 投影を DEBUG の Prototype fixture に限定し、Release で実 Backend の確定予定として表示しない
 4. The iOS app shall 投影からの変更操作を所有機能の Navigation / UseCase へ委譲する
 
 ### Requirement 2: 共有プロトタイプ整合性
@@ -52,10 +52,12 @@ kiro:
 1. The AppCompositionRoot shall 全 Adapter、UseCase、Reducer を生成して Root Store へ注入する
 2. The iOS app shall ホーム・友達・設定と各詳細を所有 ID / delegate action で遷移させる
 3. The repository verification shall filesystem-synchronized app/test group、TCA 1.26.1、Package.resolved、entitlements の存在と整合を検査する
-4. The integration tests shall デモ開始、暇登録、友達確認、募集、回答、確定、通報、ブロック、削除受付の主要経路を fixture で検証する
+4. The integration tests shall DEBUG のデモ開始、暇登録、友達確認、募集、回答、確定、通報、ブロック、削除受付の主要経路を fixture で検証し、確定を Release の提供機能として扱わない
 5. The repository verification shall iOSテストがSwift Testingを使用し、XCTestのimportまたはXCTestCase継承を含まないことを検査する
-6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除・Friendship・本人の暇時間の実Backend Adapterを注入し、DEBUGの明示的なデモだけでPrototype Adapterを使用する
+6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除・Friendship・本人の暇時間・Hostingの実Backend Adapterを注入し、DEBUGの明示的なデモだけでPrototype Adapterを使用する
 7. The integration tests shall セッション復元、未設定プロフィール、ログアウト、削除後アクセス停止を検証する
 8. The AppCompositionRoot shall 最初の内部TestFlightでbuild-time configurationからSTG SupabaseとSTG APIを選択する
 9. The integration tests shall Release構成の暇登録が固定エラーを返さず、認証済み利用者のBackend応答で成功・失敗を判定することを検証する
 10. When 認証済み利用者のプロフィールを取得してメイン画面へ遷移した, the iOS app shall 友達情報と本人の暇時間を並行して読み込み、各領域に読み込み中・失敗・再試行を表示し、片方の完了をもう片方や画面操作の条件にしない
+11. When 認証済み利用者が受信箱を開いた, the iOS app shall 実Backendから本人の募集と招待を取得し、別アカウントで作成された招待へ部分回答できる
+12. The integration tests shall Release構成の募集作成が固定Placeholderエラーを返さず、本人暇登録・招待送信・受信・回答の実Backend契約を検証する

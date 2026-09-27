@@ -4,7 +4,7 @@
 
 SwiftUI と TCA を Presentation に使用し、業務の処理と外部接続を Clean Architecture の依存方向で分離します。
 これはこのプロジェクトの組み合わせ方であり、TCA 公式が要求するディレクトリ構成ではありません。
-TCA 1.26.1による初版UIが存在し、認証・プロフィール・友達関係・削除をsupabase-swiftとBackend APIへ接続します。暇時間は本人限定のBackend APIへ接続します。最初の内部TestFlightはstagingを使用し、募集は引き続きPrototype Adapterで状態遷移を検証します。
+TCA 1.26.1による初版UIが存在し、認証・プロフィール・友達関係・削除をsupabase-swiftとBackend APIへ接続します。本人の暇時間と友達への招待・受信・回答も実Backend APIへ接続します。最初の内部TestFlightはstagingを使用し、予定の最終確定は後続工程です。
 
 起動時は削除受付状態・セッション・プロフィールの順に遷移先を確定する。メイン画面へ進んだ後、友達情報と本人の暇時間は並行取得し、それぞれの画面内に読み込み状態と再試行を表示する。読み取り中に共通の全面オーバーレイは出さない。
 
@@ -104,7 +104,7 @@ Presentation 側の `liveValue` で Infrastructure を直接構築しません�
 実装は選定した TCA と swift-dependencies の版で検証します。
 [依存差し替えの公式資料](https://github.com/pointfreeco/swift-dependencies)
 
-Release CompositionはAuthentication、Profile、Friendship、AccountDeletionへ実Adapterを注入し、構成値不足を認証成功へフォールバックしません。接続環境はbuild-time configurationで選び、最初の内部TestFlightはstagingを使用します。Prototype認証と友達fixtureはDEBUGの明示的なデモ導線だけで利用します。
+Release CompositionはAuthentication、Profile、Friendship、Availability、Hosting、AccountDeletionへ実Adapterを注入し、構成値不足を認証成功へフォールバックしません。接続環境はbuild-time configurationで選び、最初の内部TestFlightはstagingを使用します。Prototype認証と友達fixtureはDEBUGの明示的なデモ導線だけで利用します。
 Apple認証requestにはランダムなraw nonceのSHA-256を設定し、Apple identity tokenとraw nonceをSupabase Authへ渡します。authorization codeはアカウント削除時のfresh再認証でBackendへ送り、生credentialを永続化しません。
 
 Cancellation は Effect と下位の非同期処理へ伝播させ、キャンセルを通信失敗の画面表示へ機械的に変換しません。

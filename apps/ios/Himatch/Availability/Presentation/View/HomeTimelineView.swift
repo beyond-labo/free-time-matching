@@ -70,7 +70,7 @@ struct HomeTimelineView: View {
             new == nil ? nil : .warning
         }
         .onChange(of: store.quickSaveSuccessCount) {
-            AccessibilityNotification.Announcement("参加OKまで非公開で登録しました").post()
+            AccessibilityNotification.Announcement("暇時間を登録しました").post()
         }
         .task { store.send(.refreshWindow) }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
@@ -85,9 +85,12 @@ struct HomeTimelineView: View {
                 set: { if $0 == nil { store.send(.itemDismissed) } }
             )
         ) { item in
-            ScheduleItemDetailView(item: item) { id in
+            ScheduleItemDetailView(item: item, onDelete: { id in
                 store.send(.deleteAvailabilityConfirmed(id))
-            }
+            }, onInvite: { interval in
+                store.send(.itemDismissed)
+                store.send(.delegate(.startHosting(QuarterRange(start: interval.start, end: interval.end))))
+            })
             .presentationDetents([.medium, .large])
         }
     }
@@ -256,10 +259,12 @@ private struct DayChip: View {
 private struct ScheduleItemDetailView: View {
     let item: HomeScheduleItem
     let onDelete: (UUID) -> Void
+    let onInvite: (TimeIntervalRange) -> Void
 
     @Environment(\.calendar) private var calendar
     @Environment(\.dismiss) private var dismiss
     @State private var deleteConfirmationPresented = false
+    @State private var inviteSelection: AvailabilityInviteSelection?
 
     var body: some View {
         NavigationStack {
@@ -282,9 +287,17 @@ private struct ScheduleItemDetailView: View {
                     case let .availability(visibility):
                         InfoRow(icon: visibility.systemImage, title: visibility.title, detail: visibility.explanation)
                             .himatchCard()
-                        Text("暇を削除しても、関連する回答や確定した予定は削除されません。")
+                        Text("暇時間は、あなたが予定を入れたい時間として登録しています。")
                             .font(HimatchFont.supporting)
                             .foregroundStyle(.secondary)
+                        inviteRangeControls
+                        Button {
+                            let range = inviteSelection?.range ?? QuarterRange(start: item.interval.start, end: item.interval.end)
+                            onInvite(TimeIntervalRange(start: range.start, end: range.end))
+                        } label: {
+                            Label("この時間に友達を誘う", systemImage: "megaphone")
+                        }
+                        .buttonStyle(.himatchSecondary(tint: HimatchColor.hosting, fullWidth: false))
                         if case let .availability(id) = item.id {
                             Button(role: .destructive) {
                                 deleteConfirmationPresented = true
@@ -306,12 +319,20 @@ private struct ScheduleItemDetailView: View {
                                 .font(HimatchFont.supporting)
                                 .foregroundStyle(.secondary)
                         }
+                    case .hosting:
+                        StatusBadge(title: "募集中", systemImage: "megaphone.fill", tint: HimatchColor.hosting)
+                        ForEach(item.notes, id: \.self) { note in
+                            Text(note).font(HimatchFont.supporting).foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .padding(HimatchSpacing.m)
             }
-            .navigationTitle(isAvailability ? "暇の詳細" : "予定の詳細")
+            .navigationTitle(detailTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                inviteSelection = AvailabilityInviteSelection(availability: item.interval)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("閉じる") { dismiss() }
@@ -320,10 +341,55 @@ private struct ScheduleItemDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private var inviteRangeControls: some View {
+        if case .availability = item.kind, let inviteSelection {
+            VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
+                Text("招待する時間（15分単位）").font(HimatchFont.supporting)
+                HStack {
+                    Text("開始 \(AvailabilityFormatting.time(inviteSelection.range.start, calendar: calendar))")
+                    Spacer()
+                    Button("−") {
+                        self.inviteSelection?.stepStart(by: -1)
+                    }
+                    .disabled(!inviteSelection.canStepStart(by: -1))
+                    .accessibilityLabel("招待時間の開始を15分早める")
+                    Button("＋") {
+                        self.inviteSelection?.stepStart(by: 1)
+                    }
+                    .disabled(!inviteSelection.canStepStart(by: 1))
+                    .accessibilityLabel("招待時間の開始を15分遅らせる")
+                }
+                HStack {
+                    Text("終了 \(AvailabilityFormatting.time(inviteSelection.range.end, calendar: calendar))")
+                    Spacer()
+                    Button("−") {
+                        self.inviteSelection?.stepEnd(by: -1)
+                    }
+                    .disabled(!inviteSelection.canStepEnd(by: -1))
+                    .accessibilityLabel("招待時間の終了を15分早める")
+                    Button("＋") {
+                        self.inviteSelection?.stepEnd(by: 1)
+                    }
+                    .disabled(!inviteSelection.canStepEnd(by: 1))
+                    .accessibilityLabel("招待時間の終了を15分遅らせる")
+                }
+            }
+            .font(HimatchFont.supporting)
+            .himatchCard()
+        }
+    }
+
     private var isAvailability: Bool {
         if case .availability = item.kind { return true }
         return false
     }
 
-    private var tint: Color { isAvailability ? HimatchColor.availability : HimatchColor.plan }
+    private var detailTitle: String {
+        switch item.kind { case .availability: "暇の詳細"; case .hosting: "募集中の時間"; case .plan: "予定の詳細" }
+    }
+
+    private var tint: Color {
+        switch item.kind { case .availability: HimatchColor.availability; case .hosting: HimatchColor.hosting; case .plan: HimatchColor.plan }
+    }
 }

@@ -9,6 +9,37 @@ struct QuarterRange: Equatable, Hashable, Sendable {
     var duration: TimeInterval { end.timeIntervalSince(start) }
 }
 
+/// Adjustable invitation window that must stay within one registered availability interval.
+struct AvailabilityInviteSelection: Equatable, Sendable {
+    let availability: TimeIntervalRange
+    private(set) var range: QuarterRange
+
+    init(availability: TimeIntervalRange) {
+        self.availability = availability
+        self.range = QuarterRange(start: availability.start, end: availability.end)
+    }
+
+    func canStepStart(by quarters: Int) -> Bool {
+        let proposed = range.start.addingTimeInterval(Double(quarters) * AvailabilityPolicy.quarterHour)
+        return proposed >= availability.start && proposed <= range.end.addingTimeInterval(-AvailabilityPolicy.quarterHour)
+    }
+
+    func canStepEnd(by quarters: Int) -> Bool {
+        let proposed = range.end.addingTimeInterval(Double(quarters) * AvailabilityPolicy.quarterHour)
+        return proposed <= availability.end && proposed >= range.start.addingTimeInterval(AvailabilityPolicy.quarterHour)
+    }
+
+    mutating func stepStart(by quarters: Int) {
+        guard canStepStart(by: quarters) else { return }
+        range.start = range.start.addingTimeInterval(Double(quarters) * AvailabilityPolicy.quarterHour)
+    }
+
+    mutating func stepEnd(by quarters: Int) {
+        guard canStepEnd(by: quarters) else { return }
+        range.end = range.end.addingTimeInterval(Double(quarters) * AvailabilityPolicy.quarterHour)
+    }
+}
+
 enum SelectionEdge: Hashable, Sendable {
     case start
     case end

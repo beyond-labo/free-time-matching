@@ -1,7 +1,7 @@
 ---
 type: Roadmap
 title: "iOS 初版ロードマップ"
-description: "非公開の暇時間から友達との予定確定までを実現する iOS 初版の仕様分割"
+description: "暇時間のOR管理と友達への実招待・回答までの仕様分割"
 status: stable
 sources:
   - id: user-ios-first-release
@@ -18,7 +18,7 @@ kiro:
 
 ## Overview
 
-暇時間を常時公開せず、招待への参加承認を境界として友達との予定を成立させる iOS 初版を実装する。
+暇時間を本人が予定を入れたい時間として扱い、重複登録はOR統合する。選択した承認済み友達全員へ実Backendで招待し、相手が部分時間を回答できる。予定の最終確定とPush配信は後続工程とする。
 Backend のうちユーザーアカウント管理、友達関係、本人限定の暇時間を実 Backend 境界とし、Sign in with Apple、Supabaseセッション、プロフィール、期限付き招待コード、友達申請・承認・解除、暇枠の登録・参照・削除、アカウント削除を接続する。初回接続先は STG とし、production 環境への deploy は別工程とする。募集・Push・運営処理は引き続きプロトタイプ境界とし、実環境の複数ユーザー整合性を実装済みとは扱わない。
 
 ## Approach Decision
@@ -30,11 +30,11 @@ Backend のうちユーザーアカウント管理、友達関係、本人限定
 
 - iOS 17 以降の SwiftUI / TCA クライアント。
 - Sign in with Apple のクライアント境界、初期説明、プロフィール、ホーム・友達・設定の3タブ。
-- 暇時間、友達、募集・招待・回答・確定予定、安全機能、設定・退会の画面とクライアント状態遷移。
-- 認証・プロフィール・友達関係・本人の暇時間・削除の実 Backend Adapter（初回 STG）と、それ以外の主要フローを再現するDEBUG専用Prototype Adapter。
+- 暇時間のOR統合・区間削除、友達、募集・招待・部分回答、安全機能、設定・退会の画面とクライアント状態遷移。
+- 認証・プロフィール・友達関係・本人の暇・募集・回答・取消の実 Backend Adapter（初回 STG）と、未接続の主要フローを再現するDEBUG専用Prototype Adapter。
 - Apple の UGC、アカウント削除、Push 非必須、プライバシー申告に関する iOS 側の導線と説明。
 
-対象外は暇の友達向け共有・募集照合、募集のBackend API・DB、友達ブロック・通報のBackend保存、APNs 配信、運営管理画面、非同期削除Queue、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
+対象外は友達の暇の直接共有・募集照合、予定の最終確定、Push・APNs配信、友達ブロック・通報のBackend保存、運営管理画面、非同期削除Queue、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
 
 ## Constraints
 
@@ -50,22 +50,24 @@ Backend のうちユーザーアカウント管理、友達関係、本人限定
 - `ios-app-foundation`: 起動、認証境界、プロフィール、3タブ、共通状態、Composition の入口。
 - `ios-availability`: 自分の暇時間とホーム時間軸。公開ポリシーの選択を所有する。
 - `ios-friendship`: 招待コード、友達申請、友達一覧、プロフィール操作を所有する。
-- `ios-hosting`: 募集、照合結果のクライアント表現、招待回答、確定予定、受信箱を所有する。
+- `ios-hosting`: 時間軸からの募集、招待・部分回答・取消、受信箱を所有する。
 - `ios-safety-settings`: 通報、ブロック、通知設定、規約導線、退会のユーザー操作を所有する。
 - `ios-app-integration`: Home・Inbox の読み取り投影、共有 Prototype scenario、Root Composition、全機能統合検証を所有する。
 - `backend-user-account-management`: Supabase JWT検証、本人プロフィール、Apple再認証を伴うアカウント削除を所有する。
 - `backend-friendship`: 招待コード、申請、相互承認、友達一覧・解除の実 API・DB を所有し、最初に STG で検証する。
-- `backend-availability`: 本人の暇枠を JWT・RLS 境界で登録・参照・削除する API・DB を所有し、最初に STG で検証する。
+- `backend-availability`: 本人限定の暇枠登録・参照・区間OR・減算を所有する。
+- `backend-hosting`: 承認済み友達への実招待・受信・部分回答・取消と認可を所有する。
 
 ## Specs (dependency order)
 
 - [x] ios-app-foundation -- 起動説明、Sign in with Apple 境界、プロフィール、3タブと共通画面状態。Dependencies: none
 - [x] backend-user-account-management -- Supabase認証済み本人、プロフィール、アカウント削除。Dependencies: ios-app-foundation, ios-safety-settings
 - [x] backend-friendship -- 期限付き招待コード、申請、相互承認、友達一覧・解除。Dependencies: backend-user-account-management
-- [x] backend-availability -- 本人限定の暇枠登録・参照・削除。Dependencies: backend-user-account-management, ios-availability
+- [x] backend-availability -- 本人限定の暇枠登録・参照・区間OR・減算。Dependencies: backend-user-account-management, ios-availability
+- [x] backend-hosting -- 承認済み友達への実招待・受信・部分回答・取消。Dependencies: backend-availability, backend-friendship
 - [x] ios-availability -- ホーム時間軸と暇時間の登録・編集・公開設定。Dependencies: ios-app-foundation
 - [x] ios-friendship -- 友達一覧、招待コード、申請、プロフィールのSTG実接続。Dependencies: ios-app-foundation, backend-friendship
-- [x] ios-hosting -- 募集作成、招待、回答、確定予定、進行中一覧。Dependencies: ios-app-foundation, ios-availability, ios-friendship
+- [x] ios-hosting -- 時間軸からの募集、実招待、部分回答、取消。Dependencies: ios-app-foundation, ios-availability, ios-friendship, backend-hosting
 - [x] ios-safety-settings -- 通報、ブロック、通知設定、サポート、アカウント削除。Dependencies: ios-app-foundation, ios-friendship, ios-hosting
 - [x] ios-app-integration -- 横断読み取り投影、Prototype scenario、Root Composition、統合検証。Dependencies: ios-app-foundation, ios-availability, ios-friendship, ios-hosting, ios-safety-settings
 

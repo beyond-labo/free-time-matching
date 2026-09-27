@@ -69,7 +69,7 @@ struct TimelineSelectionOverlay: View {
 
     private var summaryBadge: some View {
         HStack(spacing: HimatchSpacing.xxs) {
-            Image(systemName: isValid ? "lock.fill" : "exclamationmark.triangle.fill")
+            Image(systemName: isValid ? modeSymbol : "exclamationmark.triangle.fill")
             Text(summaryText)
                 .monospacedDigit()
         }
@@ -125,7 +125,19 @@ struct TimelineSelectionOverlay: View {
     private var accessibilityValue: String {
         if let issue = selection.issue { return "登録できません。\(issue.message)" }
         if selection.isSaving { return "登録中" }
-        return "参加OKまで非公開で登録できます。上下にスワイプで終了を15分ずつ調整"
+        switch store.selectionMode {
+        case .availability: return "暇を登録できます。上下にスワイプで終了を15分ずつ調整"
+        case .hosting: return "この時間に友達を誘えます。上下にスワイプで終了を15分ずつ調整"
+        case .deleting: return "選択区間の暇を削除できます。上下にスワイプで終了を15分ずつ調整"
+        }
+    }
+
+    private var modeSymbol: String {
+        switch store.selectionMode {
+        case .availability: return "lock.fill"
+        case .hosting: return "megaphone"
+        case .deleting: return "minus.circle"
+        }
     }
 }
 
@@ -141,12 +153,17 @@ struct SelectionConfirmationBar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
+            HStack(spacing: HimatchSpacing.xxs) {
+                modeButton(.availability, title: "暇を登録")
+                modeButton(.hosting, title: "友達を誘う")
+                modeButton(.deleting, title: "暇を削除")
+            }
             HStack(alignment: .top, spacing: HimatchSpacing.s) {
                 VStack(alignment: .leading, spacing: HimatchSpacing.xxs) {
                     Text(rangeText)
                         .font(.headline.monospacedDigit())
                         .fixedSize(horizontal: false, vertical: true)
-                    Label("参加OKまで非公開", systemImage: "lock.fill")
+                    Label(modeDescription, systemImage: modeSymbol)
                         .font(HimatchFont.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -167,7 +184,7 @@ struct SelectionConfirmationBar: View {
                     .foregroundStyle(HimatchColor.danger)
                     .fixedSize(horizontal: false, vertical: true)
             } else if let error = selection.saveError {
-                Label("登録できませんでした。\(error)", systemImage: "exclamationmark.triangle.fill")
+                Label("\(failurePrefix)\(error)", systemImage: "exclamationmark.triangle.fill")
                     .font(HimatchFont.supporting)
                     .foregroundStyle(HimatchColor.danger)
                     .fixedSize(horizontal: false, vertical: true)
@@ -177,17 +194,17 @@ struct SelectionConfirmationBar: View {
                     if selection.isSaving {
                         ProgressView().tint(.white)
                     } else {
-                        Label(selection.saveError == nil ? "非公開で登録" : "もう一度登録", systemImage: "lock.fill")
+                        Label(primaryTitle, systemImage: modeSymbol)
                     }
                 }
                 .buttonStyle(.himatchPrimary)
-                .disabled(!selection.canQuickSave)
-                .accessibilityHint(selection.issue.map(\.message) ?? "カテゴリ未選択・参加OKまで非公開で登録します")
+                .disabled(!canPerform)
+                .accessibilityHint(selection.issue?.message ?? modeDescription)
 
                 Button("詳細を調整") { store.send(.adjustDetailsTapped) }
                     .buttonStyle(.himatchSecondary(tint: HimatchColor.accent, fullWidth: false))
                     .frame(minHeight: HimatchMetrics.primaryButtonHeight)
-                    .disabled(selection.isSaving)
+                    .disabled(selection.isSaving || store.selectionMode != .availability)
                     .accessibilityHint("選んだ時間のまま、カテゴリや公開設定を編集します")
             }
         }
@@ -200,6 +217,56 @@ struct SelectionConfirmationBar: View {
     private var rangeText: String {
         let range = TimeIntervalRange(start: selection.range.start, end: selection.range.end)
         return "\(AvailabilityFormatting.range(range, calendar: calendar))・\(AvailabilityFormatting.duration(selection.range.duration))"
+    }
+
+    private var canPerform: Bool {
+        switch store.selectionMode {
+        case .availability, .hosting: selection.issue == nil && !selection.isSaving
+        case .deleting: !selection.isSaving
+        }
+    }
+
+    private var modeDescription: String {
+        switch store.selectionMode {
+        case .availability: "暇時間として登録します。予定確定とは別の意思表示です。"
+        case .hosting: "選んだ友達全員をこの時間に誘います。"
+        case .deleting: "この区間を登録済みの暇から取り除きます。"
+        }
+    }
+
+    private var primaryTitle: String {
+        switch store.selectionMode {
+        case .availability: selection.saveError == nil ? "暇を登録" : "もう一度登録"
+        case .hosting: "友達を選んで誘う"
+        case .deleting: "選択区間を削除"
+        }
+    }
+
+    private var failurePrefix: String {
+        switch store.selectionMode {
+        case .availability: "登録できませんでした。"
+        case .hosting: "招待を準備できませんでした。"
+        case .deleting: "削除できませんでした。"
+        }
+    }
+
+    private var modeSymbol: String {
+        switch store.selectionMode {
+        case .availability: "lock.fill"
+        case .hosting: "megaphone"
+        case .deleting: "minus.circle"
+        }
+    }
+
+    private func modeButton(_ mode: HomeTimelineFeature.State.SelectionMode, title: String) -> some View {
+        Button(title) { store.send(.selectionModeChanged(mode)) }
+            .font(.caption.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: HimatchMetrics.minTapTarget)
+            .background(store.selectionMode == mode ? HimatchColor.tint(HimatchColor.accent) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: HimatchRadius.control))
+            .buttonStyle(.plain)
+            .disabled(selection.isSaving)
+            .accessibilityAddTraits(store.selectionMode == mode ? .isSelected : [])
     }
 }
 

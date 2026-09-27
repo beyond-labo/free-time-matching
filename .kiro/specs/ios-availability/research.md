@@ -19,7 +19,7 @@ kiro:
 
 - 絶対時刻の半開区間と表示タイムゾーンを分ける。
 - 15分の離散マスを永続表現にせず、区間を Domain の正本とする。
-- ホームは本人の暇と確定予定だけを集約し、友達の暇を導入しない。
+- ホームは本人の暇と募集中候補を区別して表示する。確定予定は Prototype の旧表示に限り、Release で実 Backend から提供される状態とは扱わない。友達の暇は導入しない。
 
 ## Design Decisions
 
@@ -40,7 +40,7 @@ kiro:
 
 ### Decision: 時間軸の直接選択を主動線、編集シートを補助動線にする
 
-- **Selected Approach**: 日表示のタップは15分を画面内で選択し、0.3秒の長押し成立後のドラッグは連続範囲を選択する。長押し前に10ptを超えて動けば選択を成立させずスクロールへ譲る。選択後は明示的な「非公開で登録」で保存でき、カテゴリや公開設定を変える場合だけ「詳細を調整」からシートを開く。編集シートでは±15分、長さプリセット、`UIDatePicker.minuteInterval = 15` を引き続き提供する。
+- **Selected Approach**: 日表示のタップは15分を画面内で選択し、0.3秒の長押し成立後のドラッグは連続範囲を選択する。長押し前に10ptを超えて動けば選択を成立させずスクロールへ譲る。同じ選択を「暇を登録」「友達を誘う」「暇を削除」の各モードで使い、属性衝突がある登録は統合後の値を確認する。編集シートでは±15分、長さプリセット、`UIDatePicker.minuteInterval = 15` を引き続き提供する。
 - **Rationale**: 15分だけの登録はタップと確認、任意範囲は長押しドラッグと確認の2操作で完結する。選択と保存を分離することで、直接操作の速さを得ながら誤登録を防ぐ。初回の SwiftUI `LongPressGesture.sequenced(before: DragGesture())` は子認識器が縦スクロールを遮ったため、透明な `UIViewRepresentable` 上の tap / long-press と祖先 `UIScrollView` の pan が「先に成立した認識器」を所有する構成へ置き換えた。
 - **Fool-proof / Affordance**: 未選択時に操作ヒントを出し、長押し成立と15分境界の変更を触覚で返す。選択範囲、時刻、長さ、ハンドルを表示し、無効状態は色だけでなく破線・アイコン・理由で示す。VoiceOver には15分選択、端点調整、登録、詳細、取消の代替操作を提供する。
 - **Superseded**: 2026-09-24 初回実装の「長押しドラッグを採用しない」という判断は、最小操作という製品価値を満たさないため本決定で置き換える。
@@ -58,10 +58,13 @@ kiro:
 ## Risks & Mitigations
 
 - DST / timezone 変更 — Calendar で表示だけ変換し、保存は絶対時刻。
-- Home が Hosting データを所有する — 確定予定は表示用契約だけ受け取り、ライフサイクルは Hosting に残す。
+- Home が Hosting データを所有する — 募集中候補は Hosting から表示用投影だけを受け取り、ライフサイクルは Hosting に残す。
 
 ## Change Log
 
+- 2026-09-27: 時間軸の3操作を同じ選択範囲から開始し、募集中候補を投影する実装に合わせて現行判断を修正した。旧確定予定の表示は Prototype 限定の履歴として扱う。
+- 2026-09-27: OR統合時の属性明示確認、選択区間の減算、募集中削除時の取消導線を実装し、iPhone Simulator の Swift Testing 121件で関連 Reducer と区間選択を確認した。STG反映後の複数アカウント操作は未実施。
+- 2026-09-26: ユーザーが暇のOR統合、選択範囲の複数枠からの減算、募集中候補の削除禁止とその範囲だけの状態表示を確定した。旧「重複は保存不可・既存枠へ誘導」は現行要件では失効し、区間APIと時間軸操作へ置き換える。根拠は会話の計画承認と `ios-availability` 要件2.4、4.5–4.6、7。
 - 2026-09-25: 初回起動時の友達・暇 GET を各領域の読み込み状態で表示する方針に同期した。暇 GET の失敗時は空枠と区別して再試行を表示し、全面オーバーレイを使わない。根拠は `AppFeature.swift`、`HomeView.swift`、`ios-app-integration` 要件3.10。
 - 2026-09-25: Release の本人枠 GET が失敗した場合の空一覧への握り潰しと、保存中に古い GET が返る競合を修正した。利用者 ID と更新番号で反映を制限し、HTTP 区間の signpost と安全な request ID 記録を追加した。登録・削除後の GET は現行 snapshot 契約の整合性を保つため継続し、遅延分析上の直列通信として記録した。根拠は `AppCompositionRoot.swift`、`AppFeature.swift`、`BackendAvailabilityAdapter.swift`、`docs/operations/availability-latency.md`。
 - 2026-09-25: 内部TestFlightのReleaseで暇登録が `productionPlaceholder` の固定エラーに終わり、Workerへ到達しないことをコードで確認。ユーザー指示により本人限定の登録・参照・削除をBackendへ接続する要件6とタスク6を追加した。既存の編集・version契約は将来の課題として残し、初回APIのPUTは新規作成と同内容再送だけに限定する。根拠は `AppCompositionRoot.swift`、`HimatchClient.swift`、`docs/architecture/api-contracts.md`。

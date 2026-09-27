@@ -16,7 +16,7 @@ kiro:
 # Implementation Plan
 
 - [ ] 1. 暇時間の Domain と Application 境界を実装する
-  - 半開区間、15分境界、14日範囲、重複、公開設定、Repository / UseCase が純粋テストで検証できる。
+  - 半開区間、15分境界、14日範囲、OR統合・区間差、公開設定、Repository / UseCase が純粋テストで検証できる。
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.3, 5.1, 5.2_
   - _Boundary: AvailabilityDomain, AvailabilityApplication_
 
@@ -35,7 +35,7 @@ kiro:
 
 - [ ] 4. 暇時間編集シートを実装する
   - 初期2時間、15分調整、カテゴリ、公開説明、編集・削除、関連 Hosting 導線を操作できる。
-  - 進捗（2026-09-23）: 新規登録の初期2時間、開始・終了の15分調整とプリセット、日付またぎ、検証理由の表示、重複時の既存枠への誘導、カテゴリ、非公開初期値と公開説明、削除、保存失敗時の入力保持を実装し、TestStore で確認した。既存枠の編集保存と関連 Hosting 導線は未実装。
+  - 2026-09-23 の実装は重複時の既存枠への誘導とID単位削除であり、今回のOR統合・区間削除・Hosting導線の検証には使えない。既存枠の内容編集保存も別途未実装。
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 4.3, 4.4_
   - _Boundary: AvailabilityEditorFeature_
   - _Depends: 2, 3_
@@ -52,3 +52,9 @@ kiro:
   - _Requirements: 1.4, 4.4, 6.1, 6.2, 6.3, 6.4_
   - _Boundary: BackendAvailabilityAdapter, AppCompositionRoot, AppFeature_
   - _Depends: 3, backend-availability_
+
+- [x] 7. 時間軸のOR登録・削除モード・募集中投影を実装する
+  - 重複・接続した暇を属性確認後に統合し、選択範囲を複数枠から差し引く。募集中候補に触れた削除は止めて取消へ案内し、失敗時は選択を保持する。
+  - _Requirements: 2.4, 2.7, 4.5, 4.6, 6.5, 7.1, 7.2, 7.3_
+  - _Boundary: AvailabilityPolicy, HomeTimelineFeature, BackendAvailabilityAdapter_
+  - _Depends: 3, 4, backend-availability, ios-hosting_

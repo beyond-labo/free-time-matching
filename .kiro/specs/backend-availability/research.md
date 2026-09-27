@@ -40,8 +40,16 @@ kiro:
   - `/v1/availability` は既に Hono、JWT verifier、Supabase REST adapter、migration まで実装されている。
   - route は 15 分単位・現在から 14 日以内・カテゴリ・visibility を検証し、DB は RLS、cascade、exclusion constraint、active account policy を持つ。
   - Worker test は authenticated route、invalid category、同一 payload replay、異なる payload conflict、delete を in-memory で確認するが、実 Supabase の同時作成と staging/production 接続は未証明である。
+  - 今回追加した本人区間 RPC は OR 統合・減算を所有者単位で直列化し、操作IDによる再送を保存する。募集中の候補に触れる減算と旧ID削除はDBで拒否する。ローカル DB と Worker の検証は通過したが、STGの実通信は未実施である。
 
 ## Research Log
+
+### 本人区間のOR統合と減算
+
+- **Context**: 重複・接する暇を一つにし、選択区間を複数枠から差し引く。
+- **Sources Consulted**: `202609260001_availability_interval_ops.sql`, `202609260002_hosting.sql`, `supabase/tests/availability.test.sql`, `supabase/tests/hosting.test.sql`, `AvailabilityRoutes.ts`
+- **Findings**: 所有者の advisory lock を取得し、連鎖する隣接区間を一つに統合する。減算は残る左右へ元属性を引き継ぐ。操作IDと payload の組を保存して同内容再送を返す。募集中の重複は delete trigger が拒否し、募集作成時の統合だけ private な取引中 guard を通す。旧テーブル CHECK が小数秒を丸め得るため、既存行を変更せず書込 trigger に正確な15分境界判定を加えた。
+- **Implications**: 旧ID API は互換維持し、新規操作は区間APIを使う。ローカルの同一 owner 同時登録でロック待ち後に1区間へ統合されることを確認した。STG/本番の接続は別途確認する。
 
 ### 現行 Worker 境界
 
@@ -84,7 +92,7 @@ kiro:
 |---|---|---|---|---|
 | Existing Port/Adapter | Hono → Port → Supabase REST → RLS | 現行構造、差し替えテスト、secret 分離 | adapter の競合窓を別途検証 | 採用 |
 | service-role repository | Worker が service role で DB を操作 | server 側で一括制御 | RLS を迂回し privacy 境界を弱める | 不採用 |
-| DB RPC only | 全 mutation を SQL function へ集約 | 原子的な replay/conflict を実装しやすい | API adapter、migration、RPC 契約が増える | 将来の同時性改善候補 |
+| DB RPC for interval operations | OR統合と減算を SQL function へ集約 | 区間操作の再送・同時性・募集guardを一取引で扱える | 旧ID API は引き続き別経路 | 今回の区間APIに採用 |
 
 ## Design Decisions
 
@@ -120,6 +128,8 @@ kiro:
 - [Cloudflare Workers Hono](https://hono.dev/) — 現行 HTTP runtime の一次資料（2026-09-25確認対象、未取得）
 
 ## Change Log
+
+- 2026-09-26: ユーザーが暇を2値の時間集合としてOR統合し、選択した時間を複数枠から差し引く操作を確定した。旧ID指定PUTの重複拒否は互換用に残し、新しい本人区間APIで原子的な統合・減算を行う。募集中候補との削除競合はDBで拒否する。根拠は会話の計画承認と Requirement 8。
 
 ### 2026-09-25
 

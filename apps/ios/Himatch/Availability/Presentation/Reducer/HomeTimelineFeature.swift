@@ -8,6 +8,7 @@ import Foundation
 struct HomeTimelineFeature {
     @ObservableState
     struct State: Equatable {
+        enum SelectionMode: Equatable, Sendable { case availability, hosting, deleting }
         enum Mode: String, CaseIterable, Equatable, Sendable {
             case day
             case week
@@ -22,12 +23,14 @@ struct HomeTimelineFeature {
 
         enum Item: Hashable, Sendable {
             case availability(UUID)
+            case hosting(UUID)
             case plan(UUID)
         }
 
         /// Range picked on the day grid, plus what the parent learned about it.
         struct Selection: Equatable, Sendable {
             var range: QuarterRange
+            var operationID: UUID = UUID()
             /// Why the range cannot be registered. Written by the parent from `AvailabilityPolicy.validate`.
             var issue: AvailabilityValidationError?
             var isSaving = false
@@ -38,6 +41,11 @@ struct HomeTimelineFeature {
             }
 
             var canQuickSave: Bool { issue == nil && !isSaving }
+
+            static func == (lhs: Self, rhs: Self) -> Bool {
+                lhs.range == rhs.range && lhs.issue == rhs.issue
+                    && lhs.isSaving == rhs.isSaving && lhs.saveError == rhs.saveError
+            }
         }
 
         static let dayCount = 14
@@ -49,6 +57,7 @@ struct HomeTimelineFeature {
         var selectedDayIndex = 0
         var selectedItem: Item?
         var selection: Selection?
+        var selectionMode: SelectionMode = .availability
         /// The slot registered by the last quick save, marked on the grid until the next selection.
         var lastSavedItem: Item?
         var quickSaveSuccessCount = 0
@@ -115,6 +124,7 @@ struct HomeTimelineFeature {
         case selectionEdgeStepped(SelectionEdge, quarters: Int)
         case selectionEdgeDragged(SelectionEdge, to: Date)
         case selectionCleared
+        case selectionModeChanged(State.SelectionMode)
         case quickSaveTapped
         case adjustDetailsTapped
         case newAvailabilityTapped
@@ -128,10 +138,12 @@ struct HomeTimelineFeature {
             /// Open the editor from "now" (the persistent button; `anchor` nil = next quarter hour).
             case startAvailability(anchor: Date?)
             /// Register the selection as a private slot without category, after parent validation.
-            case quickSave(QuarterRange)
+            case quickSave(QuarterRange, UUID)
             /// Open the editor with exactly this range.
             case adjustSelection(QuarterRange)
             case removeAvailability(UUID)
+            case startHosting(QuarterRange)
+            case subtractAvailability(QuarterRange, UUID)
         }
     }
 
@@ -211,9 +223,23 @@ struct HomeTimelineFeature {
                 state.selection = nil
                 return .none
 
+            case let .selectionModeChanged(mode):
+                state.selectionMode = mode
+                return .none
+
             case .quickSaveTapped:
-                guard let selection = state.selection, selection.canQuickSave else { return .none }
-                return .send(.delegate(.quickSave(selection.range)))
+                guard let selection = state.selection else { return .none }
+                switch state.selectionMode {
+                case .availability:
+                    guard selection.canQuickSave else { return .none }
+                    return .send(.delegate(.quickSave(selection.range, selection.operationID)))
+                case .hosting:
+                    guard selection.issue == nil, !selection.isSaving else { return .none }
+                    return .send(.delegate(.startHosting(selection.range)))
+                case .deleting:
+                    guard !selection.isSaving else { return .none }
+                    return .send(.delegate(.subtractAvailability(selection.range, selection.operationID)))
+                }
 
             case .adjustDetailsTapped:
                 guard let selection = state.selection else { return .none }
@@ -243,8 +269,8 @@ struct HomeTimelineFeature {
     private static func isBlockedWhileSaving(_ action: Action) -> Bool {
         switch action {
         case .modeChanged, .daySelected, .previousTapped, .nextTapped, .todayTapped,
-             .quarterTapped, .rangeSelectionChanged, .selectionEdgeStepped, .selectionEdgeDragged,
-             .selectionCleared, .quickSaveTapped, .adjustDetailsTapped, .newAvailabilityTapped:
+            .quarterTapped, .rangeSelectionChanged, .selectionEdgeStepped, .selectionEdgeDragged,
+             .selectionCleared, .selectionModeChanged, .quickSaveTapped, .adjustDetailsTapped, .newAvailabilityTapped:
             return true
         case .refreshWindow, .itemTapped, .itemDismissed, .deleteAvailabilityConfirmed, .delegate:
             return false

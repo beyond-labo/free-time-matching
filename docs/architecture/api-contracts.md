@@ -57,7 +57,7 @@ GitHub Releases、オブジェクトストレージ等の配布先と保存期�
 初版の業務 API は `/v1` を接頭辞とする方針です。
 `/v1/me`は本人プロフィールのGET/PUT、`/v1/account-deletion-requests`はApple再認証を伴う削除受付・状況照会として定義します。
 保護APIは`Authorization: Bearer <Supabase access token>`を要求し、本人IDはJWTのsubjectからのみ確定します。
-友達の`/v1/friendships`と関連 mutation、本人限定の`/v1/availability`は下記の固定契約として実装済みです。募集の`/v1/hostings`は引き続き候補であり未定義です。
+友達の`/v1/friendships`と関連 mutation、本人限定の`/v1/availability`、実招待の`/v1/hostings`は下記の固定契約とする。
 古い iOS が残る前提で、既存クライアントの動作を維持します。
 
 フィールド削除、名前変更、意味変更、リクエストの必須項目追加、レスポンス形状変更は互換性を検討します。
@@ -106,12 +106,29 @@ Producer と Consumer で TypeScript interface を直接共有しません。
 - `GET /v1/availability` → `{ slots: AvailabilitySlot[] }`。本人の枠だけを開始順で返す。
 - `PUT /v1/availability/{id}` ← `{ start, end, category, visibility }` → `{ slot: AvailabilitySlot }`。`id` はクライアント生成UUIDで、新規作成と同じ入力の再送に限る。既存IDへ異なる入力を送ると `409 availability_conflict`。編集APIとしては使わない。
 - `DELETE /v1/availability/{id}` → `204`。存在しない本人枠の削除は冪等に成功する。他人の枠はRLSにより変更されない。
+- `POST /v1/availability/intervals:union` ← `{ start, end, category, visibility, operationId }` → `{ slots: AvailabilitySlot[] }`。重なる・接する本人暇を連鎖的に統合し、指定属性を統合後の全区間に適用する。
+- `POST /v1/availability/intervals:subtract` ← `{ start, end, operationId }` → `{ slots: AvailabilitySlot[] }`。重なる全枠から選択区間を差し引き、残りに元の属性を引き継ぐ。募集中候補に触れる場合は一件も変更せず競合を返す。
 
-`AvailabilitySlot` は `{ id, start, end, category, visibility }`。日時はISO 8601で送信し、サーバーはUTCへ正規化する。時刻は絶対時刻で15分境界、開始が未来、終了は開始より後かつ現在から14日以内。カテゴリは `game`、`meal`、`call`、`work`、`null`。共有設定は `privateUntilAccepted` または `shareOnHosting` で、未指定時は前者。同一利用者の時間重複はDBでも禁止する。`shareOnHosting` を保存しても、現段階では友達向け共有と募集照合を実行しない。
+`AvailabilitySlot` は `{ id, start, end, category, visibility }`。日時はISO 8601で送信し、サーバーはUTCへ正規化する。時刻は絶対時刻で15分境界、開始が未来、終了は開始より後かつ現在から14日以内。カテゴリは `game`、`meal`、`call`、`work`、`null`。共有設定は `privateUntilAccepted` または `shareOnHosting` で、未指定時は前者。DBには所有者ごとに重ならない暇区間を保存する。`shareOnHosting` を保存しても、今回の招待配信条件や友達向け暇公開には使わない。
 
 Availability の応答は `Cache-Control: private, no-store` とし、端末や中間キャッシュへ本人の暇を残さない。
 
-初回実装は登録・参照・削除に限定する。既存枠の内容編集には version と条件付き更新・削除の公開契約を別途追加し、端末間の競合と再送を検証する。
+旧ID指定APIの内容編集には version と条件付き更新・削除の公開契約を別途追加する。新しい区間OR/減算は選択範囲の操作であり、既存IDの内容編集とは区別する。
+
+## 友達招待契約
+
+すべての endpoint は Bearer access token を要求する。招待先は `{ type: "friend", id: UUID }` の配列とし、将来のグループは別 variant を追加してサーバーで個人へ展開する。現時点では承認済み友達のみ受け、選んだ全員へ暇登録の有無に関係なく送る。
+
+- `POST /v1/hostings` ← `{ start, end, mode, area?, category?, targets, availabilityMetadata: { category, visibility }, operationId }`。本人暇のOR登録と募集・全招待を同一トランザクションで保存し、募集ID、状態、候補区間、versionを返す。回答期限は候補開始時刻 `start` と一致する。
+- `GET /v1/hostings` と `GET /v1/hostings/{id}` → 本人の役割に応じた募集・招待投影。ホストには参加OKした相手と回答区間だけを返し、未回答・辞退・既読・友達の暇登録状況を返さない。
+- `PUT /v1/hostings/{id}/response` ← `{ status: "accepted"|"declined", intervals, operationId, expectedVersion }`。参加OKには候補内の15分単位の一部区間を要求し、回答だけでは受信者の一般的な暇を増やさない。
+- `POST /v1/hostings/{id}/cancel` ← `{ operationId, expectedVersion }`。ホスト本人だけが募集中を取り消す。暇は残り、取消後は候補範囲の区間削除が可能になる。
+
+募集投影の共通項目は `{ id, start, end, mode, area, category, status, version }`。公開 `status` は `open`、`cancelled`、`expired`。ホスト向けは `acceptedParticipants: [{ userId, nickname, presetIconKey, intervals }]` のみを追加し、受信者向けは `host: { userId, nickname, presetIconKey }` と本人の `myInvitation: { status, version, intervals }` のみを追加する。`status` の DB 内部表現は公開しない。
+
+募集の構造不正は `400 invalid_hosting`、DB 制約違反は `400 hosting_invalid`、本人に見せられない募集や招待先は `404 hosting_unavailable`、操作IDの異なる内容への再利用・version競合は `409 hosting_conflict` とする。区間削除が募集中に触れる場合は `409 availability_hosting_conflict` を返す。区間 API の構造不正は `400 invalid_availability`、DB 制約違反は `400 availability_unavailable`、操作IDの異なる内容への再利用は `409 availability_conflict` とする。
+
+候補開始が回答期限。各操作は actor と操作IDで冪等にし、既存状態の変更は version で競合を検出する。第三者には募集の存在を明かさず、全応答は `Cache-Control: private, no-store` とする。予定の最終確定とPush配信はこの契約に含めない。
 
 ## 現在の配置
 

@@ -33,7 +33,7 @@ kiro:
   - _Depends: 2_
 
 - [ ] 4. プロフィールと隣接機能 delegate を実装する
-  - 誘う、通報、ブロック、解除、確定予定への導線と権限喪失を検証できる。
+  - 誘う操作が友達IDを渡して時間軸で招待先を選択済みにすること、通報、ブロック、解除、権限喪失を検証できる。確定予定への導線は DEBUG Prototype fixture 専用で、Release には出さない。
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
   - _Boundary: FriendProfileFeature_
   - _Depends: 2, 3_

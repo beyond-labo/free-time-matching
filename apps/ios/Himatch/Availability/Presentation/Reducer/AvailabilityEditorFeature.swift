@@ -21,6 +21,7 @@ struct AvailabilityEditorFeature {
         var existing: [AvailabilitySlot]
         var isSaving = false
         var saveError: String?
+        var metadataConfirmed = false
 
         /// Opens the editor from a timeline position (or from "now" when `anchor` is nil).
         /// Returns nil when no 15-minute slot fits in the 14-day window.
@@ -67,7 +68,30 @@ struct AvailabilityEditorFeature {
         var latestEnd: Date { AvailabilityPolicy.latestEnd(now: now, calendar: calendar) }
         var duration: TimeInterval { end.timeIntervalSince(start) }
         var isOvernight: Bool { AvailabilityFormatting.isOvernight(start: start, end: end, calendar: calendar) }
+        var hasConflictingMetadata: Bool {
+            let slots = metadataClosure + [slot]
+            guard let first = slots.first else { return false }
+            return slots.contains { $0.category != first.category || $0.visibility != first.visibility }
+        }
 
+        private var metadataClosure: [AvailabilitySlot] {
+            var lower = start
+            var upper = end
+            var included = Set<UUID>()
+            var changed = true
+            while changed {
+                changed = false
+                for item in existing where !included.contains(item.id) {
+                    if item.interval.start <= upper && lower <= item.interval.end {
+                        included.insert(item.id)
+                        lower = min(lower, item.interval.start)
+                        upper = max(upper, item.interval.end)
+                        changed = true
+                    }
+                }
+            }
+            return existing.filter { included.contains($0.id) }
+        }
         var slot: AvailabilitySlot {
             AvailabilitySlot(
                 id: slotID,
@@ -79,7 +103,8 @@ struct AvailabilityEditorFeature {
 
         var issue: AvailabilityValidationError? {
             do {
-                try AvailabilityPolicy.validate(slot, now: now, existing: existing, calendar: calendar)
+                let nonOverlapping = existing.filter { !$0.interval.overlaps(slot.interval) }
+                try AvailabilityPolicy.validate(slot, now: now, existing: nonOverlapping, calendar: calendar)
                 return nil
             } catch let error as AvailabilityValidationError {
                 return error
@@ -88,7 +113,7 @@ struct AvailabilityEditorFeature {
             }
         }
 
-        var canSave: Bool { issue == nil && !isSaving }
+        var canSave: Bool { issue == nil && !isSaving && (!hasConflictingMetadata || metadataConfirmed) }
 
         var canMoveStartEarlier: Bool { start.addingTimeInterval(-AvailabilityPolicy.quarterHour) >= earliestStart }
         var canMoveStartLater: Bool { start.addingTimeInterval(2 * AvailabilityPolicy.quarterHour) <= latestEnd }
@@ -126,6 +151,7 @@ struct AvailabilityEditorFeature {
         case snapToEarliestTapped
         case categoryChanged(ActivityCategory?)
         case visibilityChanged(AvailabilityVisibility)
+        case confirmMetadata
         case conflictTapped(UUID)
         case saveTapped
         case saveSucceeded(AppSnapshot)
@@ -157,40 +183,52 @@ struct AvailabilityEditorFeature {
             case let .startStepped(quarters):
                 state.moveStart(to: state.start.addingTimeInterval(Double(quarters) * AvailabilityPolicy.quarterHour))
                 state.saveError = nil
+                state.metadataConfirmed = false
                 return .none
 
             case let .endStepped(quarters):
                 state.moveEnd(to: state.end.addingTimeInterval(Double(quarters) * AvailabilityPolicy.quarterHour))
                 state.saveError = nil
+                state.metadataConfirmed = false
                 return .none
 
             case let .startPicked(date):
                 state.moveStart(to: date)
                 state.saveError = nil
+                state.metadataConfirmed = false
                 return .none
 
             case let .endPicked(date):
                 state.moveEnd(to: date)
                 state.saveError = nil
+                state.metadataConfirmed = false
                 return .none
 
             case let .presetTapped(minutes):
                 guard minutes > 0, state.isPresetAvailable(minutes: minutes) else { return .none }
                 state.end = state.start.addingTimeInterval(TimeInterval(minutes * 60))
                 state.saveError = nil
+                state.metadataConfirmed = false
                 return .none
 
             case .snapToEarliestTapped:
                 state.moveStart(to: state.earliestStart)
                 state.saveError = nil
+                state.metadataConfirmed = false
                 return .none
 
             case let .categoryChanged(category):
                 state.category = category
+                state.metadataConfirmed = false
                 return .none
 
             case let .visibilityChanged(visibility):
                 state.visibility = visibility
+                state.metadataConfirmed = false
+                return .none
+
+            case .confirmMetadata:
+                state.metadataConfirmed = true
                 return .none
 
             case let .conflictTapped(id):

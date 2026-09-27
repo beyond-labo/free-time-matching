@@ -1,0 +1,73 @@
+{
+  "feature_name": "backend-hosting",
+  "created_at": "2026-09-26T16:10:00+09:00",
+  "updated_at": "2026-09-26T16:10:00+09:00",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": false
+    },
+    "design": {
+      "generated": true,
+      "approved": false
+    },
+    "tasks": {
+      "generated": true,
+      "approved": false
+    }
+  },
+  "ready_for_implementation": false,
+  "freshness": {
+    "status": "current",
+    "pending": [],
+    "checked_inputs": {
+      ".kiro/specs/backend-availability/design.md": "9b856f74ef564e7381cc19f91ac942c5c4325ba4700ccdf956dfb08bddcf5c05",
+      ".kiro/specs/backend-availability/requirements.md": "eca95625c2f0bdd169f425a3e85b0b9ed89c726e48225595dd45e770cf20c233",
+      ".kiro/specs/backend-availability/research.md": "28c57acd862649c44d49a091a99eccb95a6016562ac015f49d99478e78c34510",
+      ".kiro/specs/backend-friendship/brief.md": "43788c478118da59519171e32fb9f8ee3dd14221427f4413e05d06e7f841a7f7",
+      ".kiro/specs/backend-friendship/design.md": "368361887e5ee4ec14d6c663f61cd20f8f6dddc83466af2831498aa96a3ebaee",
+      ".kiro/specs/backend-friendship/requirements.md": "5b73eba06fd376b16800deaac9e7540117bbda46958f5613084c5e58525d65b1",
+      ".kiro/specs/backend-friendship/research.md": "7275c83d391a983e79c4231b8919e2e28a771bc404293db3f629fa046c82d67d",
+      ".kiro/specs/backend-hosting/brief.md": "f2663505a7e37bfb29553fc4ceb64123dcecb22f35f63e126eeb5b37f0cf9edb",
+      ".kiro/specs/backend-hosting/design.md": "4763c88622b96ec34c7785a96f29d8f0d42a969dc3aff92a20e1795a205c23b0",
+      ".kiro/specs/backend-hosting/requirements.md": "8df3cf57b4ed06e397eac1dcdb3fb95c1d000291cbd200ab94189e873bc206ae",
+      ".kiro/specs/backend-hosting/research.md": "fd57a390272ad8518f854ac1880a425023bb908d9fcf442285f1ac81fe8f6225",
+      ".kiro/specs/backend-hosting/tasks.md": "912a2c8c2e4669899a312e815451e157c3ad4ec66ff9c02c2210cf5cbcc89bca",
+      ".kiro/specs/backend-user-account-management/brief.md": "4edb2a5fadf8d2789acaa552f3c879bf1c38ff74ed522f9c081ceee90fddf8ad",
+      ".kiro/specs/backend-user-account-management/design.md": "d5bfaf4b0c8823abb5252ba0178c5afb71592044fbdd131f92f29da549a2e033",
+      ".kiro/specs/backend-user-account-management/requirements.md": "67155122f8d078e85ba9f2181bda0ca26720fd0b5e5ab8c991b01859d4c84a8a",
+      ".kiro/specs/backend-user-account-management/research.md": "08851e0573b4a887752322dde511dc5e9c8f26db652a4dae98ba2177969a706a",
+      ".kiro/specs/ios-app-foundation/brief.md": "df5f1326e2a2e0ab86c80285b0aecb1512abd918dd1bd4d2619d6d726f6cd1b6",
+      ".kiro/specs/ios-app-foundation/requirements.md": "b486f614c357c0a1dfdd43f06b84c4f5707d021c461abd994bb489d9801927fc",
+      ".kiro/specs/ios-availability/brief.md": "3b598bc67fa41281f8d53b9555d2fd3f6bf6477d1856bd500fbbc2af59a8dfac",
+      ".kiro/specs/ios-availability/requirements.md": "8c23d66d6be43f8a2a98fca754146c3462d0181ff1148c4eabd65b467f70b252",
+      ".kiro/specs/ios-friendship/brief.md": "ffe24f991684507339fae3ceb44129b684326bd129ad5bb7acd488e228f4562e",
+      ".kiro/specs/ios-friendship/requirements.md": "6e16e7a383fcdcc141f9c083a6ec22d70667334a62d33383c724d9c0ed8dbb6d",
+      ".kiro/specs/ios-hosting/brief.md": "de79e943fbc2852badbc53c9e0cab547c971152c063f6f17707e0a3a82c28557",
+      ".kiro/specs/ios-hosting/requirements.md": "76fbb34d60d02f05b2586e2ac812343f7280fb271aea4d6d4be394ff1d9cfc46",
+      ".kiro/specs/ios-safety-settings/brief.md": "f3087a3c0ca27323f26414cb587af044f8dfcc0d1d26a2ee6b6f81fde843fdc9",
+      ".kiro/specs/ios-safety-settings/requirements.md": "976a865b5bd2c72837aa25718944f944d76e2e55e82fefbdf12e2cea17f152eb",
+      ".kiro/steering/roadmap.md": "3ccb2d45cbda75a0b78abf67e99622156add159c1c9a06ff22b4ede887489b43",
+      "apps/backend/src/Auth/Infrastructure/Adapter/SupabaseJwtVerifier.ts": "4215e99da006c965016feb918c9f0ef03b5670067b6916c703cb302b84424b5c",
+      "apps/backend/src/Availability/Application/Port/AvailabilityRepository.ts": "c028f46d87a989a7974afc5e564b35747cffb35be75c3a17018f6f03a349bb58",
+      "apps/backend/src/Availability/Domain/Model/Availability.ts": "33b90e8576e2d5d53a07bfb7b9ec89a8f3284d6f7003ef9e6ecf969cec2b28ba",
+      "apps/backend/src/Availability/Infrastructure/Repository/SupabaseAvailabilityRepository.ts": "1444c95855a73c297aae77b403bc60df1d6b4a0ee8cdb0441e319469d0fc7c55",
+      "apps/backend/src/Availability/Presentation/AvailabilityRoutes.ts": "c11536299973c8cf88d22fb9c2fc38ddcbf6696eb0e3c1a85f56ed404eef800c",
+      "apps/backend/src/Composition/createApp.ts": "83b6f606cc609902394d0159bf579d60ac61303a60033204f874530e4afe1fcd",
+      "apps/backend/src/Shared/Presentation/ApiError.ts": "a9e84d95f67af4ebb29b53f6ca7be3af1e946f22bc782a6681379deef083858f",
+      "apps/backend/test/availability.worker.test.ts": "975471cee5c387846778a61e2a77f88ae16ab0fb6082da20c0062c4da1c03bed",
+      "apps/ios/Himatch/App/Composition/AppCompositionRoot.swift": "7484f5c8611d265b4594ba868bdaa96c01db18e884f42aa3a9d9b1bf95b3389f",
+      "apps/ios/Himatch/App/Domain/HimatchClient.swift": "eb217cc287339770c6e5ed739f0e95aba17d2abccc77e8a805b850b90c747482",
+      "apps/ios/Himatch/App/Presentation/AppView.swift": "89061115dbfc6aa4c0072dcb03ac6a76233a86533383ed5b1bb67ae1e21211a4",
+      "docs/architecture/api-contracts.md": "1b824d8d67a4eb0fbfe53d7398ac8551620e3da6e9a2f143ad7e58fa1c343c81",
+      "docs/architecture/ios-architecture.md": "a01d29004fd293c92dd2810de5731554737f90bee4c0c2ee6b410ccb8cd7d38c",
+      "docs/architecture/technology.md": "b19a95745c5afb1f3f391f6f13e2c804ee72bdc88c0e505ee694a837b36e87e7",
+      "docs/product/overview.md": "f2bda4ca965331d160aa45815a61c01c5cf2d6700eb69bf74c599aadcf529c9b",
+      "supabase/migrations/202609210001_auth_profile_and_deletion.sql": "e14e80ff831e426c7a43f66b1c96d4396072a19d315000b7af11e38775a46fe6",
+      "supabase/migrations/202609250001_availability.sql": "b0f6a567a9e5393558a73f70175405ec44f3501e686b07af841695f2faea0128",
+      "supabase/tests/availability.test.sql": "644591e9d0d6fafe1d00a224cb9dd8c5e5035f25391062f1fa70052a134210e2"
+    }
+  }
+}

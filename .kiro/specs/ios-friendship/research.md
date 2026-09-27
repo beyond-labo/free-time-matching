@@ -35,10 +35,14 @@ kiro:
 ## Risks & Mitigations
 
 - Prototype がコードの安全性を証明してしまう — UI 契約のみと文書化し、Backend 要件を別途必要とする。
-- Release が空の `Production Placeholder` を使いコード未発行になる — `backend-friendship` の実 Backend Adapter を注入し、最初は STG、DEBUG デモだけ Prototype を使う。
-- 解除で予定が消える — Hosting への delegate を表示して別操作にする。
+- Release の旧 `Production Placeholder` へ戻る — 既存の実 Backend Adapter 注入を維持し、最初は STG、DEBUG デモだけ Prototype を使う。
+- 解除で予定が消えると誤認する — DEBUG Prototype では別操作のデモを維持し、Release では確定予定が未接続のため表示しない。
 
 ## Change Log
+
+- 2026-09-27: Brief の旧「Release は空の Placeholder」という着手前説明を、既存の Backend Friendship Adapter 接続と今回のプロフィール招待導線に合わせて更新した。
+- 2026-09-27: 予定の最終確定が今回対象外で実 Backend にないため、友達プロフィールの確定予定投影・離脱導線を DEBUG Prototype fixture に限定した。根拠は承認済み計画と ios-app-integration の現行契約。
+- 2026-09-26: 友達プロフィールからの「誘う」は、友達IDを渡すだけでなく、Hosting の共通時間軸でその友達を選択済みにする契約へ更新した。根拠はユーザーが承認した招待UI計画。
 
 - 2026-09-20: ユーザーの友達追加・管理・公開制約を新規仕様へ反映。
 - 2026-09-23: `BackendFriendshipAdapter`、友達状態の Reducer/UI、旧 session 応答の破棄、手動再読込、権限喪失時の詳細画面 dismiss を実装。署名検査 13 件と Swift Testing 33 件を iPhone 17 Pro Max Simulator で確認。STG 実アカウント smoke は未実施。

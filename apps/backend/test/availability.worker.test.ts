@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AccessTokenVerifier } from "../src/Auth/Application/Port/AccessTokenVerifier";
 import { createApp, type AppDependencies } from "../src/Composition/createApp";
 import type { AvailabilityRepository } from "../src/Availability/Application/Port/AvailabilityRepository";
-import { AvailabilityConflictError, type AvailabilityInput, type AvailabilitySlot } from "../src/Availability/Domain/Model/Availability";
+import { AvailabilityConflictError, type AvailabilityInput, type AvailabilityIntervalOperation, type AvailabilitySlot, type AvailabilitySubtractOperation } from "../src/Availability/Domain/Model/Availability";
 import type { AccountDeletionStatusPort } from "../src/AccountDeletion/Application/Port/AccountDeletionPorts";
 import { InvalidAccessTokenError } from "../src/Auth/Application/Port/AccessTokenVerifier";
 
@@ -24,6 +24,25 @@ class MemoryAvailabilityRepository implements AvailabilityRepository {
   }
   async remove(_actorId: string, _token: string, id: string): Promise<void> {
     this.slots = this.slots.filter((item) => item.id !== id);
+  }
+  async union(_actorId: string, _token: string, input: AvailabilityIntervalOperation): Promise<AvailabilitySlot[]> {
+    const touched = this.slots.filter((slot) => Date.parse(slot.start) <= Date.parse(input.end) && Date.parse(slot.end) >= Date.parse(input.start));
+    const start = new Date(Math.min(Date.parse(input.start), ...touched.map((slot) => Date.parse(slot.start)))).toISOString();
+    const end = new Date(Math.max(Date.parse(input.end), ...touched.map((slot) => Date.parse(slot.end)))).toISOString();
+    this.slots = [...this.slots.filter((slot) => !touched.includes(slot)), { id: touched[0]?.id ?? input.operationId, start, end, category: input.category, visibility: input.visibility }];
+    return this.slots;
+  }
+  async subtract(_actorId: string, _token: string, input: AvailabilitySubtractOperation): Promise<AvailabilitySlot[]> {
+    const start = Date.parse(input.start); const end = Date.parse(input.end);
+    this.slots = this.slots.flatMap((slot) => {
+      const slotStart = Date.parse(slot.start); const slotEnd = Date.parse(slot.end);
+      if (slotStart >= end || slotEnd <= start) return [slot];
+      const parts: AvailabilitySlot[] = [];
+      if (slotStart < start) parts.push({ ...slot, end: input.start });
+      if (slotEnd > end) parts.push({ ...slot, id: parts.length ? `${slot.id}-right` : slot.id, start: input.end });
+      return parts;
+    });
+    return this.slots;
   }
 }
 
@@ -74,6 +93,26 @@ describe("/v1/availability", () => {
     expect(listed.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/i);
     expect(await listed.json()).toEqual({ slots: repository.slots });
     expect((await app.request(`/v1/availability/${slotId}`, { method: "DELETE", headers })).status).toBe(204);
+  });
+
+  it("routes interval union and subtraction with an operation id", async () => {
+    const repository = new MemoryAvailabilityRepository();
+    const app = buildApp(repository);
+    const start = new Date(Math.ceil(Date.now() / 900000) * 900000 + 900000).toISOString();
+    const end = new Date(Date.parse(start) + 3600000).toISOString();
+    const headers = { authorization: "Bearer valid-token", "content-type": "application/json" };
+    const union = await app.request("/v1/availability/intervals:union", {
+      method: "POST", headers,
+      body: JSON.stringify({ start, end, category: "game", visibility: "privateUntilAccepted", operationId: slotId }),
+    });
+    expect(union.status).toBe(200);
+    expect(await union.json()).toEqual({ slots: repository.slots });
+    const subtract = await app.request("/v1/availability/intervals:subtract", {
+      method: "POST", headers,
+      body: JSON.stringify({ start, end, operationId: "8e26166a-a14a-4933-a953-199798829ab7" }),
+    });
+    expect(subtract.status).toBe(200);
+    expect(await subtract.json()).toEqual({ slots: [] });
   });
 
   it("rejects invalid category and unauthenticated requests", async () => {

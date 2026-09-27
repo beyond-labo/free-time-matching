@@ -402,8 +402,8 @@ struct AppFeatureTests {
         await store.send(.homeTimeline(.quarterTapped(date(3, 11, 0)))) {
             $0.homeTimeline.selectedDayIndex = 2
             $0.homeTimeline.selection = .init(range: QuarterRange(start: self.date(3, 11, 0), end: self.date(3, 11, 15)))
-            $0.homeTimeline.selection?.issue = .overlap(existing.id)
         }
+        #expect(store.state.homeTimeline.selection?.issue == nil)
         var withoutSlot = store.state.snapshot!
         withoutSlot.availability = []
         await store.send(.snapshotMutationCompleted(withoutSlot)) {
@@ -437,13 +437,14 @@ struct AppFeatureTests {
             $0.homeTimeline.selectedDayIndex = 2
             $0.homeTimeline.selection = .init(range: QuarterRange(start: self.date(3, 10, 0), end: self.date(3, 10, 45)))
         }
+        let operationID = store.state.homeTimeline.selection!.operationID
         await store.send(.homeTimeline(.quickSaveTapped))
         await store.receive(\.homeTimeline.delegate.quickSave) {
             $0.homeTimeline.selection?.isSaving = true
         }
         let slot = AvailabilitySlot(
-            id: UUID(0),
-            interval: TimeIntervalRange(id: UUID(0), start: date(3, 10, 0), end: date(3, 10, 45)),
+            id: operationID,
+            interval: TimeIntervalRange(id: operationID, start: date(3, 10, 0), end: date(3, 10, 45)),
             category: nil,
             visibility: .privateUntilAccepted
         )
@@ -451,7 +452,7 @@ struct AppFeatureTests {
             $0.availabilityRevision = 1
             $0.snapshot?.availability = [slot]
             $0.homeTimeline.selection = nil
-            $0.homeTimeline.lastSavedItem = .availability(UUID(0))
+            $0.homeTimeline.lastSavedItem = .availability(operationID)
             $0.homeTimeline.quickSaveSuccessCount = 1
         }
         #expect(saved.value == slot)
@@ -474,6 +475,7 @@ struct AppFeatureTests {
             $0.homeTimeline.selectedDayIndex = 3
             $0.homeTimeline.selection = .init(range: picked)
         }
+        let operationID = store.state.homeTimeline.selection!.operationID
         await store.send(.homeTimeline(.quickSaveTapped))
         await store.receive(\.homeTimeline.delegate.quickSave) {
             $0.homeTimeline.selection?.isSaving = true
@@ -493,12 +495,12 @@ struct AppFeatureTests {
             $0.availabilityRevision = 1
             $0.snapshot?.availability = [
                 AvailabilitySlot(
-                    id: UUID(1),
-                    interval: TimeIntervalRange(id: UUID(1), start: picked.start, end: picked.end)
+                    id: operationID,
+                    interval: TimeIntervalRange(id: operationID, start: picked.start, end: picked.end)
                 )
             ]
             $0.homeTimeline.selection = nil
-            $0.homeTimeline.lastSavedItem = .availability(UUID(1))
+            $0.homeTimeline.lastSavedItem = .availability(operationID)
             $0.homeTimeline.quickSaveSuccessCount = 1
         }
         #expect(attempts.value == 2)
@@ -606,10 +608,11 @@ struct AppFeatureTests {
         #expect(slot.interval.end == date(5, 0, 30))
     }
 
-    @Test("重複した既存枠へ移動して詳細を表示する")
-    func conflictNavigatesToExistingSlot() async {
+    @Test("重複選択は既存枠の詳細編集からOR統合できる")
+    func overlappingSelectionOpensUnionEditor() async {
         let existing = AvailabilitySlot(
-            interval: TimeIntervalRange(start: date(6, 11, 0), end: date(6, 13, 0))
+            interval: TimeIntervalRange(start: date(6, 11, 0), end: date(6, 13, 0)),
+            category: .game
         )
         let store = availabilityStore(availability: [existing])
         let picked = QuarterRange(start: date(6, 12, 0), end: date(6, 12, 15))
@@ -618,7 +621,6 @@ struct AppFeatureTests {
             $0.homeTimeline.today = self.date(1, 0, 0)
             $0.homeTimeline.selectedDayIndex = 5
             $0.homeTimeline.selection = .init(range: picked)
-            $0.homeTimeline.selection?.issue = .overlap(existing.id)
         }
         await store.send(.homeTimeline(.adjustDetailsTapped))
         await store.receive(\.homeTimeline.delegate.adjustSelection) {
@@ -630,12 +632,322 @@ struct AppFeatureTests {
                 slotID: UUID(0)
             )
         }
-        #expect(store.state.availabilityEditor?.issue == .overlap(existing.id))
+        #expect(store.state.availabilityEditor?.issue == nil)
+        #expect(store.state.availabilityEditor?.hasConflictingMetadata == true)
+    }
 
-        await store.send(.availabilityEditor(.presented(.conflictTapped(existing.id))))
-        await store.receive(\.availabilityEditor.presented.delegate.showExistingSlot) {
-            $0.availabilityEditor = nil
-            $0.homeTimeline.selectedItem = .availability(existing.id)
+    @Test("募集中の時間を削除しようとすると取消できる受信箱へ案内する")
+    func deletingRecruitingRangeOpensCancellationInbox() async {
+        let active = Hosting(
+            id: UUID(7),
+            mode: .online,
+            area: nil,
+            category: nil,
+            candidateRange: TimeIntervalRange(start: date(3, 10, 15), end: date(3, 11, 0)),
+            requiredDuration: 0,
+            friends: [],
+            participants: [],
+            status: .recruiting
+        )
+        var state = AppFeature.State()
+        state.route = .main
+        state.isDemo = true
+        state.snapshot = .empty()
+        state.snapshot?.hostings = [active]
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.date.now = AvailabilityTestClock.now
+            $0.calendar = AvailabilityTestClock.calendar
+        }
+        let selected = QuarterRange(start: date(3, 10, 0), end: date(3, 10, 30))
+
+        await store.send(.homeTimeline(.delegate(.subtractAvailability(selected, UUID(8))))) {
+            $0.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+        }
+        await store.receive(\.showInbox) { $0.inboxPresented = true }
+    }
+
+    @Test("DBが募集中競合を返した場合も取消Inboxへ案内する")
+    func databaseRecruitingConflictOpensCancellationInbox() async {
+        let selected = QuarterRange(start: date(3, 10, 0), end: date(3, 10, 30))
+        var state = AppFeature.State()
+        state.route = .main
+        state.authenticationSession = AuthenticationSession(userID: "owner", accessToken: "access")
+        state.snapshot = .empty()
+        state.homeTimeline.today = date(1, 0, 0)
+        state.homeTimeline.selection = .init(range: selected)
+        var client = HimatchClient.productionPlaceholder
+        client.subtractAvailability = { _, _ in throw BackendClientError.response(409, "active hosting") }
+        client.loadHostings = { ([], []) }
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.date.now = AvailabilityTestClock.now
+            $0.calendar = AvailabilityTestClock.calendar
+            $0.himatchClient = client
+        }
+
+        await store.send(.homeTimeline(.delegate(.subtractAvailability(selected, UUID(9))))) {
+            $0.homeTimeline.selection?.isSaving = true
+        }
+        await store.receive(\.availabilityDeletionBlocked) {
+            $0.homeTimeline.selection?.isSaving = false
+            $0.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+        }
+        await store.receive(\.showInbox) { $0.inboxPresented = true }
+        await store.receive(\.hostingLoadCompleted)
+    }
+
+    @Test("募集作成は選んだ全員と正確な範囲を送信し、成功後に募集中一覧へ反映する")
+    func hostingCreationSendsSelectedFriendsAndRange() async {
+        let friend = FriendProfile(id: UUID(21), displayName: "りく", icon: "figure.run")
+        let secondFriend = FriendProfile(id: UUID(24), displayName: "さき", icon: "sun.max.fill")
+        let hostingID = UUID(22)
+        let operationID = UUID(23)
+        let start = date(4, 10, 0)
+        let end = date(4, 10, 45)
+        let hosting = Hosting(
+            id: hostingID,
+            mode: .offline,
+            area: .shibuya,
+            category: .game,
+            candidateRange: TimeIntervalRange(id: hostingID, start: start, end: end),
+            requiredDuration: end.timeIntervalSince(start),
+            friends: [friend], participants: [], status: .recruiting
+        )
+        let receivedDraft = LockIsolated<HostingDraft?>(nil)
+        var returned = AppSnapshot.empty(profileName: "ひまり")
+        returned.hostings = [hosting]
+        let creationResponse = returned
+        var client = HimatchClient.productionPlaceholder
+        client.createHosting = { draft in
+            receivedDraft.setValue(draft)
+            return creationResponse
+        }
+        var state = AppFeature.State()
+        state.route = .main
+        state.snapshot = .empty(profileName: "ひまり")
+        state.snapshot?.friends = [friend, secondFriend]
+        state.hostingEditorPresented = true
+        state.hostingStart = start
+        state.hostingEnd = end
+        state.hostingOperationID = operationID
+        state.selectedFriendIDs = [friend.id, secondFriend.id]
+        state.hostingAvailabilityConflict = true
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.himatchClient = client
+        }
+
+        await store.send(.createHostingTapped)
+        #expect(receivedDraft.value == nil)
+        await store.send(.confirmHostingAvailabilityMetadata) {
+            $0.hostingAvailabilityMetadataConfirmed = true
+        }
+        await store.send(.createHostingTapped) { $0.isLoading = true }
+        await store.receive(\.hostingCreated) {
+            $0.hostingRevision = 1
+            $0.snapshot = creationResponse
+            $0.hostingEditorPresented = false
+            $0.hostingOperationID = nil
+            $0.selectedFriendIDs = []
+            $0.homeTimeline.selection = nil
+            $0.isLoading = false
+            $0.alertMessage = "募集を開始しました。参加OKの回答があると、ここに表示されます。"
+        }
+        #expect(receivedDraft.value?.operationID == operationID)
+        #expect(receivedDraft.value?.start == start)
+        #expect(receivedDraft.value?.duration == end.timeIntervalSince(start))
+        #expect(receivedDraft.value?.friends == [friend, secondFriend])
+        #expect(store.state.snapshot?.hostings == [hosting])
+    }
+
+    @Test("招待送信失敗後も範囲・友達・operation IDを保持して再試行可能にする")
+    func hostingCreationFailureKeepsDraft() async {
+        let friend = FriendProfile(id: UUID(31), displayName: "りく", icon: "figure.run")
+        let operationID = UUID(32)
+        let start = date(4, 10, 0)
+        var client = HimatchClient.productionPlaceholder
+        client.createHosting = { _ in throw BackendClientError.response(503, "一時エラー") }
+        var state = AppFeature.State()
+        state.route = .main
+        state.snapshot = .empty(profileName: "ひまり")
+        state.snapshot?.friends = [friend]
+        state.hostingEditorPresented = true
+        state.hostingStart = start
+        state.hostingEnd = start.addingTimeInterval(2700)
+        state.hostingOperationID = operationID
+        state.selectedFriendIDs = [friend.id]
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.himatchClient = client
+        }
+
+        await store.send(.createHostingTapped) { $0.isLoading = true }
+        await store.receive(\.hostingCreationFailed) {
+            $0.isLoading = false
+            $0.alertMessage = "募集を送信できませんでした。入力内容は保持しています。\n一時エラー"
+        }
+        #expect(store.state.hostingEditorPresented)
+        #expect(store.state.hostingStart == start)
+        #expect(store.state.hostingEnd == start.addingTimeInterval(2700))
+        #expect(store.state.selectedFriendIDs == [friend.id])
+        #expect(store.state.hostingOperationID == operationID)
+    }
+
+    @Test("招待者の部分参加OKを範囲付きで送り、返却projectionへ更新する")
+    func invitationAcceptsOnlySelectedPartialRange() async {
+        let id = UUID(41)
+        let host = FriendProfile(id: UUID(42), displayName: "さき", icon: "figure.run")
+        let start = date(5, 10, 0)
+        let candidate = TimeIntervalRange(id: id, start: start, end: start.addingTimeInterval(3600))
+        let partial = TimeIntervalRange(start: start.addingTimeInterval(900), end: start.addingTimeInterval(2700))
+        let pending = Hosting(
+            id: id, mode: .online, area: nil, category: .game,
+            candidateRange: candidate, requiredDuration: 3600,
+            friends: [], participants: [], status: .recruiting, version: 1,
+            myInvitation: HostingInvitation(status: .pending, version: 1, intervals: nil),
+            isHostedByMe: false, host: host
+        )
+        let accepted = Hosting(
+            id: id, mode: .online, area: nil, category: .game,
+            candidateRange: candidate, requiredDuration: 3600,
+            friends: [], participants: [], status: .recruiting, version: 2,
+            myInvitation: HostingInvitation(status: .accepted, version: 2, intervals: [partial]),
+            isHostedByMe: false, host: host
+        )
+        let operationID = UUID(43)
+        let responseKey = "\(id.uuidString)|1|accepted|\(partial.start.timeIntervalSince1970):\(partial.end.timeIntervalSince1970)"
+        let captured = LockIsolated<([TimeIntervalRange], UUID, Int)?>(nil)
+        var responseSnapshot = AppSnapshot.empty()
+        responseSnapshot.invitations = [accepted]
+        let acceptedResponse = responseSnapshot
+        var client = HimatchClient.productionPlaceholder
+        client.respondInvitation = { hostingID, status, intervals, opID, version in
+            #expect(hostingID == id)
+            #expect(status == .accepted)
+            captured.setValue((intervals, opID, version))
+            return acceptedResponse
+        }
+        var state = AppFeature.State()
+        state.route = .main
+        state.isDemo = true
+        state.snapshot = .empty()
+        state.snapshot?.invitations = [pending]
+        state.hostingResponseOperationIDs[responseKey] = operationID
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.himatchClient = client
+        }
+
+        await store.send(.respondToInvitation(id, .accepted, [partial])) { $0.isLoading = true }
+        await store.receive(\.hostingMutationCompleted) {
+            $0.isLoading = false
+            $0.hostingRevision = 1
+            $0.snapshot?.invitations = [accepted]
+            $0.hostingResponseOperationIDs = [:]
+        }
+        await store.receive(\.showInbox) { $0.inboxPresented = true }
+        #expect(captured.value?.0 == [partial])
+        #expect(captured.value?.1 == operationID)
+        #expect(captured.value?.2 == 1)
+        #expect(store.state.snapshot?.invitations.first?.myInvitation?.intervals == [partial])
+    }
+
+    @Test("認証後の初回Hosting取得をtimeline projectionへ反映する")
+    func initialHostingLoadProjectsIntoSnapshot() async {
+        let hosting = Hosting(
+            id: UUID(51), mode: .online, area: nil, category: nil,
+            candidateRange: TimeIntervalRange(start: date(3, 10, 0), end: date(3, 11, 0)),
+            requiredDuration: 3600, friends: [], participants: [], status: .recruiting
+        )
+        let invitation = Hosting(
+            id: UUID(52), mode: .online, area: nil, category: nil,
+            candidateRange: TimeIntervalRange(start: date(4, 10, 0), end: date(4, 11, 0)),
+            requiredDuration: 3600, friends: [], participants: [], status: .recruiting,
+            myInvitation: HostingInvitation(status: .pending, version: 1, intervals: nil),
+            isHostedByMe: false, host: FriendProfile(id: UUID(53), displayName: "さき", icon: "figure.run")
+        )
+        var state = AppFeature.State()
+        state.route = .main
+        state.authenticationSession = AuthenticationSession(userID: "owner", accessToken: "token")
+        state.snapshot = .empty()
+        var client = HimatchClient.productionPlaceholder
+        client.loadHostings = { ([hosting], [invitation]) }
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.himatchClient = client
+        }
+
+        await store.send(.reloadHostings)
+        await store.receive(\.hostingLoadCompleted) {
+            $0.snapshot?.hostings = [hosting]
+            $0.snapshot?.invitations = [invitation]
+        }
+        #expect(store.state.snapshot?.hostings == [hosting])
+        #expect(store.state.snapshot?.invitations == [invitation])
+
+        var postMutation = store.state
+        postMutation.hostingRevision = 1
+        let guardedStore = TestStore(initialState: postMutation) { AppFeature() }
+        let stale = Hosting(
+            id: UUID(54), mode: .online, area: nil, category: nil,
+            candidateRange: TimeIntervalRange(start: date(6, 10, 0), end: date(6, 11, 0)),
+            requiredDuration: 3600, friends: [], participants: [], status: .recruiting
+        )
+        await guardedStore.send(.hostingLoadCompleted([stale], [], revision: 0, userID: "owner"))
+        #expect(guardedStore.state.snapshot?.hostings == [hosting])
+    }
+
+    @Test("招待時刻の編集は候補終端と冪等operation IDを更新する")
+    func hostingTimeEditsRotateOperationIDAndKeepRangeCoherent() async {
+        var state = AppFeature.State()
+        state.hostingStart = date(4, 10, 0)
+        state.hostingEnd = date(4, 10, 30)
+        state.hostingOperationID = UUID(61)
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.uuid = .incrementing
+        }
+
+        await store.send(.hostingStartChanged(date(4, 11, 0))) {
+            $0.hostingStart = self.date(4, 11, 0)
+            $0.hostingEnd = self.date(4, 11, 30)
+            $0.hostingOperationID = UUID(0)
+        }
+        await store.send(.hostingDurationChanged(2)) {
+            $0.hostingDurationHours = 2
+            $0.hostingEnd = self.date(4, 13, 0)
+            $0.hostingOperationID = UUID(1)
+        }
+    }
+
+    @Test("複数暇枠の募集統合は属性確認を必須とし、設定変更で再確認を求める")
+    func hostingMetadataConflictRequiresConfirmation() async {
+        var state = AppFeature.State()
+        state.snapshot = .empty()
+        state.snapshot?.availability = [
+            AvailabilitySlot(
+                interval: TimeIntervalRange(start: date(4, 10, 0), end: date(4, 11, 0)),
+                category: .game
+            ),
+            AvailabilitySlot(
+                interval: TimeIntervalRange(start: date(4, 11, 0), end: date(4, 12, 0)),
+                category: .meal
+            ),
+        ]
+        state.hostingStart = date(4, 10, 30)
+        state.hostingEnd = date(4, 11, 30)
+        state.hostingOperationID = UUID(71)
+        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+            $0.uuid = .incrementing
+        }
+
+        await store.send(.hostingAvailabilityCategoryChanged(.game)) {
+            $0.hostingAvailabilityCategory = .game
+            $0.hostingOperationID = UUID(0)
+            $0.hostingAvailabilityConflict = true
+        }
+        await store.send(.confirmHostingAvailabilityMetadata) {
+            $0.hostingAvailabilityMetadataConfirmed = true
+        }
+        await store.send(.hostingAvailabilityVisibilityChanged(.shareOnHosting)) {
+            $0.hostingAvailabilityVisibility = .shareOnHosting
+            $0.hostingOperationID = UUID(1)
+            $0.hostingAvailabilityMetadataConfirmed = false
+            $0.hostingAvailabilityConflict = true
         }
     }
 
