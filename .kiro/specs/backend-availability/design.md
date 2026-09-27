@@ -30,12 +30,12 @@ kiro:
 
 Cloudflare Workers の Hono route が Supabase JWT を検証し、利用者の access token を付けた Supabase REST 呼出しへ委譲する。所有者判定は Worker の JWT subject と Postgres RLS の二重境界に置き、Worker の検証漏れだけで他人のデータへ到達できない構成にする。
 
-登録は client UUID を指定する create-only 契約とし、同じ payload の再送だけを replay として成功させる。異なる payload の同一 UUID は conflict、時間重複も conflict とする。募集時共有の判定や友達の暇時間の読み取りはこの境界へ入れない。
+旧ID指定PUTの登録は client UUID による create-only 契約とし、同じ payload の再送だけを replay として成功させる。新しい区間OR/減算は専用 endpoint と操作IDを用いる。募集時共有の判定や友達の暇の読み取りはこの境界へ入れない。
 
 ### Goals
 
 - 実認証下で本人の slot だけを CRUD できる固定 HTTP 契約。
-- API と DB の双方で時間・公開値・所有者・重複を検証する。
+- API と DB の双方で時間・公開値・所有者を検証する。保存後の本人暇は非重複とし、OR/減算はDBトランザクションで正規化する。
 - アカウント削除状態と cascade を含むプライバシー境界を維持する。
 - 再送、競合、依存障害を安全な error envelope と観測へつなぐ。
 
@@ -59,7 +59,7 @@ Cloudflare Workers の Hono route が Supabase JWT を検証し、利用者の a
 - Supabase Auth の issuer/JWKS 検証方式そのものは `backend-user-account-management` が所有する。
 - 削除受付・Apple token revoke は `backend-user-account-management` が所有し、本仕様はその active 判定を利用する。
 - iOS の画面・TCA・Adapter は `ios-availability` が所有する。
-- Hosting が承認済み利用者へ候補を投影する契約は将来の Backend Hosting 仕様が所有する。
+- Hosting が承認済み利用者へ候補を投影する契約は `backend-hosting` が所有し、本仕様は区間統合と募集中削除guardを提供する。
 
 ### Allowed Dependencies
 
@@ -199,11 +199,19 @@ Response は list が `{ slots: AvailabilitySlot[] }`、create/replay が `{ slo
 
 ### SupabaseAvailabilityRepository
 
-`list(actorId, token)`、`upsert(actorId, token, id, input)`、`remove(actorId, token, id)` の Port を維持する。`upsert` という既存名は adapter 内部の互換性のため残せるが、意味は create-only replay/conflict とし、既存行を異なる入力で更新しない。Supabase error body は parse して code だけ使い、ログへ保存しない。
+旧 `list(actorId, token)`、`upsert(actorId, token, id, input)`、`remove(actorId, token, id)` を維持し、区間ORと減算の Port を追加する。新しい操作は利用者JWTを付けた Supabase RPC を呼び、所有者単位で直列化する。Supabase error body は code だけを使い、ログへ保存しない。
 
 ### Data Model
 
 `availability_slots(id uuid PK, owner_user_id uuid FK auth.users ON DELETE CASCADE, start_at timestamptz, end_at timestamptz, category nullable enum-like text, visibility enum-like text, created_at, updated_at)`。`owner_user_id` と `[start_at,end_at)` の GiST exclusion で同一 actor の重複を防ぐ。`is_account_active()` を全 RLS policy に含め、削除受付後は通常アクセスを止める。
+
+### 本人区間のORと減算
+
+`POST /v1/availability/intervals:union` は start/end/category/visibility/operationId を、`POST /v1/availability/intervals:subtract` は start/end/operationId を受け、更新後の `{slots}` を返す。半開区間の重なりと接続を連鎖的に統合し、統合後の属性はリクエスト値に統一する。減算では重なる全枠を対象にし、残る左右へ元の属性を引き継ぐ。旧ID指定APIとその競合応答は維持する。
+
+DB RPC は actor の操作IDを記録し、同じIDの再送が後続の別操作を巻き戻さないようにする。所有者単位の直列化、JWT/RLS、アカウント削除停止を維持する。減算が有効な Hosting 候補へ触れる場合は同一トランザクション内で拒否する。
+
+Requirement 8 は Worker route test、区間の純粋テスト、pgTAP の所有者・同時性・募集中削除を証拠とする。
 
 ### Observability
 

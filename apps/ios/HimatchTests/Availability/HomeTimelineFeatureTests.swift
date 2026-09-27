@@ -218,9 +218,10 @@ struct HomeTimelineFeatureTests {
     func confirmationDelegatesExactRange() async {
         let picked = range(3, 10, 0, 3, 10, 45)
         let store = makeStore(state(dayIndex: 2, selection: picked))
+        let operationID = store.state.selection?.operationID ?? UUID()
 
         await store.send(.quickSaveTapped)
-        await store.receive(.delegate(.quickSave(picked)))
+        await store.receive(.delegate(.quickSave(picked, operationID)))
         await store.send(.adjustDetailsTapped)
         await store.receive(.delegate(.adjustSelection(picked)))
     }

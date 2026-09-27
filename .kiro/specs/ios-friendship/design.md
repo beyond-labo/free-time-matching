@@ -17,7 +17,7 @@ kiro:
 
 ## Overview
 
-Friendship が関係と申請のクライアント状態を所有し、一覧、コード入力、プロフィールを TCA 状態として構成する。Release は build-time configuration が指す Backend Friendship API（最初の内部 TestFlight は STG）、DEBUG デモは共有 Prototype scenario を利用する。安全操作と募集作成へは ID を渡す Navigation delegate のみ公開する。
+Friendship が関係と申請のクライアント状態を所有し、一覧、コード入力、プロフィールを TCA 状態として構成する。Release は build-time configuration が指す Backend Friendship API（最初の内部 TestFlight は STG）、DEBUG デモは共有 Prototype scenario を利用する。安全操作と募集作成へは ID を渡す Navigation delegate のみ公開し、募集側は受け取った友達を選択済みにして共通時間軸を開く。
 
 ## Boundary Commitments
 
@@ -73,8 +73,8 @@ apps/ios/HimatchTests/Friendship/
 - 変更入力は operationID と expectedVersion を持つ。
 - `FriendshipError`: unavailableCode、conflict、permissionLost、transport。コードの詳細理由は外へ出さない。
 
-FriendProfile の delegate は `invite(friendID)`、`report(target)`、`block(userID)`、`openPlan(planID)`。他機能の View や Adapter を import しない。
-`FriendPlanProjection` は Integration が提供する read-only 契約で、確定予定の有無と plan ID だけを返す。Friendship は予定を変更しない。
+FriendProfile の delegate は `invite(friendID)`、`report(target)`、`block(userID)` と DEBUG Prototype 専用の `openPlan(planID)`。他機能の View や Adapter を import しない。
+`FriendPlanProjection` は Integration が提供する DEBUG Prototype 専用の read-only 契約で、fixture の確定予定の有無と plan ID だけを返す。Friendship は予定を変更せず、Release で確定予定を実 Backend から取得したように表示しない。
 
 ## Requirements Traceability
 

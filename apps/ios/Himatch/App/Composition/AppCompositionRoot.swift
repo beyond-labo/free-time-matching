@@ -10,6 +10,7 @@ enum AppCompositionRoot {
         let deletion: AccountDeletionClient
         let friendship: FriendshipClient
         let availability: BackendAvailabilityAdapter
+        let hosting: BackendHostingAdapter
 
         do {
             let configuration = try AppConfiguration(bundle: bundle)
@@ -22,6 +23,7 @@ enum AppCompositionRoot {
             deletion = BackendAccountDeletionAdapter(baseURL: configuration.apiBaseURL).client()
             friendship = BackendFriendshipAdapter(baseURL: configuration.apiBaseURL).client()
             availability = BackendAvailabilityAdapter(baseURL: configuration.apiBaseURL)
+            hosting = BackendHostingAdapter(baseURL: configuration.apiBaseURL)
         } catch {
             let message = error.localizedDescription
             authentication = .unconfigured(message)
@@ -29,13 +31,14 @@ enum AppCompositionRoot {
             deletion = .unconfigured(message)
             friendship = .unconfigured(message)
             availability = BackendAvailabilityAdapter(baseURL: URL(string: "https://invalid.local/")!)
+            hosting = BackendHostingAdapter(baseURL: URL(string: "https://invalid.local/")!)
         }
 
         let business: HimatchClient
 #if DEBUG
         business = HimatchPrototypeScenario().client()
 #else
-        business = Self.productionBusiness(authentication: authentication, availability: availability)
+        business = Self.productionBusiness(authentication: authentication, availability: availability, hosting: hosting)
 #endif
 
         return Store(initialState: AppFeature.State()) {
@@ -52,7 +55,8 @@ enum AppCompositionRoot {
 
     private static func productionBusiness(
         authentication: AuthenticationClient,
-        availability: BackendAvailabilityAdapter
+        availability: BackendAvailabilityAdapter,
+        hosting: BackendHostingAdapter
     ) -> HimatchClient {
         var client = HimatchClient.productionPlaceholder
         client.loadAvailability = {
@@ -72,6 +76,51 @@ enum AppCompositionRoot {
                 throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
             }
             return AppSnapshot.empty(availability: try await availability.delete(id: id, accessToken: session.accessToken))
+        }
+        client.subtractAvailability = { interval, operationID in
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            return AppSnapshot.empty(availability: try await availability.subtract(interval, operationID: operationID, accessToken: session.accessToken))
+        }
+        client.loadHostings = {
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            return try await hosting.load(accessToken: session.accessToken)
+        }
+        client.createHosting = { draft in
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            let created = try await hosting.create(draft, operationID: draft.operationID, accessToken: session.accessToken)
+            let availabilitySlots = try await availability.load(accessToken: session.accessToken)
+            var snapshot = AppSnapshot.empty(availability: availabilitySlots)
+            snapshot.hostings = created.isHostedByMe ? [created] : []
+            snapshot.invitations = created.isHostedByMe ? [] : [created]
+            return snapshot
+        }
+        client.respondInvitation = { id, status, intervals, operationID, version in
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            let response = try await hosting.respond(id: id, status: status, intervals: intervals,
+                                                    operationID: operationID, expectedVersion: version,
+                                                    accessToken: session.accessToken)
+            var snapshot = AppSnapshot.empty(availability: try await availability.load(accessToken: session.accessToken))
+            snapshot.invitations = response.isHostedByMe ? [] : [response]
+            snapshot.hostings = response.isHostedByMe ? [response] : []
+            return snapshot
+        }
+        client.cancelHosting = { id, operationID, version in
+            guard let session = try await authentication.restoreSession() else {
+                throw AuthenticationFailure.unavailable("サインイン状態を確認できません。もう一度お試しください。")
+            }
+            let cancelled = try await hosting.cancel(id: id, operationID: operationID, expectedVersion: version,
+                                                     accessToken: session.accessToken)
+            var snapshot = AppSnapshot.empty(availability: try await availability.load(accessToken: session.accessToken))
+            snapshot.hostings = [cancelled]
+            return snapshot
         }
         return client
     }

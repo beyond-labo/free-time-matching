@@ -177,23 +177,51 @@ struct AvailabilityEditorFeatureTests {
         #expect(!store.state.canMoveEndLater)
     }
 
-    @Test("重複する枠は保存せず、既存枠への誘導を通知する")
-    func overlapBlocksSaveAndPointsToExistingSlot() async {
+    @Test("重複する枠もOR統合のため保存可能にする")
+    func overlapCanBeSavedAsUnion() async {
         let existing = AvailabilitySlot(
             interval: TimeIntervalRange(start: date(3, 21, 0), end: date(3, 23, 0))
         )
+        let saved = LockIsolated<AvailabilitySlot?>(nil)
         var client = HimatchClient.productionPlaceholder
-        client.addAvailability = { _ in
-            Issue.record("重複時はclientを呼ばない")
-            return .empty()
+        client.addAvailability = { slot in
+            saved.setValue(slot)
+            var snapshot = AppSnapshot.empty(profileName: "ひまり")
+            snapshot.availability = [slot]
+            return snapshot
         }
         let store = makeStore(editor(anchor: date(3, 22, 0), existing: [existing]), client: client)
-        #expect(store.state.issue == .overlap(existing.id))
+        #expect(store.state.issue == nil)
+        #expect(store.state.canSave)
+
+        await store.send(.saveTapped) { $0.isSaving = true }
+        let unionSnapshot = AppSnapshot.empty(profileName: "ひまり")
+        var expected = unionSnapshot
+        expected.availability = [store.state.slot]
+        await store.receive(.saveSucceeded(expected)) { $0.isSaving = false }
+        await store.receive(.delegate(.saved(expected)))
+        #expect(saved.value?.interval.start == date(3, 22, 0))
+        #expect(saved.value?.interval.end == date(4, 0, 0))
+    }
+
+    @Test("統合属性が既存と異なる時は確認を求め、属性変更で確認を取り消す")
+    func metadataConflictRequiresConfirmation() async {
+        let existing = AvailabilitySlot(
+            interval: TimeIntervalRange(start: date(3, 21, 0), end: date(3, 23, 0)),
+            category: .game
+        )
+        let store = makeStore(editor(anchor: date(3, 22, 0), existing: [existing]))
+        #expect(store.state.hasConflictingMetadata)
         #expect(!store.state.canSave)
 
-        await store.send(.saveTapped)
-        await store.send(.conflictTapped(existing.id))
-        await store.receive(.delegate(.showExistingSlot(existing.id)))
+        await store.send(.confirmMetadata) { $0.metadataConfirmed = true }
+        #expect(store.state.canSave)
+        await store.send(.categoryChanged(.game)) {
+            $0.category = .game
+            $0.metadataConfirmed = false
+        }
+        #expect(!store.state.hasConflictingMetadata)
+        #expect(store.state.canSave)
     }
 
     @Test("既存枠の終了から始まる枠は保存できる（半開区間）")

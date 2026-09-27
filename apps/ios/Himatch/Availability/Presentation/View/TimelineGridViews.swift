@@ -592,6 +592,7 @@ struct TimelineBlockView: View {
     private var color: Color {
         switch segment.item.kind {
         case .availability: HimatchColor.availability
+        case .hosting: HimatchColor.hosting
         case .plan: HimatchColor.plan
         }
     }
@@ -608,6 +609,7 @@ struct TimelineBlockView: View {
         let kind: String
         switch segment.item.kind {
         case let .availability(visibility): kind = "暇、\(visibility.title)"
+        case .hosting: kind = "募集中"
         case .plan: kind = "確定した予定"
         }
         let saved = isRecentlySaved ? "、登録しました" : ""

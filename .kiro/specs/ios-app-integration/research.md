@@ -35,6 +35,9 @@ kiro:
 
 ## Change Log
 
+- 2026-09-27: Release に予定確定 Backend がないため、Home と友達プロフィールの確定予定投影、および確定フローの fixture 検証を DEBUG Prototype に限定した。根拠は今回の承認済み計画の「最終確定は対象外」と既存の実 API 契約。
+- 2026-09-26: Release Composition の Hosting Placeholder を実Backend Adapterへ置き換え、受信箱の招待・部分回答を別アカウント間で扱う契約へ更新した。根拠はユーザーが承認した実招待計画と backend-hosting 要件。
+
 ### 2026-09-25
 
 内部TestFlightのReleaseで暇登録が `HimatchClient.productionPlaceholder` から `PrototypeError.notFound` を返し、通信に到達しないことをコードで確認した。ユーザーの実接続依頼により、Release Compositionへ `BackendAvailabilityAdapter` を追加する。DEBUGデモのPrototypeは維持する。要件3.6、3.9と設計・タスク3を改訂し、旧タスク完了と工程承認は新しい契約の証拠にならないため再評価する。

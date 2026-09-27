@@ -37,4 +37,41 @@ struct HostingPolicyTests {
         #expect(hosting.participants.isEmpty)
         #expect(hosting.status == .recruiting)
     }
+
+    @Test("回答期限は募集候補の開始時刻")
+    func answerDeadlineUsesCandidateStart() {
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        let hosting = Hosting(
+            id: UUID(),
+            mode: .online,
+            area: nil,
+            category: nil,
+            candidateRange: TimeIntervalRange(start: start, end: start.addingTimeInterval(3600)),
+            requiredDuration: 0,
+            friends: [],
+            participants: [],
+            status: .recruiting
+        )
+
+        #expect(hosting.answerDeadline == start)
+    }
+
+    @Test("招待回答は候補全体を初期選択せず、15分枠の明示確認を求める")
+    func invitationResponseRequiresExplicitRangeChoice() {
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        let candidate = TimeIntervalRange(start: start, end: start.addingTimeInterval(3600))
+        var selection = InvitationResponseSelection(candidateRange: candidate)
+
+        #expect(selection.range.duration == 900)
+        #expect(!selection.isConfirmed)
+        selection.stepEnd(by: 2)
+        #expect(selection.range.end == start.addingTimeInterval(2700))
+        #expect(!selection.isConfirmed)
+        selection.confirm()
+        #expect(selection.isConfirmed)
+        selection.stepStart(by: 1)
+        #expect(!selection.isConfirmed)
+        #expect(selection.range.start >= candidate.start)
+        #expect(selection.range.end <= candidate.end)
+    }
 }

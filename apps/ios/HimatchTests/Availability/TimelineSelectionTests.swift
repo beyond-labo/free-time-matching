@@ -55,6 +55,22 @@ struct TimelineSelectionTests {
         #expect(TimelineSelection.stepped(base, edge: .start, quarters: -2, calendar: calendar).start == date(3, 23, 0))
     }
 
+    @Test("既存暇からの招待範囲は15分単位で調整でき、暇の外へ出ない")
+    func inviteSelectionStaysWithinAvailability() {
+        let interval = TimeIntervalRange(start: date(3, 10, 0), end: date(3, 11, 0))
+        var selection = AvailabilityInviteSelection(availability: interval)
+
+        #expect(selection.canStepStart(by: 1))
+        selection.stepStart(by: 1)
+        selection.stepEnd(by: -1)
+        #expect(selection.range == QuarterRange(start: date(3, 10, 15), end: date(3, 10, 45)))
+        #expect(!selection.canStepStart(by: -2))
+        #expect(!selection.canStepEnd(by: 2))
+        selection.stepStart(by: -2)
+        selection.stepEnd(by: 2)
+        #expect(selection.range == QuarterRange(start: date(3, 10, 15), end: date(3, 10, 45)))
+    }
+
     @Test("ハンドルは最寄りの15分境界へ合わせ、反対側を越えない")
     func handleDragRounding() {
         let base = QuarterRange(start: date(3, 10, 0), end: date(3, 11, 0))

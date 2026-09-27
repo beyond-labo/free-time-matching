@@ -1,8 +1,11 @@
 import {
   AvailabilityConflictError,
+  AvailabilityHostingConflictError,
   AvailabilityUnavailableError,
   type AvailabilityInput,
+  type AvailabilityIntervalOperation,
   type AvailabilitySlot,
+  type AvailabilitySubtractOperation,
 } from "../../Domain/Model/Availability";
 import {
   SupabaseRequestError,
@@ -98,12 +101,32 @@ export class SupabaseAvailabilityRepository implements AvailabilityRepository {
     );
   }
 
+  async union(_actorId: string, accessToken: string, input: AvailabilityIntervalOperation): Promise<AvailabilitySlot[]> {
+    const response = await this.request("/rest/v1/rpc/availability_union_interval", {
+      method: "POST",
+      body: JSON.stringify({
+        p_start_at: input.start, p_end_at: input.end, p_category: input.category,
+        p_visibility: input.visibility, p_operation_id: input.operationId,
+      }),
+    }, accessToken);
+    return projectSlots(await response.json());
+  }
+
+  async subtract(_actorId: string, accessToken: string, input: AvailabilitySubtractOperation): Promise<AvailabilitySlot[]> {
+    const response = await this.request("/rest/v1/rpc/availability_subtract_interval", {
+      method: "POST",
+      body: JSON.stringify({ p_start_at: input.start, p_end_at: input.end, p_operation_id: input.operationId }),
+    }, accessToken);
+    return projectSlots(await response.json());
+  }
+
   private async request(path: string, init: RequestInit, accessToken: string): Promise<Response> {
     try {
       return await supabaseFetch(this.configuration, path, init, accessToken);
     } catch (error) {
       if (error instanceof SupabaseRequestError) {
         const code = parseErrorCode(error.responseBody);
+        if (code === "availability_hosting_conflict") throw new AvailabilityHostingConflictError();
         if (code === "23P01" || code === "23505" || code === "availability_overlap") throw new AvailabilityConflictError();
         if (code === "availability_invalid" || code === "23514" || code === "22P02") {
           throw new AvailabilityUnavailableError();
@@ -117,10 +140,27 @@ export class SupabaseAvailabilityRepository implements AvailabilityRepository {
 const parseErrorCode = (body: string): string | undefined => {
   try {
     const value = JSON.parse(body) as { code?: unknown; message?: unknown };
+    if (value.message === "availability_hosting_conflict") return "availability_hosting_conflict";
     if (typeof value.code === "string") return value.code;
     if (typeof value.message === "string" && value.message === "availability_overlap") return value.message;
   } catch {
     // Do not expose or log Supabase response bodies.
   }
   return undefined;
+};
+
+const projectSlots = (value: unknown): AvailabilitySlot[] => {
+  if (!Array.isArray(value)) throw new AvailabilityUnavailableError();
+  return value.map((row) => {
+    if (typeof row !== "object" || row === null) throw new AvailabilityUnavailableError();
+    const record = row as Record<string, unknown>;
+    if (typeof record.id !== "string" || typeof record.start_at !== "string" || typeof record.end_at !== "string") throw new AvailabilityUnavailableError();
+    return project({
+      id: record.id,
+      start_at: record.start_at,
+      end_at: record.end_at,
+      category: record.category as AvailabilitySlot["category"],
+      visibility: record.visibility as AvailabilitySlot["visibility"],
+    });
+  });
 };

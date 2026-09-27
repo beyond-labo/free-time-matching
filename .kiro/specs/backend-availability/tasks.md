@@ -30,7 +30,7 @@ kiro:
 
 - [ ] 2. create-only replay/conflict と同時性を永続化境界で補強する
   - 同じ actor・同じ UUID・同じ全 payload の再送を同じ DTO で返し、異なる payload を `availability_conflict` として既存行を変更せず返す。
-  - 別 actor の UUID の存在を列挙せず、異なる UUID の時間重複は exclusion constraint の conflict として扱う。
+  - 別 actor の UUID の存在を列挙せず、旧ID指定PUTで異なる UUID の時間重複は exclusion constraint の conflict として扱う。
   - lookup と create の競合窓を実 Supabase で再現し、必要な場合は安全な SQL/RPC または error mapping を追加する。
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
   - _Boundary: AvailabilityRepository, AvailabilityInfrastructure_
@@ -58,3 +58,15 @@ kiro:
   - _Requirements: 2.1, 4.5, 5.3, 6.2, 7.1, 7.2, 7.3_
   - _Boundary: AvailabilityValidation, ContractIntegration_
   - _Depends: 1, 2, 3, 4_
+
+- [x] 6. 本人区間のOR統合と減算を追加する
+  - UTC半開区間と操作IDの専用API、所有者単位のDBトランザクション、連鎖する統合、複数枠の左右分割をWorker/DBテストで確認する。
+  - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.7_
+  - _Boundary: AvailabilityIntervalOperations, AvailabilityData_
+  - _Depends: 1, 3_
+
+- [x] 7. 募集中の区間削除guardを統合する
+  - Hosting の有効候補と重なる減算をDBで原子的に拒否し、取消後の再試行を検証する。
+  - _Requirements: 8.6_
+  - _Boundary: AvailabilityHostingGuard_
+  - _Depends: 6, backend-hosting_

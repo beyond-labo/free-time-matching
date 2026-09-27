@@ -21,7 +21,7 @@ kiro:
 
 ## Current State
 
-DEBUG Prototype には友達一覧、固定招待コード、受信申請の一部操作があるが、Release は空の Production Placeholder に接続され、招待コードが発行されない。Backend API・DB とコード入力後の申請フローも未接続である。
+DEBUG Prototype には友達一覧と招待コード・申請操作のデモがある。Release は Backend Friendship Adapter を通して実 API へ接続し、承認済み友達を取得する。今回の募集ではこの承認済み友達だけを招待先に選び、友達プロフィールからは当該友達を選択済みにして時間軸へ進む。
 
 ## Desired Outcome
 

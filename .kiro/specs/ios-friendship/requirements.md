@@ -59,8 +59,9 @@ kiro:
 1. When 友達プロフィールを開いた, the iOS app shall 表示名、プリセットアイコン、友達を誘う、通報、ブロック、友達解除を表示する
 2. The iOS app shall 友達の一日の暇一覧と友達の友達一覧を表示しない
 3. When 友達解除を確認した, the iOS app shall 新しい招待と共有が停止することを説明して解除 Port を呼ぶ
-4. Where その友達との確定予定がある, the iOS app shall 予定が暗黙に消えないことと Hosting の離脱導線を表示する
+4. Where DEBUG Prototype にその友達との確定予定 fixture がある, the iOS app shall 予定が暗黙に消えないことをデモ内で示し、Release に未接続の確定・離脱導線を表示しない
 5. If プロフィール権限を失った, the iOS app shall 詳細を残さず友達一覧へ戻す
+6. When 友達プロフィールの「友達を誘う」を選んだ, the iOS app shall Hosting の時間軸選択へ遷移し、その友達を招待先として選択済みにする
 
 ### Requirement 4: 競合とプライバシー
 

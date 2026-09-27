@@ -19,6 +19,16 @@ export interface AvailabilityInput {
   readonly visibility: AvailabilityVisibility;
 }
 
+export interface AvailabilityIntervalOperation extends AvailabilityInput {
+  readonly operationId: string;
+}
+
+export interface AvailabilitySubtractOperation {
+  readonly start: string;
+  readonly end: string;
+  readonly operationId: string;
+}
+
 export class AvailabilityConflictError extends Error {
   constructor() {
     super("Availability overlaps another slot.");
@@ -30,6 +40,13 @@ export class AvailabilityUnavailableError extends Error {
   constructor() {
     super("Availability is unavailable.");
     this.name = "AvailabilityUnavailableError";
+  }
+}
+
+export class AvailabilityHostingConflictError extends Error {
+  constructor() {
+    super("Availability overlaps an active hosting.");
+    this.name = "AvailabilityHostingConflictError";
   }
 }
 

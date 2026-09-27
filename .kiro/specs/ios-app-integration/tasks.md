@@ -21,20 +21,20 @@ kiro:
   - _Boundary: HimatchPrototypeScenario_
 
 - [ ] 2. 横断読み取り投影を実装する
-  - Home、統合受信箱、友達予定を owner ID 付きで返し、変更操作を所有機能へ route する。
+  - Home、統合受信箱を owner ID 付きで返し、変更操作を所有機能へ route する。友達との確定予定は DEBUG Prototype fixture だけで投影する。
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
   - _Boundary: AppProjectionRepository_
   - _Depends: 1_
 
 - [ ] 3. Root Composition と Navigation を接続する
-  - 全Adapter / UseCase / Reducerを注入し、Releaseでは認証・プロフィール・削除・Friendship・本人の暇時間を実Backendへ固定し、3タブと各詳細をdelegate actionで遷移できる。暇登録の成功・失敗をBackend応答で判定する。
+  - 全Adapter / UseCase / Reducerを注入し、Releaseでは認証・プロフィール・削除・Friendship・本人の暇時間・Hostingを実Backendへ固定し、3タブと各詳細をdelegate actionで遷移できる。暇OR登録と招待の成功・失敗をBackend応答で判定する。
   - プロフィール確定後の友達・暇時間の取得を並行し、領域別の読み込み・失敗・再試行を実装して、全画面の操作を塞がないことを検証する。
-  - _Requirements: 3.1, 3.2, 3.6, 3.8, 3.9_
+  - _Requirements: 3.1, 3.2, 3.6, 3.8, 3.9, 3.10, 3.11, 3.12_
   - _Boundary: AppCompositionRoot, AppFeature_
   - _Depends: 1, 2_
 
 - [ ] 4. repository verify と全機能統合テストを完了する
-  - project構造、TCA pin、Supabase pin、entitlements、Swift Testing専用検査、STG接続設定、セッション復元・logout・削除後停止と主要デモ経路のbuild/test/smokeが成功し、未接続Backend範囲を区別する。
-  - _Requirements: 3.3, 3.4, 3.5, 3.7, 3.8_
+  - project構造、TCA pin、Supabase pin、entitlements、Swift Testing専用検査、STG接続設定、セッション復元・logout・削除後停止に加え、実Backendの暇OR・招待・回答と主要デモ経路を別々に検証する。予定確定は未接続と明示する。
+  - _Requirements: 3.3, 3.4, 3.5, 3.7, 3.8, 3.11, 3.12_
   - _Boundary: AppIntegrationValidation_
   - _Depends: 1, 2, 3_

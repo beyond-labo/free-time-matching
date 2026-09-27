@@ -50,9 +50,9 @@ graph LR
     AvailabilityPolicy --> AvailabilityUseCase
 ```
 
-`AvailabilityPolicy` は15分境界、範囲、重複を純粋関数で検証する。Reducer は入力中の表示状態を所有し、保存判断を UseCase へ委譲する。
+`AvailabilityPolicy` は15分境界と範囲を検証し、重なる・接する暇をOR統合候補として計算する。Reducer は入力中の表示状態と属性の統合確認を所有する。
 
-現行実装では独立した Repository / UseCase は未実装で、保存は App の `HimatchClient.addAvailability` / `removeAvailability` を Reducer の Effect から呼ぶ。DEBUG デモは Prototype scenario、Release は `BackendAvailabilityAdapter` が `GET/PUT/DELETE /v1/availability` を使う。認証SDKから現在のsessionを取得し、利用者JWTでBackendへ送る。登録・削除成功後は一覧 GET で本人枠を再取得して snapshot に反映し、認証後にも GET で再読込する。認証後の GET は友達情報の GET と並行させ、Home 内に読み込み中・失敗・再試行を表示する。GET 失敗は空一覧に変換せず、全面オーバーレイで画面を塞がない。認証後の読み込み応答は利用者 ID と更新番号が変わっていない場合だけ反映し、保存後の枠を古い応答で上書きしない。iOS HTTP 区間は `AvailabilityHTTP` signpost で計測し、Worker の `X-Request-ID` だけを診断ログへ記録する。Port 化はタスク1・2で行い、その際も下記の Presentation 契約を維持する。サーバー認可と保存の所有者は backend-availability 仕様とする。
+保存は App の `HimatchClient` を Reducer の Effect から呼ぶ。DEBUG は Prototype、Release は `BackendAvailabilityAdapter` が本人限定の GET、区間OR、区間減算を使う。認証SDKから現在のsessionを取得し、利用者JWTでBackendへ送る。成功後は一覧 GET で本人枠を再取得し、古い読み込み応答が保存後の枠を上書きしないよう利用者IDと更新番号で制御する。失敗は空一覧へ変換せず、入力を保持する。サーバー認可は backend-availability が所有する。
 
 ### Domain ポリシー
 
@@ -70,11 +70,11 @@ graph LR
 - 日付変更・タイムゾーン変更・表示時に `refreshWindow` で起点日を再計算し、選択中の日付を維持する。
 - 日表示は1時間を44pt以上の行とする。タップは位置を含む15分だけを画面内で選択し、シートを開かない。時間軸上の透明な `UIViewRepresentable` が `UITapGestureRecognizer` と `UILongPressGestureRecognizer`（0.3秒・許容移動10pt）を1組だけ所有する。長押し成立後に上下へドラッグすると、開始位置と現在位置を含む範囲を `TimelineSelection.normalized` で15分境界へ合わせる。長押し前に動いた場合は祖先 `UIScrollView.panGestureRecognizer` が先に成立してタップと長押しを失敗させ、通常の縦スクロールを所有する。既存ブロックと選択ハンドルは透明面より上に配置する。
 - 選択中は15分補助線、半透明の範囲、開始・終了ハンドル、開始・終了時刻と長さを重ねて表示する。ハンドルのドラッグも最寄りの15分境界へ合わせ、最低15分と1日境界を越えない。選択開始と境界変更に異なる触覚フィードバックを出す。
-- 親は選択のたびに `AvailabilityPolicy.validate` を適用する。過去・14日範囲外・重複は選択を消さず、破線、警告アイコン、理由テキストで示して登録を無効にする。保存直前にも時計と既存枠で再検証する。
+- 親は選択のたびに日時と範囲を検証する。過去・14日範囲外は選択を消さず理由を表示して登録を無効にする。既存暇との重複・接続はOR統合候補として示し、属性が異なる場合はカテゴリと公開設定を保存前に選ばせる。
 - 有効な選択では下部確認バーに範囲、長さ、「参加OKまで非公開」を表示する。「非公開で登録」はカテゴリ nil・`privateUntilAccepted` で保存し、「詳細を調整」は同じ範囲を編集シートへ渡す。選択だけでは保存せず、成功時だけ選択を消し、失敗時は再試行用に保持する。
 - VoiceOver では行ごとの :00 を既定アクション、:15/:30/:45 をカスタムアクションとして提供し、選択範囲には開始・終了を15分ずつ調整するアクション、登録、詳細調整、取消を提供する。週表示の時刻セルは該当日の日表示へ移り15分を選択する。アクセシビリティ文字サイズでは週表示を日ごとの一覧へ切り替える。
 - 常設の「暇を登録」だけは delegate `startAvailability(anchor: nil)` で親へ通知し、次の15分境界から2時間の編集状態を作る。
-- 既存の暇をタップすると詳細（範囲・公開設定・削除）を表示する。削除は関連する回答や予定を削除しないことを明示し、delegate `removeAvailability` で親へ渡す。
+- 既存の暇をタップすると詳細（範囲・公開設定・招待・削除）を表示する。削除モードは時間軸の範囲選択を共用し、重なる複数枠から選択範囲だけを差し引く。募集中の候補と重なる削除は止めて Hosting の取消へ案内する。
 - 日付をまたぐ枠は日ごとに半開区間で切り分け、重なる暇と予定は横に並べる（`TimelineLayout`）。
 
 ### 暇の編集シート（AvailabilityEditorFeature）
@@ -82,7 +82,7 @@ graph LR
 - 開始と終了を絶対時刻で保持し、上部の要約（開始→終了、日付、長さ、日付またぎ、表示タイムゾーン）を入力のたびに更新する。
 - 開始・終了それぞれに ±15分ボタンと15分刻みの日時ピッカー（`UIDatePicker.minuteInterval = 15`）を置き、受け取った値は Reducer で15分境界へ切り下げる。開始の移動は長さを保ち、終了は `開始 + 15分` から `latestEnd` の範囲に収める。
 - 長さプリセットは15分・30分・1時間・2時間・3時間・6時間。`latestEnd` を超えるものは無効にする。
-- 検証結果は `AvailabilityPolicy.validate` を毎回評価して時間の直下に表示し、無効な間は保存しない。重複は「重なっている暇を見る」で編集を閉じて既存枠の日と詳細へ移動する。開始が過ぎた場合は次の15分へ合わせる操作を出す。
+- 検証結果は日時と範囲を毎回評価して表示し、無効な間は保存しない。既存暇との重複・接続は統合後の範囲と属性を示す。開始が過ぎた場合は次の15分へ合わせる操作を出す。
 - 時計は `@Dependency(\.date)` から取得し、各操作と保存直前に再評価する。新規枠の id は `@Dependency(\.uuid)` で作る。
 - 公開設定は説明付きの2択で、編集状態は開くたびに作り直すため常に「参加OKするまで非公開」から始まる。暇登録が参加OKや予定確定ではないことを明記する。
 - 保存失敗時は入力を保持し、理由を表示して再試行できる。
@@ -112,10 +112,10 @@ apps/ios/HimatchTests/Domain/AvailabilityPolicyTests.swift
 - 現行の `AvailabilitySlot`: id、start、end、optional category、visibility。端末間の内容編集を導入する際に version を追加する。
 - `AvailabilityVisibility`: `privateUntilAccepted` / `shareOnHosting`。
 - 現行Backend契約: 本人の list、UUID指定の create と同内容の再送、delete。異なる内容で同じUUIDを再利用すると競合。将来の Repository 契約では create(command,idempotencyKey)、update(id,version,command)、delete(id,version) を提供する。
-- `AvailabilityError`: invalidInterval、past、outsideWindow、overlap(existingID)、conflict、transport。
+- `AvailabilityError`: invalidInterval、past、outsideWindow、hostingConflict、transport。
 - `HomeScheduleProjection` は Availability と Hosting の表示用項目を Integration から受け取る読み取り契約で、確定予定の変更を提供しない。
 
-重複判定は `new.start < existing.end && existing.start < new.end`。過去判定と14日上限の時計は注入し、テストを決定的にする。
+OR統合は重なるか端点が接する区間を連鎖的にまとめ、減算は選択範囲との半開区間差を残す。募集中の範囲は Hosting の候補区間を時間軸へ重ねて投影し、暇枠全体へ状態を広げない。
 
 ## Requirements Traceability
 
@@ -130,7 +130,7 @@ apps/ios/HimatchTests/Domain/AvailabilityPolicyTests.swift
 ## Error and Testing Strategy
 
 - 入力エラーは項目近傍、競合は最新取得後の再確認、通信失敗は入力保持。
-- Domain: 15分境界（秒を含む）、最短15分、日付またぎ、現在と14日の境界、半開区間の重複、初期枠、タイムゾーン変更。
+- Domain: 15分境界（秒を含む）、最短15分、日付またぎ、14日境界、半開区間のORと差、属性、タイムゾーン変更。
 - Application: Repository 成功・競合・再送。
 - Presentation: タップで15分、上下ドラッグの正規化、日境界、ハンドル調整、長押し閾値、保存直前の再検証、直接登録、詳細への同一範囲引継ぎ、失敗時の選択保持、日／週の移動範囲、公開説明、削除と Hosting 導線。
-- Integration: Home の直接選択から非公開登録または編集シートへの引継ぎ、保存後の該当日表示、重複から既存枠への移動（AppFeature TestStore）。実機相当の長押しドラッグ、スクロール競合、VoiceOver は Simulator 手動確認の対象とする。
+- Integration: Home の直接選択からOR登録、区間削除、友達招待への引継ぎ、保存後の該当日と募集中部分の表示（AppFeature TestStore）。実ドラッグ、スクロール競合、VoiceOver は Simulator 手動確認の対象とする。

@@ -21,6 +21,9 @@ import { createFriendshipRoutes } from "../Friendship/Presentation/FriendshipRou
 import type { AvailabilityRepository } from "../Availability/Application/Port/AvailabilityRepository";
 import { SupabaseAvailabilityRepository } from "../Availability/Infrastructure/Repository/SupabaseAvailabilityRepository";
 import { createAvailabilityRoutes } from "../Availability/Presentation/AvailabilityRoutes";
+import type { HostingRepository } from "../Hosting/Application/Port/HostingRepository";
+import { SupabaseHostingRepository } from "../Hosting/Infrastructure/Repository/SupabaseHostingRepository";
+import { createHostingRoutes } from "../Hosting/Presentation/HostingRoutes";
 
 export interface BackendBindings {
   readonly SUPABASE_URL?: string;
@@ -43,6 +46,7 @@ export interface AppDependencies {
   readonly requestDeletion: Pick<RequestAccountDeletion, "execute">;
   readonly deletionStatus: AccountDeletionStatusPort;
   readonly availability?: AvailabilityRepository;
+  readonly hosting?: HostingRepository;
 }
 
 export const createApp = (
@@ -114,6 +118,15 @@ export const createApp = (
     list: (actorId, token) => dependencies().availability!.list(actorId, token),
     upsert: (actorId, token, id, input) => dependencies().availability!.upsert(actorId, token, id, input),
     remove: (actorId, token, id) => dependencies().availability!.remove(actorId, token, id),
+    union: (actorId, token, input) => dependencies().availability!.union(actorId, token, input),
+    subtract: (actorId, token, input) => dependencies().availability!.subtract(actorId, token, input),
+  };
+  const lazyHosting: HostingRepository = {
+    create: (actorId, token, input) => dependencies().hosting!.create(actorId, token, input),
+    list: (actorId, token) => dependencies().hosting!.list(actorId, token),
+    get: (actorId, token, hostingId) => dependencies().hosting!.get(actorId, token, hostingId),
+    respond: (actorId, token, hostingId, input) => dependencies().hosting!.respond(actorId, token, hostingId, input),
+    cancel: (actorId, token, hostingId, input) => dependencies().hosting!.cancel(actorId, token, hostingId, input),
   };
 
   app.get("/healthz", healthRoute);
@@ -129,6 +142,7 @@ export const createApp = (
     }),
   );
   app.route("/v1", createAvailabilityRoutes({ tokenVerifier: lazyTokenVerifier, availability: lazyAvailability }));
+  app.route("/v1", createHostingRoutes({ tokenVerifier: lazyTokenVerifier, hosting: lazyHosting }));
   app.route(
     "/v1",
     createAccountDeletionRoutes({
@@ -178,6 +192,7 @@ const createRuntimeDependencies = (bindings: BackendBindings): AppDependencies =
     ),
     deletionStatus: new SupabaseDeletionStatusAdapter(userConfiguration),
     availability: new SupabaseAvailabilityRepository(userConfiguration),
+    hosting: new SupabaseHostingRepository(userConfiguration),
   };
 };
 

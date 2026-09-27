@@ -21,6 +21,9 @@ struct HostingDraft: Equatable, Sendable {
     var start: Date
     var duration: TimeInterval
     var friends: [FriendProfile]
+    var availabilityCategory: ActivityCategory? = nil
+    var availabilityVisibility: AvailabilityVisibility? = nil
+    var operationID: UUID = UUID()
 }
 
 struct HimatchClient: Sendable {
@@ -29,8 +32,12 @@ struct HimatchClient: Sendable {
     var saveProfile: @Sendable (String, String) async throws -> AppSnapshot
     var addAvailability: @Sendable (AvailabilitySlot) async throws -> AppSnapshot
     var removeAvailability: @Sendable (UUID) async throws -> AppSnapshot
+    var subtractAvailability: @Sendable (TimeIntervalRange, UUID) async throws -> AppSnapshot
+    var loadHostings: @Sendable () async throws -> (hostings: [Hosting], invitations: [Hosting])
     var createHosting: @Sendable (HostingDraft) async throws -> AppSnapshot
-    var acceptInvitation: @Sendable (UUID, TimeIntervalRange) async throws -> AppSnapshot
+    var respondInvitation: @Sendable (UUID, HostingInvitation.Status, [TimeIntervalRange], UUID, Int) async throws -> AppSnapshot
+    var cancelHosting: @Sendable (UUID, UUID, Int) async throws -> AppSnapshot
+    /// Prototype-only legacy fixture transition. Release has no confirmed-plan backend contract.
     var confirmHosting: @Sendable (UUID) async throws -> AppSnapshot
     var acceptRequest: @Sendable (UUID) async -> AppSnapshot
     var removeFriend: @Sendable (UUID) async -> AppSnapshot
@@ -76,8 +83,11 @@ extension HimatchClient {
         saveProfile: { _, _ in throw PrototypeError.notFound },
         addAvailability: { _ in throw PrototypeError.notFound },
         removeAvailability: { _ in .empty() },
+        subtractAvailability: { _, _ in .empty() },
+        loadHostings: { ([], []) },
         createHosting: { _ in throw PrototypeError.notFound },
-        acceptInvitation: { _, _ in throw PrototypeError.notFound },
+        respondInvitation: { _, _, _, _, _ in throw PrototypeError.notFound },
+        cancelHosting: { _, _, _ in throw PrototypeError.notFound },
         confirmHosting: { _ in throw PrototypeError.notFound },
         acceptRequest: { _ in .empty() },
         removeFriend: { _ in .empty() },

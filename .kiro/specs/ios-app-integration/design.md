@@ -21,7 +21,7 @@ kiro:
 
 ## Overview
 
-`AppCompositionRoot` が全機能のPort実装とTCA Storeを組み立てる。認証・プロフィール・削除・Friendship・本人の暇時間は実Backend Adapterを標準とし、最初の内部TestFlightではSTGへ接続する。`HimatchPrototypeScenario` actorはDEBUGの明示的なデモと未接続の業務機能だけに限定する。
+`AppCompositionRoot` が全機能のPort実装とTCA Storeを組み立てる。認証・プロフィール・削除・Friendship・本人の暇時間・Hosting は実Backend Adapterを標準とし、最初の内部TestFlightではSTGへ接続する。`HimatchPrototypeScenario` actorはDEBUGの明示的なデモと未接続機能だけに限定する。
 
 起動時は削除受付状態とセッションを先に判定し、プロフィールの有無でメイン画面か初期設定画面を決める。プロフィール確定後はメイン画面を表示し、友達と本人の暇時間を独立した Effect で並行取得する。各取得状態は専用フラグで Home / Friends の領域に表示し、共通 `isLoading` の全面オーバーレイは読み取りに使わない。失敗時は各領域から再試行でき、片方の失敗で他方の表示を消さない。
 
@@ -33,7 +33,7 @@ kiro:
 
 ### Out of Boundary
 
-- 個別機能の業務規則、暇の実BackendトランザクションとAPI自体、募集の実Backend、Push。暇AdapterのRelease注入は本仕様が所有する。
+- 個別機能の業務規則、暇と募集の実Backendトランザクション・API自体、Push。Release Adapter の注入は本仕様が所有する。
 
 ### Allowed Dependencies
 
@@ -52,6 +52,7 @@ graph LR
     AppCompositionRoot --> ProductionAccountAdapters
     AppCompositionRoot --> BackendFriendshipAdapter
     AppCompositionRoot --> BackendAvailabilityAdapter
+    AppCompositionRoot --> BackendHostingAdapter
     FeatureAdapters --> PrototypeScenario
     ProjectionRepository --> PrototypeScenario
     Home --> ProjectionRepository
@@ -72,7 +73,7 @@ apps/ios/HimatchTests/AppIntegration/
 
 ## Contracts
 
-`AppProjectionRepository` は `home()`、`inbox()`、`friendPlans(friendID)` の read-only async 操作だけを持つ。DTO は ownerFeature と entityID を持ち、変更操作は Root delegate が所有機能へ route する。
+`AppProjectionRepository` は `home()`、`inbox()`、`friendPlans(friendID)` の read-only async 操作だけを持つ。DTO は ownerFeature と entityID を持ち、変更操作は Root delegate が所有機能へ route する。確定予定と `friendPlans` は DEBUG の Prototype fixture 専用とし、Release の投影には実 Backend の確定予定があるように表示しない。
 
 `HimatchPrototypeScenario` は actor 内で全 fixture を保持し、feature adapter factory と reset(seed) を提供する。block/delete は actor メソッド一回で関連状態と revision を更新する。各 Adapter は自機能 Port だけを実装する facade である。
 
@@ -83,7 +84,7 @@ apps/ios/HimatchTests/AppIntegration/
 | 1.1-1.4 | AppProjectionRepository, Root route | projection / navigation tests |
 | 2.1-2.5 | HimatchPrototypeScenario, facets | actor / reset / cross-effect tests |
 | 3.1-3.5 | AppCompositionRoot, integration tests | build / Swift Testing / Simulator smoke |
-| 3.6-3.8 | ProductionAccountAdapters, BackendFriendshipAdapter, AppFeature | composition / staging config / restore / logout / deletion tests |
+| 3.6-3.12 | ProductionAccountAdapters, BackendFriendshipAdapter, BackendAvailabilityAdapter, BackendHostingAdapter, AppFeature | composition / staging config / restore / invite response tests |
 
 ## Testing Strategy
 
