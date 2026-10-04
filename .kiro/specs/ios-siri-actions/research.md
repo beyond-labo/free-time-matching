@@ -133,3 +133,11 @@ xcresultは `test_sim_2026-10-04T03-55-48-776Z_pid54869_44e91654.xcresult`、Rel
 旧Preparedのexecuteは既存のinvalidated検査で保存前に停止すること、送信前の失効検査からmutationStarted登録までawaitがないことをコードで再照合した。
 新ID保存後に旧記録削除だけがIO失敗すると新旧draftが残り得る点、プロセス内追跡集合の整理は非ブロッキング改善事項として残る。
 タスク2/6を修正・回帰結果により再完了化し、実機のタスク7は未完了で維持する。
+
+
+## バージョン更新（2026-10-04）
+
+ユーザー指定でiOSアプリのDebug MARKETING_VERSIONとRelease HIMATCH_MARKETING_VERSIONを0.1.6へ変更した。
+設定画面のバージョン表示は固定文字列からBundleのCFBundleShortVersionString参照へ変更し、ビルド設定と揃えた。
+XcodeBuildMCPでPR候補のDebug/Releaseビルドに成功し、両方の生成Info.plistで0.1.6（build 1）を確認した。
+業務契約・Siri操作の変更はなく、既存の160件の業務検証は再利用する。

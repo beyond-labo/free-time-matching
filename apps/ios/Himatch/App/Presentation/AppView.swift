@@ -419,7 +419,7 @@ private struct SettingsView: View {
                 }
 
                 Section("アプリ情報") {
-                    LabeledContent("バージョン", value: "0.1.0")
+                    LabeledContent("バージョン", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
                     LabeledContent("運営", value: "beyond-labo")
                 }
             }
