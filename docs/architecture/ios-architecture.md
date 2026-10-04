@@ -104,7 +104,7 @@ Presentation 側の `liveValue` で Infrastructure を直接構築しません�
 実装は選定した TCA と swift-dependencies の版で検証します。
 [依存差し替えの公式資料](https://github.com/pointfreeco/swift-dependencies)
 
-Release CompositionはAuthentication、Profile、Friendship、Availability、Hosting、AccountDeletionへ実Adapterを注入し、構成値不足を認証成功へフォールバックしません。接続環境はbuild-time configurationで選び、最初の内部TestFlightはstagingを使用します。Prototype認証と友達fixtureはDEBUGの明示的なデモ導線だけで利用します。
+通常のDebug/Release CompositionはAuthentication、Profile、Friendship、Availability、Hosting、AccountDeletionへ実Adapterを注入し、構成値不足を認証成功へフォールバックしません。接続環境はbuild-time configurationで選び、最初の内部TestFlightはstagingを使用します。Prototype認証と友達fixtureはDEBUGの明示的なデモ導線だけで利用します。
 Apple認証requestにはランダムなraw nonceのSHA-256を設定し、Apple identity tokenとraw nonceをSupabase Authへ渡します。authorization codeはアカウント削除時のfresh再認証でBackendへ送り、生credentialを永続化しません。
 
 Cancellation は Effect と下位の非同期処理へ伝播させ、キャンセルを通信失敗の画面表示へ機械的に変換しません。
@@ -121,6 +121,8 @@ Swift package への分割は、実際にビルド境界を強制する必要が
 
 ## 検証方針
 
+iOS のビルド・テスト・Simulator 操作は XcodeBuildMCP を優先します（2026-10-04 のユーザー指定）。利用できない機能だけ CLI で補い、検証証拠は同じ対象状態に対応させます。
+
 iOS の単体・Reducer・統合テストは Swift Testing で記述します。`xcodebuild test` と `HimatchTests` target は実行境界として維持しますが、テストコードでは XCTest を import せず、`XCTestCase` を継承しません。
 
 - Domain：業務上の不変条件。
@@ -131,3 +133,20 @@ iOS の単体・Reducer・統合テストは Swift Testing で記述します。
 
 TestStore は TCA の状態遷移と Effect の結果を検証するために使います。
 [公式のテスト例](https://github.com/pointfreeco/swift-composable-architecture#testing)
+
+## Siri とショートカット
+
+AppRuntime が実Adapterと本人束縛の SystemActionService を構築し、AppCompositionRoot と App Intents が共有します。
+4操作（暇の登録・区間削除、友達への募集、本人募集の取消）をAppShortcutsProviderで公開します。
+業務検証・属性統合・操作IDと再送はApplication、Appleの対話とEntity QueryはInfrastructure/AppIntentsに置きます。
+本人限定の候補Queryと送信時のセッション照合、端末ロック・退会停止の検査を行います。
+引継ぎ記録の本人識別はセッション復元で行い、通信を伴うプロフィール検証の失敗によって本人束縛を失わせません。
+新規時間へ既存の共有設定を自動継承せず、属性が異なる場合は明示選択を求めます。
+送信前にファイル保護付きJournalへ保存し、結果不明は同一payload・操作IDで再送します。
+Siri専用Clientは書込後の再取得を行わず、通常画面は従来どおり再取得します。
+画面へ戻ったときは暇・募集を再取得し、認証後に保持した入力を専用Sheetへ引き継ぎます。
+募集カテゴリと本人の暇の明示未選択カテゴリを別契約として扱います。
+実機のSiri成立はSimulatorビルドや単体テストとは別に確認します。
+詳細は[仕様](../../.kiro/specs/ios-siri-actions/design.md)と[検証記録](../testing/ios-siri-actions.md)を参照してください。
+
+変更記録: 2026-10-04、予定の設定・調整の負荷を最小化する共通方針とSiri公開に対応し、共通実runtimeと入力引継ぎを追加しました。

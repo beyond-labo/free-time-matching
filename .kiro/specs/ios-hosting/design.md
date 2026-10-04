@@ -53,7 +53,7 @@ graph LR
     HostingRepository --> BackendContract
 ```
 
-BackendContract は backend-hosting の実 API とし、Release Composition は Backend Adapter を注入する。Repository response は invited count、non-responder identity、availability reason を持たない。
+BackendContract は backend-hosting の実 API とし、通常Debug/Release Composition は Backend Adapter を注入する。Prototypeは明示デモだけに注入する。Repository response は invited count、non-responder identity、availability reason を持たない。
 
 ## File Structure Plan
 
@@ -89,6 +89,10 @@ stateDiagram-v2
 ## Application Contracts
 
 `HostingRepository` は `create(command, operationID)`、`list/detail`、`respond(command, operationID, expectedVersion)`、`cancel(operationID, expectedVersion)` を提供する。募集作成は選択区間と暇属性を渡し、Backend が暇OR統合と全招待先への送信を一度に確定する。
+
+`HostingDraft.availabilityMetadata` は本人暇のcategoryとvisibilityを明示する。metadataのcategoryがnilなら未選択として送信し、募集カテゴリへフォールバックしない。画面の作成とSiriの作成は明示metadataを渡す。旧呼出しのmetadata未指定と明示未選択を区別する。
+
+Siriの作成・取消はAppRuntimeの本人束縛Clientでセッションの本人を検証し、同じtokenで既存Adapterへ送る。Siri経路はmutation応答で成功判定し、後続の暇GETを省略する。通常Rootのsnapshot取得は維持する。入力補完・確認・結果不明の保護記録はios-siri-actions、表示更新・認証後復帰はApp Integrationの責務とする。operationIDと同じpayloadの再送、expectedVersionの契約は変更しない。
 
 Privacy response rules:
 

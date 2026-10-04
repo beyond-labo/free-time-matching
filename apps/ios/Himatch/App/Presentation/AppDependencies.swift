@@ -30,7 +30,17 @@ private enum DeletionStatusTokenStoreKey: DependencyKey {
     static let testValue = liveValue
 }
 
+private enum SystemActionHandoffClientKey: DependencyKey {
+    static let liveValue = SystemActionHandoffClient.noop
+    static let testValue = liveValue
+}
+
 extension DependencyValues {
+    var systemActionHandoffClient: SystemActionHandoffClient {
+        get { self[SystemActionHandoffClientKey.self] }
+        set { self[SystemActionHandoffClientKey.self] = newValue }
+    }
+
     var himatchClient: HimatchClient {
         get { self[HimatchClientKey.self] }
         set { self[HimatchClientKey.self] = newValue }

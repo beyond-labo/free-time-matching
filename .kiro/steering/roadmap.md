@@ -36,6 +36,10 @@ Backend のうちユーザーアカウント管理、友達関係、本人限定
 
 対象外は友達の暇の直接共有・募集照合、予定の最終確定、Push・APNs配信、友達ブロック・通報のBackend保存、運営管理画面、非同期削除Queue、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
 
+## 製品の共通方針
+
+[製品方針](product.md) に従い、予定設定・調整の再入力や再選択を減らす。Siri 連携は既存の暇・募集操作への新しい入口として扱い、参加OK・予定確定や公開範囲の意味を変更しない。
+
 ## Constraints
 
 - 暇登録、参加 OK、予定確定を別の意思表示として扱う。
@@ -71,6 +75,8 @@ Backend のうちユーザーアカウント管理、友達関係、本人限定
 - [x] ios-safety-settings -- 通報、ブロック、通知設定、サポート、アカウント削除。Dependencies: ios-app-foundation, ios-friendship, ios-hosting
 - [x] ios-app-integration -- 横断読み取り投影、Prototype scenario、Root Composition、統合検証。Dependencies: ios-app-foundation, ios-availability, ios-friendship, ios-hosting, ios-safety-settings
 
+- [ ] ios-siri-actions -- Siri・ショートカットからの暇登録・区間削除、募集条件設定・作成・取消。設計生成済み。工程承認の正本は spec.json。Dependencies: ios-app-foundation, ios-availability, ios-friendship, ios-hosting
+
 ## Existing Spec Updates
 
 - `ios-app-foundation`: Production Apple認証、セッション復元、プロフィールAPIを対象へ追加する。
@@ -78,6 +84,8 @@ Backend のうちユーザーアカウント管理、友達関係、本人限定
 - `ios-app-integration`: Release Compositionで認証・友達関係・暇の実 Backend Adapterを必須にし、初回接続先を STG、PrototypeをDEBUGへ限定する。
 - `ios-friendship`: Release CompositionでBackend Friendship Adapterを必須にし、最初の内部 TestFlight ではコード・申請・友達をSTGへ接続する。
 - `ios-ci-cd`: 製品実装と TCA 追加後も既存 build/test/TestFlight 経路が成立することを再検証する。CI/CD の責務や秘密管理契約は変更しない。
+
+- `ios-app-integration`: Siri 操作から認証・画面へ入力を引き継ぐ Composition 契約を、Siri 要件承認後に設計・タスクへ同期する。既存実装の完了状態とは分けて管理する。
 
 ## Direct Implementation Candidates
 

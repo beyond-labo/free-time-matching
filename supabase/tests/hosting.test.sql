@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(42);
 
 select has_table('public','hostings','hosting aggregate exists');
 select has_table('public','hosting_invitations','invitation records exist separately');
@@ -73,6 +73,39 @@ set local request.jwt.claim.sub='60000000-0000-4000-8000-000000000001';
 select is(jsonb_array_length(public.hosting_get(current_setting('test.hosting_id')::uuid)->'acceptedParticipants'),1,'host sees accepted participants only');
 select ok(not ((public.hosting_get(current_setting('test.hosting_id')::uuid)->'acceptedParticipants') @> '[{"userId":"60000000-0000-4000-8000-000000000003"}]'::jsonb),'host projection does not expose declined invitee');
 select is(public.hosting_cancel(current_setting('test.hosting_id')::uuid,'60000000-0000-4000-8000-000000000051',1)->>'status','cancelled','host can cancel with expected version');
+select is((public.hosting_get(current_setting('test.hosting_id')::uuid)->>'version')::integer,2,'cancellation advances hosting version');
+select is(public.hosting_cancel(current_setting('test.hosting_id')::uuid,'60000000-0000-4000-8000-000000000051',1),
+ public.hosting_get(current_setting('test.hosting_id')::uuid),'cancel replay accepts original expected version and returns current projection');
+select throws_ok($$select public.hosting_cancel(current_setting('test.hosting_id')::uuid,'60000000-0000-4000-8000-000000000051',2)$$,
+ '23505','hosting_conflict','cancel replay rejects changed expected version');
+
+-- now() is transaction-fixed. Model persisted state after time elapsed by moving
+-- the original create payload and hosting into the past as the fixture owner.
+-- No trigger is disabled and no migration/function is changed.
+reset role;
+update public.hostings set start_at=date_trunc('hour',now())-interval '2 hours',
+ end_at=date_trunc('hour',now())-interval '1 hour'
+ where id=current_setting('test.hosting_id')::uuid;
+update private.hosting_operations set payload=payload || jsonb_build_object(
+ 'start',date_trunc('hour',now())-interval '2 hours','end',date_trunc('hour',now())-interval '1 hour')
+ where actor_user_id='60000000-0000-4000-8000-000000000001'
+ and operation_id='60000000-0000-4000-8000-000000000031';
+set local role authenticated;
+select is(public.hosting_create(
+ date_trunc('hour',now())-interval '2 hours',date_trunc('hour',now())-interval '1 hour',
+ 'online',null,'game','[{"type":"friend","id":"60000000-0000-4000-8000-000000000002"},{"type":"friend","id":"60000000-0000-4000-8000-000000000003"}]'::jsonb,
+ 'game','privateUntilAccepted','60000000-0000-4000-8000-000000000031'),
+ public.hosting_get(current_setting('test.hosting_id')::uuid),
+ 'expired create replay returns current cancelled projection instead of validating a new interval');
+select throws_ok($$select public.hosting_create(
+ date_trunc('hour',now())-interval '2 hours',date_trunc('hour',now())-interval '1 hour',
+ 'online',null,'meal','[{"type":"friend","id":"60000000-0000-4000-8000-000000000002"},{"type":"friend","id":"60000000-0000-4000-8000-000000000003"}]'::jsonb,
+ 'game','privateUntilAccepted','60000000-0000-4000-8000-000000000031')$$,
+ '23505','hosting_conflict','expired create replay rejects a changed payload');
+reset role;
+select is((select count(*)::integer from public.hosting_invitations where hosting_id=current_setting('test.hosting_id')::uuid),2,
+ 'expired create replay does not create additional invitations');
+set local role authenticated;
 select lives_ok($$delete from public.availability_slots$$,'availability can be deleted once hosting is cancelled');
 
 select * from finish();

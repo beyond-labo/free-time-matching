@@ -50,3 +50,5 @@ kiro:
 - 2026-09-27: 共通時間軸からの作成、友達プロフィール選択、15分単位の明示回答、募集中表示と取消導線、失敗時の入力保持を実装。Debug Swift Testing 121件と Release Simulator build が通過した。STG 実送受信は未実施。
 - 2026-09-26: ユーザーが時間軸と同じUIによる招待、選んだ友達全員への実送信、一部時間の回答、予定確定の後続移管を確定した。旧 Prototype 専用作成・暇重複による配信選別・必要時間指定・この工程での予定確定は現行契約から外す。根拠は会話の計画承認と backend-hosting 要件。
 - 2026-09-20: ユーザー提示の募集、回答、確定、漏えい防止、受信箱要件を新規仕様へ反映。
+
+- 2026-10-04: Siri統合に伴いHostingDraftの明示availabilityMetadataを現行設計へ反映した。category=nilを開催カテゴリへfallbackさせず、本人暇未選択と募集カテゴリを分離する。AppRuntimeの本人束縛Siri Clientはmutation後の暇GETを省略し、通常RootのGETを維持する。根拠はHimatchClient/BackendHostingAdapter/AppRuntimeとAdapter回帰テスト。業務要件と既存完了タスク1–3は維持し、実STG検証のタスク4は未完を維持する。今回のシステム操作検証はios-siri-actionsタスクへ集約した。

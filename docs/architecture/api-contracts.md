@@ -133,3 +133,7 @@ Availability の応答は `Cache-Control: private, no-store` とし、端末や�
 ## 現在の配置
 
 HTTP実装は存在しますが、OpenAPI生成スクリプトと生成クライアントはまだ存在しません。初版iOS Adapterはプロフィール、友達関係、削除の固定契約を局所DTOへ変換し、生成経路導入時に置き換えます。
+
+### システム操作からの同一操作再送
+
+暇union/subtractは本人・操作種別・operationIdで保存済みpayloadとresultを照合し、同じ入力は保存済み結果を返します。募集create/cancelはactor・operationIdの記録を新規日時・status・version検証より先に確認し、同じpayloadは対象募集の現在の認可済みprojectionを返します。create再送で新たな招待は作らず、cancel再送で初回のexpectedVersionを変更しません。異なるpayloadのID再利用は409です。これは202609260001/202609260002の既存migrationを確認した契約であり、新しいAPIの追加ではありません。

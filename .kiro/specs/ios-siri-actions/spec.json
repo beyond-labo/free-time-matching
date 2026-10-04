@@ -1,24 +1,24 @@
 {
-  "feature_name": "ios-app-integration",
-  "created_at": "2026-09-20T17:56:00+09:00",
-  "updated_at": "2026-10-04T19:00:00+09:00",
+  "feature_name": "ios-siri-actions",
+  "created_at": "2026-10-04T10:25:08+09:00",
+  "updated_at": "2026-10-04T12:58:24+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": false
+      "approved": true
     },
     "design": {
       "generated": true,
-      "approved": false
+      "approved": true
     },
     "tasks": {
       "generated": true,
-      "approved": false
+      "approved": true
     }
   },
-  "ready_for_implementation": false,
+  "ready_for_implementation": true,
   "freshness": {
     "status": "current",
     "pending": [],
@@ -31,7 +31,6 @@
       ".kiro/specs/ios-app-integration/design.md": "d9325774b53443b89a20e508b0727954bb578c2d96f5d15b8dfe78a0d2fd1ed2",
       ".kiro/specs/ios-app-integration/requirements.md": "4dd322ae5d29df3f12847d245224bae5ade5f3554f4841be6be0554039623060",
       ".kiro/specs/ios-app-integration/research.md": "56762fe4d89cefa99a686847b694a5a5547b95d2c351c4c965823883359ae9d9",
-      ".kiro/specs/ios-app-integration/tasks.md": "aaba9816f3f418e0680afa8d835f0fcf963bce9b4e575228524ed11c587df67b",
       ".kiro/specs/ios-availability/brief.md": "3b598bc67fa41281f8d53b9555d2fd3f6bf6477d1856bd500fbbc2af59a8dfac",
       ".kiro/specs/ios-availability/design.md": "e7577de863e042ccdc9d7d75f2209787f088b9ce0362f22f796a732f5bd04c5a",
       ".kiro/specs/ios-availability/requirements.md": "8c23d66d6be43f8a2a98fca754146c3462d0181ff1148c4eabd65b467f70b252",
@@ -48,7 +47,26 @@
       ".kiro/specs/ios-safety-settings/design.md": "edb933905c0572dda113329bdce14c87aa1139a75fce873f44fffd339503a91a",
       ".kiro/specs/ios-safety-settings/requirements.md": "976a865b5bd2c72837aa25718944f944d76e2e55e82fefbdf12e2cea17f152eb",
       ".kiro/specs/ios-safety-settings/research.md": "a2b87e8f6d9565c7b63c971d21766bc558dc78c71358c7f8633e0f18ec81a9d1",
+      ".kiro/specs/ios-siri-actions/brief.md": "353c910f71ee97da8544e328848c024305318d1923895209afa0eeb90949e040",
+      ".kiro/specs/ios-siri-actions/design.md": "0023c7092d9e83e364daaa5c0c3117438a80a960f45e473eb8f56708ca022441",
+      ".kiro/specs/ios-siri-actions/requirements.md": "76cdd96a0b112ee7b9615c45a7343997e9a999a289720d1222b2d088760c9ee4",
+      ".kiro/specs/ios-siri-actions/research.md": "9f8273deaa666af3d0a5b9cfde3b507b4ebd379532107e52bf987260fb457bed",
+      ".kiro/specs/ios-siri-actions/tasks.md": "59bc36a5a1d273c3dd76f7d584ee77ec8cbeceb66487ff08ed2973d076d30f68",
+      ".kiro/steering/product.md": "b765b177974738dcac2ac88ceb49eebbaa5806e4c3652ca9a07b71ae4aa99cd7",
       ".kiro/steering/roadmap.md": "685f06ceeba4ec87c37826f1bf533183c0886deeb1d195dfd3d846b6b6244300",
+      "apps/ios/Himatch/App/Composition/AppCompositionRoot.swift": "7dbd410150765d938535c00dd4fc1b337981bc3df8f4c24f7959fb4ee12b890f",
+      "apps/ios/Himatch/App/Composition/AppRuntime.swift": "e9764f07be46927f1d7f7260100938e4d8940e056f5540f8ae471a76550bae0b",
+      "apps/ios/Himatch/App/Domain/HimatchClient.swift": "2029af7da58ef9c29b334bbd9703c428d01859088cfbd126772ed4a053bf62f6",
+      "apps/ios/Himatch/App/Presentation/AppFeature.swift": "c12fe06c9d8a2bbe74639b64c8e4fb195f77619252576ad8723c1da6fe9b0d0e",
+      "apps/ios/Himatch/App/Presentation/AppView.swift": "37ec9d8842b3ca271730983958a51665f0d0b5e40794a25b9a8cb318d40fc45c",
+      "apps/ios/Himatch/App/Presentation/SystemActionHandoff.swift": "a5b25fb7f6446c83b19c06a4d70ba4e30b02857a9b7ee62cc8f7a8edae7d2596",
+      "apps/ios/Himatch/App/Presentation/SystemActionReviewView.swift": "d04be99860d1913b7f19b449ffa81adf4ade680ea69fd3bafb7e8b2c1e791919",
+      "apps/ios/Himatch/Availability/Domain/AvailabilityModels.swift": "81ff79a3808cef93d277fa4973ce884261992b7d01567ef9165215c7d2db355c",
+      "apps/ios/Himatch/Availability/Infrastructure/Adapter/BackendAvailabilityAdapter.swift": "0230c34b94a40ed2efd5cb4daa95b17c6093b3a8f233cf5720b335feb0cfb402",
+      "apps/ios/Himatch/Hosting/Infrastructure/Adapter/BackendHostingAdapter.swift": "db3070497363922e6537fbb8464933c9653cece2e7994f43d737376f651bad44",
+      "apps/ios/Himatch/SystemActions/Application/SystemActionService.swift": "e4e0a2db5e72fb2d273efbed7cfc5991c38c2101fab5ba655359556b6d9e5bb8",
+      "apps/ios/Himatch/SystemActions/Domain/SystemActionModels.swift": "d670deb046f7dbb36da1a53b30e42c00ca121cf61ddc2c6bf284bba460b857d4",
+      "apps/ios/Himatch/SystemActions/Infrastructure/Storage/SystemActionJournal.swift": "25dec24a1d409d3399d9489f18a3e42fb2744718589bea4f99f6e0ebcd8082ef",
       "apps/ios/Himatch.xcodeproj/project.pbxproj": "47746412fb4d13329939fb941757f282c7c316820563417c6b5cb0cb233687c4",
       "docs/architecture/api-contracts.md": "67f7a985fb101620c83b5c6076603597f4cd51ae81412e6d54ff70296da995c6",
       "docs/architecture/ios-architecture.md": "e3c0a92914e71ab082a6d9007f6876e5eb0690df0160c872886cab5786c2b8f2",

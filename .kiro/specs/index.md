@@ -8,6 +8,7 @@ okf_version: "0.2"
 - [backend-availability](backend-availability/index.md)
 - [backend-ci-cd](backend-ci-cd/index.md)
 - [backend-friendship](backend-friendship/index.md)
+- [backend-hosting](backend-hosting/index.md)
 - [backend-user-account-management](backend-user-account-management/index.md)
 - [ios-app-foundation](ios-app-foundation/index.md)
 - [ios-app-integration](ios-app-integration/index.md)
@@ -16,3 +17,4 @@ okf_version: "0.2"
 - [ios-friendship](ios-friendship/index.md)
 - [ios-hosting](ios-hosting/index.md)
 - [ios-safety-settings](ios-safety-settings/index.md)
+- [ios-siri-actions](ios-siri-actions/index.md)

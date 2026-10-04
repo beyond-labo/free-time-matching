@@ -59,3 +59,9 @@ Root Composition と友達状態の統合を iPhone 17 Pro Max Simulator でビ�
 削除状態の復元をRoot起動より先に判定し、Supabase SDKの初期session eventが保留中の削除を追い越して通常画面を復元しないようにした。
 
 - 2026-09-20: 独立仕様間レビューの Critical 指摘を受けて新規作成。
+
+### 2026-10-04: Siri操作の実装同期
+
+共通実依存の組立てをAppRuntimeへ集約し、通常Debug/ReleaseとSiriは同じBackend構成、明示デモのみPrototypeにした。AppViewの起動・scene active・main遷移・通知からRootがFIFO引継ぎを検査し、本人変更/サインアウト/退会受付で旧本人操作を失効する。Siriの本人束縛Clientはmutation後GETを省略し、通常RootはGETを維持する。根拠はAppRuntime/AppCompositionRoot/AppFeature/AppView/SystemActionHandoffの現行実装とSwift Testingの確認済み結果。実装検証はios-siri-actionsタスクへ集約する。既存要件は維持し、旧承認falseと未完了タスクを今回の部分検証だけで全体承認・完了へ変更しない。
+
+- 2026-10-04: 独立Siri実装レビューP1-2の修正方針を同期。プロフィール通信の失敗からnil-ownerへ落とさず、session本人の識別とプロフィールを含む実行gateを分離する。ログアウト時はentityOwnerの一致とnil-owner未送信記録も破棄する。修正後の実装・回帰照合はios-siri-actionsタスク2/5/6で行う。
