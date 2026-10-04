@@ -1,5 +1,11 @@
 import Foundation
 
+/// Explicit metadata for the host's own availability, independent of the event category.
+struct HostingAvailabilityMetadata: Equatable, Codable, Sendable {
+    var category: ActivityCategory?
+    var visibility: AvailabilityVisibility
+}
+
 enum HostingMode: String, CaseIterable, Codable, Equatable, Sendable {
     case online = "オンライン"
     case offline = "オフライン"

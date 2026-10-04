@@ -26,6 +26,7 @@ struct AppFeature {
         var route: Route = .launching
         var selectedTab: Tab = .home
         var snapshot: AppSnapshot?
+        var systemActionOperationID: UUID?
         var availabilityRevision = 0
         var hostingRevision = 0
         var authenticationSession: AuthenticationSession?
@@ -100,6 +101,10 @@ struct AppFeature {
 
     enum Action {
         case task
+        case systemActionsForeground
+        case systemActionAvailable(UUID)
+        case systemActionDismissed
+        case systemActionCompleted
         case snapshotLoaded(AppSnapshot)
         case sessionRestored(AuthenticationSession?)
         case sessionRestoreFailed(String)
@@ -203,6 +208,7 @@ struct AppFeature {
     @Dependency(\.date.now) var now
     @Dependency(\.calendar) var calendar
     @Dependency(\.uuid) var uuid
+    @Dependency(\.systemActionHandoffClient) var systemActionHandoffClient
 
     var body: some ReducerOf<Self> {
         Scope(state: \.homeTimeline, action: \.homeTimeline) {
@@ -210,6 +216,30 @@ struct AppFeature {
         }
         Reduce { state, action in
             switch action {
+            case .systemActionsForeground:
+                guard state.route == .main, !state.isDemo else { return .none }
+                return .merge(
+                    .send(.reloadAvailability), .send(.reloadHostings),
+                    .run { send in
+                        if let id = await systemActionHandoffClient.pendingOperationID() {
+                            await send(.systemActionAvailable(id))
+                        }
+                    }
+                )
+
+            case let .systemActionAvailable(id):
+                guard state.route == .main, !state.isDemo, state.systemActionOperationID == nil else { return .none }
+                state.systemActionOperationID = id
+                return .none
+
+            case .systemActionDismissed:
+                state.systemActionOperationID = nil
+                return .none
+
+            case .systemActionCompleted:
+                state.systemActionOperationID = nil
+                return .send(.systemActionsForeground)
+
             case .task:
                 state.isLoading = true
                 return .merge(
@@ -320,14 +350,22 @@ struct AppFeature {
                     if state.route == .deletionAccepted, state.accountDeletionReceipt != nil {
                         return .none
                     }
+                    let previousOwner = state.authenticationSession?.userID
+                    let ownerChanged = previousOwner != nil && previousOwner != session.userID
+                    if ownerChanged { state.systemActionOperationID = nil }
                     state.authenticationSession = session
                     guard state.route != .deletionAccepted else { return .none }
                     return .merge(
                         .cancel(id: CancelID.friendship),
-                        loadProfile(session: session)
+                        loadProfile(session: session),
+                        .run { _ in
+                            if ownerChanged, let previousOwner { await systemActionHandoffClient.invalidate(previousOwner) }
+                        }
                     )
                 case .signedOut:
                     guard state.route != .launching else { return .none }
+                    let previousOwner = state.authenticationSession?.userID
+                    state.systemActionOperationID = nil
                     state.authenticationSession = nil
                     state.isAvailabilityLoading = false
                     state.isFriendshipLoading = false
@@ -335,10 +373,14 @@ struct AppFeature {
                     state.snapshot = nil
                     state.route = .onboarding
                     state.isLoading = false
-                    return .cancel(id: CancelID.friendship)
+                    return .merge(.cancel(id: CancelID.friendship), .run { _ in
+                        if let previousOwner { await systemActionHandoffClient.invalidate(previousOwner) }
+                    })
                 }
 
             case let .authenticationInvalidated(message):
+                let previousOwner = state.authenticationSession?.userID
+                state.systemActionOperationID = nil
                 state.authenticationSession = nil
                 state.isAvailabilityLoading = false
                 state.isFriendshipLoading = false
@@ -347,7 +389,9 @@ struct AppFeature {
                 state.isLoading = false
                 state.route = .onboarding
                 state.alertMessage = message
-                return .cancel(id: CancelID.friendship)
+                return .merge(.cancel(id: CancelID.friendship), .run { _ in
+                    if let previousOwner { await systemActionHandoffClient.invalidate(previousOwner) }
+                })
 
             case let .operationFailed(message):
                 state.isLoading = false
@@ -526,8 +570,9 @@ struct AppFeature {
                 state.isLoading = true
                 return .merge(
                     .cancel(id: CancelID.friendship),
-                    .run { send in
+                    .run { [owner = state.authenticationSession?.userID] send in
                         do {
+                            if let owner { await systemActionHandoffClient.invalidate(owner) }
                             try await authenticationClient.signOut()
                             await send(.logoutCompleted)
                         } catch {
@@ -815,6 +860,7 @@ struct AppFeature {
                     start: state.hostingStart,
                     duration: state.hostingEnd.timeIntervalSince(state.hostingStart),
                     friends: snapshot.friends.filter { state.selectedFriendIDs.contains($0.id) },
+                    availabilityMetadata: HostingAvailabilityMetadata(category: state.hostingAvailabilityCategory, visibility: state.hostingAvailabilityVisibility),
                     availabilityCategory: state.hostingAvailabilityCategory,
                     availabilityVisibility: state.hostingAvailabilityVisibility,
                     operationID: state.hostingOperationID ?? uuid()

@@ -1,6 +1,6 @@
 begin;
 
-select plan(26);
+select plan(29);
 
 select has_table('public', 'availability_slots', 'availability table exists');
 select col_is_pk('public', 'availability_slots', 'id', 'slot id is primary key');
@@ -122,6 +122,30 @@ select throws_ok(
   null,
   'overlapping own slots are rejected by the database'
 );
+
+-- now() is fixed within this rollback transaction. Move only saved operation
+-- payloads outside the current window to model records persisted before expiry.
+-- Preserve result JSON exactly; past availability writes would violate triggers.
+reset role;
+update private.availability_interval_operations set payload=payload || jsonb_build_object(
+ 'start_at',date_trunc('hour',now())-interval '2 hours',
+ 'end_at',date_trunc('hour',now())-interval '1 hour')
+ where owner_user_id='30000000-0000-4000-8000-000000000001'
+ and operation_id in ('30000000-0000-4000-8000-000000000021','30000000-0000-4000-8000-000000000022');
+select set_config('test.union_saved_result',(select result::text from private.availability_interval_operations
+ where owner_user_id='30000000-0000-4000-8000-000000000001' and operation_id='30000000-0000-4000-8000-000000000021'),true);
+select set_config('test.subtract_saved_result',(select result::text from private.availability_interval_operations
+ where owner_user_id='30000000-0000-4000-8000-000000000001' and operation_id='30000000-0000-4000-8000-000000000022'),true);
+set local role authenticated;
+select is(public.availability_union_interval(date_trunc('hour',now())-interval '2 hours',
+ date_trunc('hour',now())-interval '1 hour','meal','shareOnHosting','30000000-0000-4000-8000-000000000021'),
+ current_setting('test.union_saved_result')::jsonb,'out-of-window union replay returns exact saved result after later interval mutations');
+select is(public.availability_subtract_interval(date_trunc('hour',now())-interval '2 hours',
+ date_trunc('hour',now())-interval '1 hour','30000000-0000-4000-8000-000000000022'),
+ current_setting('test.subtract_saved_result')::jsonb,'out-of-window subtract replay returns exact saved result after later interval mutations');
+select throws_ok($$select public.availability_subtract_interval(date_trunc('hour',now())-interval '3 hours',
+ date_trunc('hour',now())-interval '1 hour','30000000-0000-4000-8000-000000000022')$$,
+ '23505','availability_operation_conflict','out-of-window subtract replay rejects changed interval');
 
 set local request.jwt.claim.sub = '30000000-0000-4000-8000-000000000002';
 select is((select count(*)::integer from public.availability_slots), 0, 'other user cannot read a private slot');

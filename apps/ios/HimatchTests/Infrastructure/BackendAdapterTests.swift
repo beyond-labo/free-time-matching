@@ -28,6 +28,26 @@ struct BackendAdapterTests {
         #expect(recorder.requests.allSatisfy { $0.value(forHTTPHeaderField: "Authorization") == "Bearer access" })
     }
 
+    @Test("募集カテゴリが本人暇の明示未選択を上書きしない")
+    func explicitUnselectedAvailabilityMetadata() async throws {
+        let recorder = RequestRecorder()
+        let session = stubSession { request in
+            recorder.append(request)
+            return (200, Data(#"{"hosting":{"id":"00000000-0000-4000-8000-000000000010","start":"2026-10-05T01:00:00.000Z","end":"2026-10-05T02:00:00.000Z","mode":"online","category":"game","status":"open","version":1,"acceptedParticipants":[]}}"#.utf8))
+        }
+        let adapter = BackendHostingAdapter(baseURL: URL(string: "https://api.example.com/")!, session: session)
+        let draft = HostingDraft(mode: .online, category: .game, start: Date(timeIntervalSince1970: 2_000_000_000), duration: 3600,
+                                 friends: [FriendProfile(id: UUID(), displayName: "りく", icon: "sun.max.fill")],
+                                 availabilityMetadata: .init(category: nil, visibility: .privateUntilAccepted))
+        _ = try await adapter.create(draft, operationID: draft.operationID, accessToken: "token")
+        let body = try #require(recorder.requests.first?.httpBody)
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let metadata = try #require(json["availabilityMetadata"] as? [String: Any])
+        #expect(json["category"] as? String == "game")
+        #expect(metadata["category"] == nil || metadata["category"] is NSNull)
+        #expect(metadata["visibility"] as? String == "privateUntilAccepted")
+    }
+
     @Test("Deletion adapter sends UTF-8 Apple code and idempotency key")
     func deletionContract() async throws {
         let recorder = RequestRecorder()

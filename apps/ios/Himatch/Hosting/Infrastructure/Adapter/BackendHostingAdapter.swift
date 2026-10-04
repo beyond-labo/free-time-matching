@@ -63,6 +63,9 @@ final class BackendHostingAdapter: @unchecked Sendable {
     }
 
     func create(_ draft: HostingDraft, operationID: UUID, accessToken: String) async throws -> Hosting {
+        let availabilityCategory: ActivityCategory?
+        if let metadata = draft.availabilityMetadata { availabilityCategory = metadata.category }
+        else { availabilityCategory = draft.availabilityCategory ?? draft.category }
         var request = try authorizedRequest(path: "v1/hostings", method: "POST", accessToken: accessToken)
         request.httpBody = try encoder.encode(CreateInput(
             start: draft.start,
@@ -72,8 +75,8 @@ final class BackendHostingAdapter: @unchecked Sendable {
             category: Self.categoryValue(draft.category),
             targets: draft.friends.map { .init(id: $0.id) },
             availabilityMetadata: .init(
-                category: Self.categoryValue(draft.availabilityCategory ?? draft.category),
-                visibility: (draft.availabilityVisibility ?? .privateUntilAccepted).rawValue
+                category: Self.categoryValue(availabilityCategory),
+                visibility: (draft.availabilityMetadata?.visibility ?? draft.availabilityVisibility ?? .privateUntilAccepted).rawValue
             ),
             operationId: operationID
         ))

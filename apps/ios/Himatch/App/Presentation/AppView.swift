@@ -4,6 +4,7 @@ import SwiftUI
 
 struct AppView: View {
     @Bindable var store: StoreOf<AppFeature>
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -30,6 +31,25 @@ struct AppView: View {
         }
         .tint(HimatchColor.accent)
         .task { store.send(.task) }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { store.send(.systemActionsForeground) }
+        }
+        .onChange(of: store.route) { _, route in
+            if route == .main { store.send(.systemActionsForeground) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .systemActionRequested)) { _ in
+            store.send(.systemActionsForeground)
+        }
+        .sheet(isPresented: Binding(
+            get: { store.route == .main && store.systemActionOperationID != nil },
+            set: { if !$0 { store.send(.systemActionDismissed) } }
+        )) {
+            if let id = store.systemActionOperationID {
+                SystemActionReviewView(operationID: id, service: AppRuntime.shared.systemActions) {
+                    store.send(.systemActionCompleted)
+                }
+            }
+        }
         .alert(
             "お知らせ",
             isPresented: Binding(
@@ -399,7 +419,7 @@ private struct SettingsView: View {
                 }
 
                 Section("アプリ情報") {
-                    LabeledContent("バージョン", value: "0.1.0")
+                    LabeledContent("バージョン", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
                     LabeledContent("運営", value: "beyond-labo")
                 }
             }

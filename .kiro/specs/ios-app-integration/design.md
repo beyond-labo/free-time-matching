@@ -21,7 +21,7 @@ kiro:
 
 ## Overview
 
-`AppCompositionRoot` が全機能のPort実装とTCA Storeを組み立てる。認証・プロフィール・削除・Friendship・本人の暇時間・Hosting は実Backend Adapterを標準とし、最初の内部TestFlightではSTGへ接続する。`HimatchPrototypeScenario` actorはDEBUGの明示的なデモと未接続機能だけに限定する。
+`AppRuntime` が実Adapterと操作Clientを一度組み立て、`AppCompositionRoot` がそれらをTCA Storeへ注入する。Siriも同じ runtime を利用する。認証・プロフィール・削除・Friendship・本人の暇時間・Hosting は実Backend Adapterを標準とし、最初の内部TestFlightではSTGへ接続する。`HimatchPrototypeScenario` actorはDEBUGの明示的なデモと未接続機能だけに限定する。
 
 起動時は削除受付状態とセッションを先に判定し、プロフィールの有無でメイン画面か初期設定画面を決める。プロフィール確定後はメイン画面を表示し、友達と本人の暇時間を独立した Effect で並行取得する。各取得状態は専用フラグで Home / Friends の領域に表示し、共通 `isLoading` の全面オーバーレイは読み取りに使わない。失敗時は各領域から再試行でき、片方の失敗で他方の表示を消さない。
 
@@ -33,7 +33,7 @@ kiro:
 
 ### Out of Boundary
 
-- 個別機能の業務規則、暇と募集の実Backendトランザクション・API自体、Push。Release Adapter の注入は本仕様が所有する。
+- 個別機能の業務規則、暇と募集の実Backendトランザクション・API自体、Push。通常Debug/Release Adapter の注入は本仕様が所有する。明示デモだけPrototypeを利用する。
 
 ### Allowed Dependencies
 
@@ -48,6 +48,10 @@ kiro:
 ```mermaid
 graph LR
     AppCompositionRoot --> RootStore
+    AppCompositionRoot --> AppRuntime
+    AppRuntime --> SystemActionService
+    SystemActionService --> ProtectedJournal
+    AppView --> RootStore
     AppCompositionRoot --> FeatureAdapters
     AppCompositionRoot --> ProductionAccountAdapters
     AppCompositionRoot --> BackendFriendshipAdapter
@@ -64,10 +68,13 @@ graph LR
 
 ```text
 apps/ios/Himatch/App/Composition/AppCompositionRoot.swift
+apps/ios/Himatch/App/Composition/AppRuntime.swift
+apps/ios/Himatch/App/Presentation/SystemActionHandoff.swift
+apps/ios/Himatch/App/Presentation/SystemActionReviewView.swift
 apps/ios/Himatch/App/Composition/AppProjectionRepository.swift
 apps/ios/Himatch/App/Infrastructure/Prototype/HimatchPrototypeScenario.swift
-apps/ios/Himatch/App/Presentation/Reducer/AppFeature.swift
-apps/ios/Himatch/App/Presentation/View/AppView.swift
+apps/ios/Himatch/App/Presentation/AppFeature.swift
+apps/ios/Himatch/App/Presentation/AppView.swift
 apps/ios/HimatchTests/AppIntegration/
 ```
 
@@ -76,6 +83,14 @@ apps/ios/HimatchTests/AppIntegration/
 `AppProjectionRepository` は `home()`、`inbox()`、`friendPlans(friendID)` の read-only async 操作だけを持つ。DTO は ownerFeature と entityID を持ち、変更操作は Root delegate が所有機能へ route する。確定予定と `friendPlans` は DEBUG の Prototype fixture 専用とし、Release の投影には実 Backend の確定予定があるように表示しない。
 
 `HimatchPrototypeScenario` は actor 内で全 fixture を保持し、feature adapter factory と reset(seed) を提供する。block/delete は actor メソッド一回で関連状態と revision を更新する。各 Adapter は自機能 Port だけを実装する facade である。
+
+## Siri 操作との統合契約
+
+システムからの入力・補完・再送は ios-siri-actions が所有し、Rootは入力を保持した認証後の復帰と表示を所有する。AppViewの初回起動、scene active、認証後のmain遷移、システム操作通知で、注入済みHandoff Clientを通じて未完了記録を検査する。JournalのcreatedAt順で一件ずつ表示し、完了後に次を取得する。再通知で表示中の入力を上書きしない。
+
+本人識別はプロフィール通信の成功と分離し、復元済みsessionのuserIDへ引継ぎを束縛する。プロフィールGETが失敗しても本人不明の記録へ変換しない。本人変更・サインアウト・退会受付では旧本人のownerUserIDまたはentityOwnerUserIDに一致する準備済み操作とnil-ownerの未送信操作を失効させ、未送信記録を破棄する。送信済み不明結果は旧本人別に隔離して別アカウントに再送しない。成功後の暇・募集一覧はRootの独立した再取得を使う。Siri用の本人束縛Clientは募集作成・取消のmutation後GETを省略し、通常Root Clientは従来のsnapshot取得を維持する。
+
+この実装と検証のタスクは [Siri実装計画](../ios-siri-actions/tasks.md) 2–7に集約し、本仕様へ重複した完了チェックを増やさない。実機SiriとSTG実アカウント検証の未実施を構造検査や単体テスト成功で代替しない。
 
 ## Requirements Traceability
 

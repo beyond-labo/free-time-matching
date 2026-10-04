@@ -1,0 +1,10 @@
+{
+  "sourceLanguage" : "ja",
+  "strings" : {
+    "${applicationName}で暇を登録" : { "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "${applicationName}で暇を登録" } } } },
+    "${applicationName}で暇を削除" : { "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "${applicationName}で暇を削除" } } } },
+    "${applicationName}で友達を誘う" : { "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "${applicationName}で友達を誘う" } } } },
+    "${applicationName}で募集を取り消す" : { "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "${applicationName}で募集を取り消す" } } } }
+  },
+  "version" : "1.0"
+}

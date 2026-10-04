@@ -21,6 +21,8 @@ struct HostingDraft: Equatable, Sendable {
     var start: Date
     var duration: TimeInterval
     var friends: [FriendProfile]
+    /// Explicit metadata preserves an intentionally unselected availability category.
+    var availabilityMetadata: HostingAvailabilityMetadata? = nil
     var availabilityCategory: ActivityCategory? = nil
     var availabilityVisibility: AvailabilityVisibility? = nil
     var operationID: UUID = UUID()
