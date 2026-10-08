@@ -38,6 +38,36 @@ struct HomeTimelineFeatureTests {
 
     // MARK: Window and navigation
 
+    @Test("ホームはリストから始まり、表示切替は日付と未保存範囲を保持する")
+    func presentationKeepsCalendarContext() async {
+        let picked = range(3, 10, 0, 3, 10, 45)
+        let store = makeStore(state(dayIndex: 2, selection: picked))
+        #expect(store.state.presentation == .list)
+        await store.send(.presentationChanged(.calendar)) { $0.presentation = .calendar }
+        await store.send(.presentationChanged(.list)) { $0.presentation = .list }
+        #expect(store.state.selectedDayIndex == 2)
+        #expect(store.state.selection?.range == picked)
+    }
+
+    @Test("リストから友達を誘うと時間選択カレンダーに進む")
+    func hostingOpensCalendar() async {
+        let store = makeStore(state(dayIndex: 2))
+        await store.send(.selectionModeChanged(.hosting)) {
+            $0.selectionMode = .hosting
+            $0.presentation = .calendar
+        }
+        #expect(store.state.selectedDayIndex == 2)
+    }
+
+    @Test("保存中はリストへの切替も受け付けない")
+    func savingLocksPresentation() async {
+        var initial = state(dayIndex: 2, selection: range(3, 10, 0, 3, 10, 45))
+        initial.presentation = .calendar
+        initial.selection?.isSaving = true
+        let store = makeStore(initial)
+        await store.send(.presentationChanged(.list))
+    }
+
     @Test("表示範囲は今日の0時から始まる14日")
     func refreshWindowAnchorsToday() async {
         let store = makeStore()

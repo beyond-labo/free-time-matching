@@ -16,47 +16,74 @@ struct HomeTimelineView: View {
             let today = store.today ?? calendar.startOfDay(for: now)
             let latestEnd = AvailabilityPolicy.latestEnd(now: now, calendar: calendar)
             VStack(spacing: 0) {
-                HomeTimelineHeader(store: store, today: today, items: items, now: now)
-                if store.selection == nil {
-                    TimelineSelectionHint(mode: store.mode)
+                Picker("ホームの表示", selection: Binding(
+                    get: { store.presentation }, set: { store.send(.presentationChanged($0)) }
+                )) {
+                    Text("リスト").tag(HomeTimelineFeature.State.Presentation.list)
+                    Text("カレンダー").tag(HomeTimelineFeature.State.Presentation.calendar)
                 }
-                Divider()
-                switch store.mode {
-                case .day:
-                    let day = calendar.date(byAdding: .day, value: store.selectedDayIndex, to: today) ?? today
-                    TimelineDayView(
-                        store: store,
-                        day: day,
-                        segments: TimelineLayout.segments(for: items, on: day, calendar: calendar),
-                        now: now,
-                        latestEnd: latestEnd
-                    )
-                case .week:
-                    let days = store.weekDayIndices.compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
-                    if dynamicTypeSize.isAccessibilitySize {
-                        TimelineAgendaView(
-                            days: days,
-                            items: items,
-                            now: now,
-                            latestEnd: latestEnd,
-                            onSelectTime: { store.send(.quarterTapped($0)) },
-                            onTapItem: { store.send(.itemTapped($0)) }
-                        )
-                    } else {
-                        TimelineWeekView(
-                            days: days,
-                            items: items,
-                            now: now,
-                            latestEnd: latestEnd,
-                            onSelectTime: { store.send(.quarterTapped($0)) },
-                            onTapItem: { store.send(.itemTapped($0)) },
-                            onSelectDay: { day in
-                                let offset = calendar.dateComponents([.day], from: today, to: day).day ?? 0
-                                store.send(.daySelected(offset))
-                                store.send(.modeChanged(.day))
-                            }
-                        )
+                .pickerStyle(.segmented)
+                .disabled(store.isSavingSelection)
+                .padding(.horizontal, HimatchSpacing.m)
+                .padding(.vertical, HimatchSpacing.s)
+                .accessibilityIdentifier("homePresentationPicker")
+
+                // Both scroll containers stay mounted to preserve their positions.
+                ZStack {
+                    HomeScheduleListView(items: items, today: today, now: now) {
+                        store.send(.itemTapped($0))
                     }
+                    .opacity(store.presentation == .list ? 1 : 0)
+                    .allowsHitTesting(store.presentation == .list)
+                    .accessibilityHidden(store.presentation != .list)
+
+                    VStack(spacing: 0) {
+                        HomeTimelineHeader(store: store, today: today, items: items, now: now)
+                        if store.selection == nil {
+                            TimelineSelectionHint(mode: store.mode)
+                        }
+                        Divider()
+                        switch store.mode {
+                        case .day:
+                            let day = calendar.date(byAdding: .day, value: store.selectedDayIndex, to: today) ?? today
+                            TimelineDayView(
+                                store: store,
+                                day: day,
+                                segments: TimelineLayout.segments(for: items, on: day, calendar: calendar),
+                                now: now,
+                                latestEnd: latestEnd
+                            )
+                        case .week:
+                            let days = store.weekDayIndices.compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
+                            if dynamicTypeSize.isAccessibilitySize {
+                                TimelineAgendaView(
+                                    days: days,
+                                    items: items,
+                                    now: now,
+                                    latestEnd: latestEnd,
+                                    onSelectTime: { store.send(.quarterTapped($0)) },
+                                    onTapItem: { store.send(.itemTapped($0)) }
+                                )
+                            } else {
+                                TimelineWeekView(
+                                    days: days,
+                                    items: items,
+                                    now: now,
+                                    latestEnd: latestEnd,
+                                    onSelectTime: { store.send(.quarterTapped($0)) },
+                                    onTapItem: { store.send(.itemTapped($0)) },
+                                    onSelectDay: { day in
+                                        let offset = calendar.dateComponents([.day], from: today, to: day).day ?? 0
+                                        store.send(.daySelected(offset))
+                                        store.send(.modeChanged(.day))
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    .opacity(store.presentation == .calendar ? 1 : 0)
+                    .allowsHitTesting(store.presentation == .calendar)
+                    .accessibilityHidden(store.presentation != .calendar)
                 }
             }
         }
@@ -391,5 +418,112 @@ private struct ScheduleItemDetailView: View {
 
     private var tint: Color {
         switch item.kind { case .availability: HimatchColor.availability; case .hosting: HimatchColor.hosting; case .plan: HimatchColor.plan }
+    }
+}
+
+
+private struct HomeScheduleListView: View {
+    let items: [HomeScheduleItem]
+    let today: Date
+    let now: Date
+    let onTapItem: (HomeTimelineFeature.State.Item) -> Void
+
+    @Environment(\.calendar) private var calendar
+
+    var body: some View {
+        let sections = HomeScheduleListLayout.sections(items: items, today: today, now: now, calendar: calendar)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: HimatchSpacing.m) {
+                Text("これから14日間")
+                    .font(HimatchFont.caption)
+                    .foregroundStyle(.secondary)
+                if sections.isEmpty {
+                    EmptyStateView(icon: "calendar", title: "これからの予定はありません")
+                }
+                ForEach(sections) { section in
+                    VStack(alignment: .leading, spacing: HimatchSpacing.s) {
+                        Text(sectionTitle(section.day))
+                            .font(HimatchFont.sectionTitle)
+                            .accessibilityAddTraits(.isHeader)
+                        ForEach(section.segments) { segment in
+                            HomeScheduleListRow(segment: segment, now: now) {
+                                onTapItem(segment.id)
+                            }
+                        }
+                    }
+                }
+                Label("時刻は\(AvailabilityFormatting.timeZone(calendar, at: now))で表示", systemImage: "globe.asia.australia")
+                    .font(HimatchFont.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(HimatchSpacing.m)
+        }
+        .background(HimatchColor.background)
+        .accessibilityIdentifier("homeScheduleList")
+    }
+
+    private func sectionTitle(_ day: Date) -> String {
+        let offset = calendar.dateComponents([.day], from: calendar.startOfDay(for: today), to: day).day ?? 0
+        let prefix = offset == 0 ? "今日 · " : offset == 1 ? "明日 · " : ""
+        return prefix + AvailabilityFormatting.day(day, calendar: calendar)
+    }
+}
+
+private struct HomeScheduleListRow: View {
+    let segment: TimelineSegment
+    let now: Date
+    let action: () -> Void
+
+    @Environment(\.calendar) private var calendar
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
+                HStack(alignment: .top) {
+                    Label(segment.item.title, systemImage: segment.item.systemImage)
+                        .font(HimatchFont.cardTitle)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+                StatusBadge(title: kindTitle, systemImage: segment.item.systemImage, tint: tint)
+                Text(AvailabilityFormatting.range(
+                    TimeIntervalRange(start: segment.start, end: segment.end), calendar: calendar
+                ))
+                .font(HimatchFont.supporting)
+                if segment.start <= now && now < segment.end {
+                    Text("いま").font(HimatchFont.caption).foregroundStyle(tint)
+                }
+                if segment.continuesFromPreviousDay || segment.continuesToNextDay {
+                    Text("日付をまたぐ時間です")
+                        .font(HimatchFont.caption).foregroundStyle(.secondary)
+                }
+                if case .plan = segment.item.kind, let participants = segment.item.notes.first {
+                    Text(participants).font(HimatchFont.supporting).foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .himatchCard(tint: tint)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("詳細を表示します")
+    }
+
+    private var kindTitle: String {
+        switch segment.item.kind {
+        case .availability: "自分の暇"
+        case .hosting: "募集中の候補時間"
+        case .plan: "友達との予定"
+        }
+    }
+
+    private var tint: Color {
+        switch segment.item.kind {
+        case .availability: HimatchColor.availability
+        case .hosting: HimatchColor.hosting
+        case .plan: HimatchColor.plan
+        }
     }
 }
