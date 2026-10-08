@@ -8,8 +8,13 @@ enum AppCompositionRoot {
     }
 
     static func makeStore(runtime: AppRuntime) -> StoreOf<AppFeature> {
-        Store(initialState: AppFeature.State()) {
-            AppFeature()
+#if DEBUG
+        let demoClient = HimatchPrototypeScenario().client()
+#else
+        let demoClient: HimatchClient? = nil
+#endif
+        return Store(initialState: AppFeature.State()) {
+            AppFeature(demoClient: demoClient)
         } withDependencies: {
             $0.authenticationClient = runtime.authentication
             $0.profileClient = runtime.profile

@@ -133,6 +133,8 @@ Xcode の同期グループで新しい Swift ファイルを含める。プロ�
 
 いずれも `parameterSummary` を持ち、入力済み値は `perform()` の再開や画面遷移で捨てない。必須パラメータの不足はシステムの値要求、同名候補は Entity の曖昧性解消で補う。任意カテゴリは未選択を維持する。オフラインのエリアは未指定なら「あとで相談」であることを送信前の確認に含める。オンラインの送信・取消確認と募集候補表示にエリアや「あとで相談」を含めない。
 
+募集送信・取消の確認は iOS 18 以降で `requestConfirmation(actionName:dialog:)` を使う。iOS 17 は確認文付き旧APIを使わず、準備済み入力を `saveHandoff(prepared)` で保存してから既存の `SystemActionReviewView` へ引き継ぎ、そこで内容確認後に実行する。引継ぎ後に Intent 側で `execute` を呼ばない。暇登録・区間削除の確認条件、本人束縛、operationID と結果不明時の再送契約は維持する。
+
 App Shortcuts は `\(.applicationName)` トークンを使い、既存 Bundle 表示名「ひまっち」を参照する。日本語 AppShortcuts.xcstrings を用意する。アプリ名を含む「ひまっちで暇を登録」「ひまっちで暇を削除」「ひまっちで友達を誘う」「ひまっちで募集を取り消す」に相当する4フレーズを公開する。日時と友達の任意の自然文解釈を自前実装せず、システムのパラメータ解決を使用する。
 
 `FriendEntity` はアカウント所属、友達の userID、nickname、presetIconKey だけを保持する。同名でも userID を区別し、候補表示で識別できない場合はアプリの既存プロフィール表示へ引き継ぐ。`OwnedHostingEntity` はアカウント所属、募集ID、日時、開催形態、カテゴリ・エリアだけを持つ。version は実行直前の取得値を使い、Entity のキャッシュ値を正本にしない。

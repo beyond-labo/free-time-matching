@@ -84,6 +84,8 @@ apps/ios/HimatchTests/AppIntegration/
 
 `HimatchPrototypeScenario` は actor 内で全 fixture を保持し、feature adapter factory と reset(seed) を提供する。block/delete は actor メソッド一回で関連状態と revision を更新する。各 Adapter は自機能 Port だけを実装する facade である。
 
+DEBUG の明示デモでは Composition が `demoClient` を Root へ注入し、`isDemo` のときだけ選択する。デモのプロフィール保存も Prototype を利用する。通常 Debug/Release と Siri の実Backend Client は維持する。
+
 ## Siri 操作との統合契約
 
 システムからの入力・補完・再送は ios-siri-actions が所有し、Rootは入力を保持した認証後の復帰と表示を所有する。AppViewの初回起動、scene active、認証後のmain遷移、システム操作通知で、注入済みHandoff Clientを通じて未完了記録を検査する。JournalのcreatedAt順で一件ずつ表示し、完了後に次を取得する。再通知で表示中の入力を上書きしない。

@@ -31,6 +31,7 @@ kiro:
   - プロフィール確定後の友達・暇時間の取得を並行し、領域別の読み込み・失敗・再試行を実装して、全画面の操作を塞がないことを検証する。
   - _Requirements: 3.1, 3.2, 3.6, 3.8, 3.9, 3.10, 3.11, 3.12_
   - Siriの実依存共有、認証後FIFO復帰、本人変更時失効の実装と検証は ios-siri-actions タスク3/5/6へ集約する。既存の本仕様全体の未完了状態は維持する。
+  - 部分進捗（0.1.7）: 明示DEBUGデモだけに `demoClient` を注入し、通常Debug/ReleaseとSiriの実依存を維持した。デモ保存・通常依存・招待遷移の回帰テストを含む168件成功とDebug/Releaseビルド成功を確認した。領域別読み込み等の残件は維持する。
   - _Boundary: AppCompositionRoot, AppRuntime, AppFeature_
   - _Depends: 1, 2_
 

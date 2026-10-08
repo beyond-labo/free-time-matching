@@ -8,6 +8,12 @@ import Foundation
 struct HomeTimelineFeature {
     @ObservableState
     struct State: Equatable {
+        enum Presentation: String, CaseIterable, Equatable, Sendable {
+            case list
+            case calendar
+
+            var title: String { self == .list ? "リスト" : "カレンダー" }
+        }
         enum SelectionMode: Equatable, Sendable { case availability, hosting, deleting }
         enum Mode: String, CaseIterable, Equatable, Sendable {
             case day
@@ -51,6 +57,7 @@ struct HomeTimelineFeature {
         static let dayCount = 14
         static let daysPerWeek = 7
 
+        var presentation: Presentation = .list
         var mode: Mode = .day
         /// Start of the first displayed day (today). Set by `refreshWindow`.
         var today: Date?
@@ -112,6 +119,7 @@ struct HomeTimelineFeature {
 
     enum Action: Equatable {
         case refreshWindow
+        case presentationChanged(State.Presentation)
         case modeChanged(State.Mode)
         case daySelected(Int)
         case previousTapped
@@ -171,6 +179,10 @@ struct HomeTimelineFeature {
                 }
                 return .none
 
+            case let .presentationChanged(presentation):
+                state.presentation = presentation
+                return .none
+
             case let .modeChanged(mode):
                 state.mode = mode
                 if mode == .week { state.selection = nil }
@@ -225,6 +237,7 @@ struct HomeTimelineFeature {
 
             case let .selectionModeChanged(mode):
                 state.selectionMode = mode
+                state.presentation = .calendar
                 return .none
 
             case .quickSaveTapped:
@@ -268,7 +281,7 @@ struct HomeTimelineFeature {
 
     private static func isBlockedWhileSaving(_ action: Action) -> Bool {
         switch action {
-        case .modeChanged, .daySelected, .previousTapped, .nextTapped, .todayTapped,
+        case .presentationChanged, .modeChanged, .daySelected, .previousTapped, .nextTapped, .todayTapped,
             .quarterTapped, .rangeSelectionChanged, .selectionEdgeStepped, .selectionEdgeDragged,
              .selectionCleared, .selectionModeChanged, .quickSaveTapped, .adjustDetailsTapped, .newAvailabilityTapped:
             return true
