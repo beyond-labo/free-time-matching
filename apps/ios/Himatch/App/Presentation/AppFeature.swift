@@ -199,6 +199,8 @@ struct AppFeature {
         case deletionSubmissionFailed(String)
     }
 
+    var demoClient: HimatchClient? = nil
+
     @Dependency(\.himatchClient) var client
     @Dependency(\.authenticationClient) var authenticationClient
     @Dependency(\.friendshipClient) var friendshipClient
@@ -215,6 +217,7 @@ struct AppFeature {
             HomeTimelineFeature()
         }
         Reduce { state, action in
+            let client = state.isDemo ? (demoClient ?? self.client) : self.client
             switch action {
             case .systemActionsForeground:
                 guard state.route == .main, !state.isDemo else { return .none }
@@ -844,6 +847,7 @@ struct AppFeature {
 
             case let .inviteFriendFromProfile(id):
                 state.selectedTab = .home
+                state.homeTimeline.presentation = .calendar
                 state.homeTimeline.selectionMode = .hosting
                 state.homeTimeline.selection = nil
                 state.selectedFriendIDs = [id]

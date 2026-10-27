@@ -27,7 +27,7 @@ kiro:
   - _Depends: 1_
 
 - [ ] 3. ホーム時間軸を実装する
-  - 自分の暇と確定予定、日時固定、新規登録、原因別の空状態を操作できる。
+  - 本人暇と募集中候補、DEBUG fixture の確定予定、日時固定、新規登録、原因別の空状態を操作できる。
   - 進捗（2026-09-24）: 日／週カレンダー、14日の移動、タップで15分選択、長押しドラッグの15分範囲選択、スクロール競合回避、範囲ハンドル、直接確認、VoiceOver代替操作、暇なし表示、自分の暇と確定予定だけの表示を実装し、Reducer・選択純粋関数・AppFeature のテストで確認した。読み込み失敗の状態は `HimatchClient.load` が失敗を返さないため未実装。
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 2.6, 2.7, 5.3, 5.4_
   - _Boundary: HomeTimelineFeature_
@@ -58,3 +58,13 @@ kiro:
   - _Requirements: 2.4, 2.7, 4.5, 4.6, 6.5, 7.1, 7.2, 7.3_
   - _Boundary: AvailabilityPolicy, HomeTimelineFeature, BackendAvailabilityAdapter_
   - _Depends: 3, 4, backend-availability, ios-hosting_
+
+- [x] 8. 0.1.7 のホームリスト初期表示とカレンダー切替を実装する
+  - 初期値 list、明示切替UI、日付別・開始時刻順・終了済み除外・種別ラベルを提供する。
+  - 切替前後の選択日、未保存範囲、カレンダースクロール位置を保持し、リストから詳細・登録・招待へ遷移する。保存中は切替できない。
+  - Release の本人暇・募集中候補、DEBUG の予定限定、Siri の日時引継ぎ、既存の日・週表示と直接選択を検証する。
+  - _Requirements: 1.1, 1.2, 1.8, 1.9, 1.10, 1.11, 1.12, 7.1, 7.2, 7.3_
+  - _Boundary: HomeTimelineFeature, HomeTimelineView, HomeView, AppFeature_
+  - _Depends: 3, 7_
+
+  - 検証（2026-10-04）: Swift Testing 168件成功・0失敗。初期リスト、カレンダー切替、翌日選択後の保持、リストからの詳細、友達プロフィールからの招待遷移を Simulator で確認した。長押し実ドラッグと VoiceOver の手動確認はタスク5の残件を維持する。2026-10-07のXcodeBuildMCP Debug/Releaseビルドも成功。

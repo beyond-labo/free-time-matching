@@ -108,3 +108,27 @@ enum TimelineLayout {
         return calendar.date(byAdding: .minute, value: hour * 60 + quarter * 15, to: dayStart) ?? dayStart
     }
 }
+
+
+/// Chronological, half-open day sections shared by the home list and its tests.
+enum HomeScheduleListLayout {
+    struct DaySection: Equatable, Identifiable, Sendable {
+        let day: Date
+        let segments: [TimelineSegment]
+        var id: Date { day }
+    }
+
+    static func sections(
+        items: [HomeScheduleItem], today: Date, now: Date, calendar: Calendar
+    ) -> [DaySection] {
+        let activeItems = items.filter { $0.interval.end > now }
+        return (0..<HomeTimelineFeature.State.dayCount).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: today)) else {
+                return nil
+            }
+            let segments = TimelineLayout.segments(for: activeItems, on: day, calendar: calendar)
+            guard !segments.isEmpty else { return nil }
+            return DaySection(day: day, segments: segments)
+        }
+    }
+}

@@ -35,7 +35,8 @@ kiro:
   - _Boundary: AppRuntime, AppCompositionRoot, HimatchClient, Hosting Adapter_
 
 - [x] 4. 4操作を Siri とショートカットへ公開する
-  - 日本語フレーズ、パラメータ、固定選択、本人限定Entity Query、同名解決、まとめ確認、ロック検査、結果の日本語応答を実装する。
+  - 日本語フレーズ、パラメータ、固定選択、本人限定Entity Query、同名解決、まとめ確認、ロック検査、結果の日本語応答を実装する。iOS 18以降はSiri内確認、iOS 17の募集送信・取消は準備済み入力を保存して既存アプリ内確認へ引き継ぐ。
+  - 2026-10-07: 非推奨API呼出しを除去し、MCP Debug/Releaseは警告0件、関連回帰20件成功。iOS 17実機復帰はタスク7に残す。
   - iOS17以降でAPI availabilityとmetadata抽出をビルドで検証する。Entityの同名、ロック時候補ゼロ、別本人の複合ID拒否を単体テストする。
   - _Requirements: 1.1, 1.2, 1.3, 2.6, 3.1, 3.2, 3.3, 3.5, 4.2, 4.4, 4.5, 5.1_
   - _Depends: 2, 3_

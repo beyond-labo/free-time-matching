@@ -97,7 +97,11 @@ extension SystemActionIntent {
             if #available(iOS 18.0, *) {
                 try await requestConfirmation(actionName: .continue, dialog: dialog)
             } else {
-                try await requestConfirmation(result: .result(dialog: dialog))
+                // iOS 17 has no nondeprecated confirmation API with a dialog.
+                // Preserve the resolved input and require confirmation in the app.
+                _ = try await service.saveHandoff(prepared)
+                try await handoff(prepared.operationID, dialog: "アプリで内容を確認してから実行してください。")
+                return "入力を引き継ぎました。アプリで内容を確認してから実行してください。"
             }
         }
         // Persist the resolved input before execution can discover a conflict or access change.

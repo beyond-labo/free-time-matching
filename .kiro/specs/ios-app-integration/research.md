@@ -62,6 +62,13 @@ Root Composition と友達状態の統合を iPhone 17 Pro Max Simulator でビ�
 
 ### 2026-10-04: Siri操作の実装同期
 
+
 共通実依存の組立てをAppRuntimeへ集約し、通常Debug/ReleaseとSiriは同じBackend構成、明示デモのみPrototypeにした。AppViewの起動・scene active・main遷移・通知からRootがFIFO引継ぎを検査し、本人変更/サインアウト/退会受付で旧本人操作を失効する。Siriの本人束縛Clientはmutation後GETを省略し、通常RootはGETを維持する。根拠はAppRuntime/AppCompositionRoot/AppFeature/AppView/SystemActionHandoffの現行実装とSwift Testingの確認済み結果。実装検証はios-siri-actionsタスクへ集約する。既存要件は維持し、旧承認falseと未完了タスクを今回の部分検証だけで全体承認・完了へ変更しない。
 
 - 2026-10-04: 独立Siri実装レビューP1-2の修正方針を同期。プロフィール通信の失敗からnil-ownerへ落とさず、session本人の識別とプロフィールを含む実行gateを分離する。ログアウト時はentityOwnerの一致とnil-owner未送信記録も破棄する。修正後の実装・回帰照合はios-siri-actionsタスク2/5/6で行う。
+
+## 0.1.7 の明示デモ依存修復（2026-10-07）
+
+0.1.7 のホーム smoke で、明示DEBUGデモのプロフィール保存が実Backend Clientへ流れて失敗する既存不具合を発見した。Composition の `demoClient` 注入と `isDemo` 条件で修復し、要件3.6のデモ境界へ同期する。Release認可・通常Debug・Siri契約を変更せず、既存未完了タスクや未承認工程を今回の部分検証だけで完了へ変更しない。
+
+`AppFeatureDemoDependencyTests` の明示デモ保存・通常実依存・プロフィール招待遷移を含むSwift Testing 168件成功（2026-10-04）の証拠を再利用し、2026-10-07にXcodeBuildMCPでDebug/Releaseビルド成功を確認した。ホーム両表示は同じ読み取りsnapshotを使い、最終予定確定や友達の暇を追加しない。全機能統合のタスク3/4は未完を維持する。

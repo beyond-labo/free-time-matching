@@ -23,7 +23,8 @@ struct HomeView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if let selection = store.homeTimeline.selection, store.snapshot != nil {
+                if let selection = store.homeTimeline.selection,
+                   store.homeTimeline.presentation == .calendar, store.snapshot != nil {
                     SelectionConfirmationBar(
                         store: store.scope(state: \.homeTimeline, action: \.homeTimeline),
                         selection: selection
@@ -96,7 +97,7 @@ struct HomeView: View {
                     InfoRow(
                         icon: "clock.badge.plus",
                         title: "まだ暇が登録されていません",
-                        detail: "カレンダーの時間をタップするか、下の「暇を登録」から追加できます。"
+                        detail: "下の「暇を登録」から追加できます。カレンダーに切り替えて時間を選ぶこともできます。"
                     )
                     .himatchCard()
                 }

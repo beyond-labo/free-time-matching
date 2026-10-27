@@ -141,3 +141,9 @@ xcresultは `test_sim_2026-10-04T03-55-48-776Z_pid54869_44e91654.xcresult`、Rel
 設定画面のバージョン表示は固定文字列からBundleのCFBundleShortVersionString参照へ変更し、ビルド設定と揃えた。
 XcodeBuildMCPでPR候補のDebug/Releaseビルドに成功し、両方の生成Info.plistで0.1.6（build 1）を確認した。
 業務契約・Siri操作の変更はなく、既存の160件の業務検証は再利用する。
+
+## iOS 17 の確認API警告修正（2026-10-07）
+
+ローカルXcode SDKで、確認文付き `requestConfirmation(result:confirmationActionName:showPrompt:)` が非推奨、新APIがiOS 18以降であることを確認した。ユーザーはiOS 17の募集送信・取消をアプリ内確認へ引き継ぐ変更を選択した。解決済み `PreparedSystemAction` を保存し、既存の前面復帰とSystemActionReviewViewへ渡してIntent側では変更を実行しない。iOS 18以降のSiri確認、暇の操作、本人束縛と再送契約は維持する。確認の場所を具体化する設計変更であり、要件3.3/3.5の実行前確認は維持する。
+
+XcodeBuildMCPのDebug/Releaseビルドは警告・エラー0件で成功した。ログは `build_sim_2026-10-07T04-42-56-172Z_pid23618_0ecb5b7a.log` と `build_sim_2026-10-07T04-43-06-749Z_pid23618_1df857ea.log`。入力保存・認証前引継ぎ防止・本人束縛・デモ分離・確認文等の関連テスト20件成功、0失敗・0スキップ（`test_sim_2026-10-07T04-43-42-479Z_pid23618_2d4127cd.xcresult`）。iOS 17実機のSiriからアプリへの復帰は未確認であり、タスク7を未完のまま維持する。

@@ -96,4 +96,34 @@ struct TimelineLayoutTests {
         #expect(!AvailabilityFormatting.isOvernight(start: date(3, 22, 0), end: date(4, 0, 0), calendar: calendar))
         #expect(AvailabilityFormatting.timeZone(calendar, at: date(3, 10, 0)).hasSuffix("（GMT+9）"))
     }
+    @Test("リストは終了済みと14日外を除外し、開始順に日付でまとめる")
+    func listSectionsFilterAndSort() {
+        let ended = item(.availability(UUID()), date(3, 8, 0), date(3, 9, 0))
+        let ongoing = item(.availability(UUID()), date(3, 9, 0), date(3, 11, 0))
+        let later = item(.hosting(UUID()), date(3, 12, 0), date(3, 13, 0), kind: .hosting)
+        let tomorrow = item(.plan(UUID()), date(4, 10, 0), date(4, 11, 0), kind: .plan)
+        let outside = item(.availability(UUID()), date(17, 10, 0), date(17, 11, 0))
+        let sections = HomeScheduleListLayout.sections(
+            items: [outside, tomorrow, later, ended, ongoing], today: date(3, 0, 0),
+            now: date(3, 9, 0), calendar: calendar
+        )
+        #expect(sections.map(\.day) == [date(3, 0, 0), date(4, 0, 0)])
+        #expect(sections.first?.segments.map(\.id) == [ongoing.id, later.id])
+        #expect(sections.last?.segments.map(\.id) == [tomorrow.id])
+    }
+
+    @Test("リストの跨日枠は翌日にも表示し、0時終了は翌日へ重複しない")
+    func listSectionsRespectDayBoundaries() {
+        let overnight = item(.availability(UUID()), date(3, 22, 0), date(4, 1, 0))
+        let midnight = item(.hosting(UUID()), date(3, 21, 0), date(4, 0, 0), kind: .hosting)
+        let sections = HomeScheduleListLayout.sections(
+            items: [overnight, midnight], today: date(3, 0, 0), now: date(3, 12, 0), calendar: calendar
+        )
+        #expect(sections.count == 2)
+        #expect(sections.last?.segments.map(\.id) == [overnight.id])
+        #expect(sections.last?.segments.first?.start == date(4, 0, 0))
+        #expect(sections.last?.segments.first?.continuesFromPreviousDay == true)
+        #expect(HomeScheduleListLayout.sections(items: [], today: date(3, 0, 0), now: date(3, 12, 0), calendar: calendar).isEmpty)
+    }
+
 }

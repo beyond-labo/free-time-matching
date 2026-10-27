@@ -23,7 +23,7 @@ Availability を独立機能として、Domain の `AvailabilitySlot` と `Avail
 
 ### This Spec Owns
 
-- 自分の暇枠、公開ポリシー、入力検証、ホーム時間軸と編集シート。確定予定は Integration が提供する読み取り投影だけを表示する。
+- 自分の暇枠、公開ポリシー、入力検証、ホームのリスト・カレンダーと編集シート。Release は本人暇と募集中候補を投影し、確定予定は DEBUG fixture の読み取り表示に限定する。
 
 ### Out of Boundary
 
@@ -52,7 +52,7 @@ graph LR
 
 `AvailabilityPolicy` は15分境界と範囲を検証し、重なる・接する暇をOR統合候補として計算する。Reducer は入力中の表示状態と属性の統合確認を所有する。
 
-保存は App の `HimatchClient` を Reducer の Effect から呼ぶ。DEBUG は Prototype、Release は `BackendAvailabilityAdapter` が本人限定の GET、区間OR、区間減算を使う。認証SDKから現在のsessionを取得し、利用者JWTでBackendへ送る。成功後は一覧 GET で本人枠を再取得し、古い読み込み応答が保存後の枠を上書きしないよう利用者IDと更新番号で制御する。失敗は空一覧へ変換せず、入力を保持する。サーバー認可は backend-availability が所有する。
+保存は App の `HimatchClient` を Reducer の Effect から呼ぶ。明示的に開始した DEBUG デモは Prototype、通常 Debug と Release は `BackendAvailabilityAdapter` が本人限定の GET、区間OR、区間減算を使う。認証SDKから現在のsessionを取得し、利用者JWTでBackendへ送る。成功後は一覧 GET で本人枠を再取得し、古い読み込み応答が保存後の枠を上書きしないよう利用者IDと更新番号で制御する。失敗は空一覧へ変換せず、入力を保持する。サーバー認可は backend-availability が所有する。
 
 ### Domain ポリシー
 
@@ -63,10 +63,15 @@ graph LR
 - `floorToQuarterHour`、`nextQuarterHour(after:)`（現在位置からの開始）、`latestEnd(now:)`（`now + 14日` を15分境界へ切り下げた登録可能な最終終了）。
 - `draftInterval(anchor:now:)`：時間軸の位置を切り下げて開始とし、次の15分境界より前なら引き上げる。終了は `min(開始 + 2時間, latestEnd)`。15分も取れなければ nil。
 
-### ホーム時間軸（HomeTimelineFeature）
+### ホームのリストとカレンダー（HomeTimelineFeature）
+
+- State に `presentation`（`.list` / `.calendar`、初期値 `.list`）を追加し、ホーム上部の明示的な切替で変更する。日・週表示モードとは独立させ、保存中は切替を無効にする。
+- リストは表示範囲内の終了前項目を日付別・開始時刻順にまとめ、各行に種別ラベルと時刻を表示する。日付またぎは対象日ごとに投影し、タップは既存の項目詳細へ渡す。Release は本人暇と募集中候補、確定予定は DEBUG fixture に限定する。
+- 切替は選択日、未保存範囲、操作モードをリセットしない。両表示のコンテナを ZStack 内に保持し、非表示側はタッチとアクセシビリティの対象から除外する。カレンダーのスクロール位置は同じ View セッションで保持し、表示形式の永続設定は追加しない。
+- 選択範囲の確認バーはカレンダー表示中だけ表示する。リストから登録・招待の既存 delegate を使い、時間選択の操作モードと友達プロフィールからの招待は `.calendar` へ移る。Siri と外部 focus は既存の表示形式と日時引継ぎ処理を維持する。
 
 - 今日の0時を起点とする14日（index 0〜13）を日表示と週表示で切り替える。週表示は今日から7日と次の7日の2ページとし、範囲外の日を表示しない。
-- State は表示モード、起点日、選択日 index、選択中の項目、15分境界へ正規化済みの選択範囲と検証・保存状態を持つ。生の指位置と長押し進行状態は View の `@GestureState` に限定する。暇と予定のデータは親の snapshot から読み取り専用の `HomeScheduleItem`（自分の暇と確定予定のみ）として受け取る。これが現行の `HomeScheduleProjection` にあたる。
+- State は表示形式、カレンダーの日・週表示モード、起点日、選択日 index、選択中の項目、15分境界へ正規化済みの選択範囲と検証・保存状態を持つ。生の指位置と長押し進行状態は View の `@GestureState` に限定する。項目データは親の snapshot から読み取り専用の `HomeScheduleItem`（本人暇、募集中候補、DEBUG fixture の予定）として受け取る。これが現行の `HomeScheduleProjection` にあたる。
 - 日付変更・タイムゾーン変更・表示時に `refreshWindow` で起点日を再計算し、選択中の日付を維持する。
 - 日表示は1時間を44pt以上の行とする。タップは位置を含む15分だけを画面内で選択し、シートを開かない。時間軸上の透明な `UIViewRepresentable` が `UITapGestureRecognizer` と `UILongPressGestureRecognizer`（0.3秒・許容移動10pt）を1組だけ所有する。長押し成立後に上下へドラッグすると、開始位置と現在位置を含む範囲を `TimelineSelection.normalized` で15分境界へ合わせる。長押し前に動いた場合は祖先 `UIScrollView.panGestureRecognizer` が先に成立してタップと長押しを失敗させ、通常の縦スクロールを所有する。既存ブロックと選択ハンドルは透明面より上に配置する。
 - 選択中は15分補助線、半透明の範囲、開始・終了ハンドル、開始・終了時刻と長さを重ねて表示する。ハンドルのドラッグも最寄りの15分境界へ合わせ、最低15分と1日境界を越えない。選択開始と境界変更に異なる触覚フィードバックを出す。
@@ -121,7 +126,7 @@ OR統合は重なるか端点が接する区間を連鎖的にまとめ、減算
 
 | Requirement | Components | Validation |
 |---|---|---|
-| 1.1-1.7 | HomeTimelineFeature, TimelineLayout, TimelineSelection, HomeView | reducer / selection / layout tests, gesture inspection |
+| 1.1-1.12 | HomeTimelineFeature, TimelineLayout, TimelineSelection, HomeView | reducer / selection / layout tests, list/calendar retention inspection |
 | 2.1-2.7 | AvailabilityPolicy, AvailabilityEditorFeature, AppFeature | policy / TestStore |
 | 3.1-3.4 | Visibility, AvailabilityEditorFeature | state / copy tests |
 | 4.1-4.4 | ManageAvailability, AvailabilityEditorFeature | repository conflict tests, save failure TestStore |
