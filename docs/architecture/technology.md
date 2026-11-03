@@ -23,7 +23,7 @@ Backend の内部型を共有せず、Backend 所有の OpenAPI を公開契約�
 | CI/CD | GitHub Actions | iOS/AndroidのCI/CDに加え、Backend secretless CI、staging自動配布、production承認配布workflowを導入 |
 
 Backend は Hono、Cloudflare Workers Vitest plugin、`jose`を導入し、依存バージョンを`apps/backend/package.json`と`pnpm-lock.yaml`に固定します。
-Supabase access JWTはWorkerがJWKSで検証し、通常のプロフィール操作はpublishable keyと利用者JWTをPostgRESTへ渡してRLSを適用します。Supabaseの特権secretとApple署名鍵はアカウント削除Adapterだけが参照します。
+Supabase access JWTはWorkerがJWKSで検証し、通常のプロフィール操作はpublishable keyと利用者JWTをPostgRESTへ渡してRLSを適用します。ユーザー向けアカウント処理の特権secretとApple署名鍵は削除Adapterへ隔離します。自動照合と通知配送は独立したサーバー処理でサービス専用RPCを呼び、通常の本人Repositoryへsecretを渡しません。`sb_secret_*`はJWTではないため`apikey`だけへ送り、利用者JWTのBearerとは区別します。
 HTTP スキーマライブラリ、生成ツール、OpenAPI 公開は後続仕様で決めます。
 Workerのscript/version/deployment/bindingとCustom DomainはWrangler、将来の長寿命resourceとaccount/zone policyはTerraformを唯一の所有者とし、同じresourceを二重管理しません。
 `api-staging.beyond-labo.com`と`api.beyond-labo.com`に対応するDNS、Workers Route、Custom Domain、TLS証明書はTerraformへ重複定義しません。

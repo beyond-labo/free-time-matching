@@ -226,3 +226,8 @@ Cloudflare 公式資料で Custom Domain の zone 所有、DNS/TLS 自動作成�
 ### 2026-09-25 Supabase Terraform scaffold 同期
 
 `infra/supabase/environments/staging` と `production` の空 Terraform root、provider/version constraint、partial backend、lockfile、および Backend CI の全 root static validation、Supabase local migration/RLS CI を現行根拠として追加した。DB schema/RLS/migration の Supabase CLI 所有と Cloudflare/Wrangler の既存所有境界は維持した。Supabase Project の apply/import、hosted staging/production migration、実 credential による plan/deploy は未実施であり、既存の承認と実装完了フラグを失効させた。
+
+## 2026-11-03 自動予定成立の統合確認
+
+環境別15分CronとAPNsの任意4設定をCDへ追加した。4つの部分設定を拒否し、secretは一時JSON経由でWorkerへ渡す。PRのsecretless境界、Terraform→DB→Workerの順、実配備の承認条件は維持。node verify、bash構文、Backend57+3/typecheck/dry-runの証拠を確認した。実Cloudflare/GitHub配布は未実施。
+詳細な証拠と限界は [自動予定成立の検証記録](../automatic-friend-scheduling/research.md) を参照する。

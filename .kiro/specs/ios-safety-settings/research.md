@@ -63,3 +63,12 @@ kiro:
 
 - 2026-09-21: アカウント削除をPrototype受付から、fresh Apple再認証、Backend token revoke、Supabase Auth hard deleteへ接続する方針へ更新。初版は同期処理とし、失敗はactionRequiredでアクセス停止を維持する。独立レビュー後、送信前operation IDのKeychain保存、曖昧結果の同一ID再送、accepted / processing表示、Keychain・sign-out失敗時の安全側遷移を追加した。
 - 2026-09-20: ユーザー提示内容を Apple 公式資料と照合し、新規仕様へ反映。
+
+## 2026-10-30 第一段階への同期
+
+ユーザーの自動提案・双方OKによる確定への変更に基づき、自動提案・予定と友達プロフィールの定型通報/ブロックを実Backendへ接続する。匿名相手は提案IDから解決する。既存Prototypeの任意補足やblock一覧を実保存・実提供されたと表示しない。ブロック/退会でpendingと未来予定を停止する。通知許可・device登録とAPNs配送はAutomaticScheduling/Notificationへ委譲する。
+新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。
+
+## 匿名2人契約の安全操作への移行（2026-11-03）
+
+新しい第一段階は匿名の2人提案を含み、相手や影響予定IDを先に開示する旧Prototypeの件数/version previewを実APIへ移さない。固定の効果（関係解除・新規停止・pendingと未来予定取消）を確認し、その同じ効果をサーバーの最新状態へ原子的に適用する契約へ置換した。通報・ブロックは別操作とし、運営向け通報受付は成功したoperationIDをDB行へ一意保存して受付番号とする。これは新しい製品境界のプライバシー設計であり、旧Prototypeの状態を実Backendの証拠に使わない。

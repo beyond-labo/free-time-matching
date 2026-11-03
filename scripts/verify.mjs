@@ -139,11 +139,13 @@ assert.equal(
 assert.equal(backendWranglerConfig.workers_dev, false);
 assert.deepEqual(backendWranglerConfig.env.staging, {
   name: "himatch-backend-staging",
+  triggers: { crons: ["*/15 * * * *"] },
   workers_dev: false,
   routes: [{ pattern: "api-staging.beyond-labo.com", custom_domain: true }],
 });
 assert.deepEqual(backendWranglerConfig.env.production, {
   name: "himatch-backend-production",
+  triggers: { crons: ["*/15 * * * *"] },
   workers_dev: false,
   routes: [{ pattern: "api.beyond-labo.com", custom_domain: true }],
 });

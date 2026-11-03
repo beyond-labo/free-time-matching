@@ -25,7 +25,12 @@ import type { HostingRepository } from "../Hosting/Application/Port/HostingRepos
 import { SupabaseHostingRepository } from "../Hosting/Infrastructure/Repository/SupabaseHostingRepository";
 import { createHostingRoutes } from "../Hosting/Presentation/HostingRoutes";
 
-export interface BackendBindings {
+import type { NotificationBindings } from "../Notification/Composition/Factory/dispatchSchedulingNotifications";
+import type { AutomaticSchedulingRepository } from "../AutomaticScheduling/Application/Port/AutomaticSchedulingRepository";
+import { SupabaseAutomaticSchedulingRepository } from "../AutomaticScheduling/Infrastructure/Repository/SupabaseAutomaticSchedulingRepository";
+import { createAutomaticSchedulingRoutes } from "../AutomaticScheduling/Presentation/Route/AutomaticSchedulingRoutes";
+
+export interface BackendBindings extends NotificationBindings {
   readonly SUPABASE_URL?: string;
   readonly SUPABASE_PUBLISHABLE_KEY?: string;
   readonly SUPABASE_SECRET_KEY?: string;
@@ -47,6 +52,7 @@ export interface AppDependencies {
   readonly deletionStatus: AccountDeletionStatusPort;
   readonly availability?: AvailabilityRepository;
   readonly hosting?: HostingRepository;
+  readonly automaticScheduling?: AutomaticSchedulingRepository;
 }
 
 export const createApp = (
@@ -129,6 +135,20 @@ export const createApp = (
     cancel: (actorId, token, hostingId, input) => dependencies().hosting!.cancel(actorId, token, hostingId, input),
   };
 
+  const lazyAutomaticScheduling: AutomaticSchedulingRepository = {
+    snapshot: (actor, token) => dependencies().automaticScheduling!.snapshot(actor, token),
+    settings: (actor, token, input) => dependencies().automaticScheduling!.settings(actor, token, input),
+    permission: (actor, token, id, input) => dependencies().automaticScheduling!.permission(actor, token, id, input),
+    respond: (actor, token, id, input) => dependencies().automaticScheduling!.respond(actor, token, id, input),
+    cancel: (actor, token, id, input) => dependencies().automaticScheduling!.cancel(actor, token, id, input),
+    feedback: (actor, token, id, input) => dependencies().automaticScheduling!.feedback(actor, token, id, input),
+    block: (actor, token, id, input) => dependencies().automaticScheduling!.block(actor, token, id, input),
+    blockProposal: (actor, token, id, input) => dependencies().automaticScheduling!.blockProposal(actor, token, id, input),
+    report: (actor, token, id, input) => dependencies().automaticScheduling!.report(actor, token, id, input),
+    reportFriend: (actor, token, id, input) => dependencies().automaticScheduling!.reportFriend(actor, token, id, input),
+    device: (actor, token, input) => dependencies().automaticScheduling!.device(actor, token, input),
+  };
+
   app.get("/healthz", healthRoute);
   app.route(
     "/v1",
@@ -143,6 +163,7 @@ export const createApp = (
   );
   app.route("/v1", createAvailabilityRoutes({ tokenVerifier: lazyTokenVerifier, availability: lazyAvailability }));
   app.route("/v1", createHostingRoutes({ tokenVerifier: lazyTokenVerifier, hosting: lazyHosting }));
+  app.route("/v1", createAutomaticSchedulingRoutes({ tokenVerifier: lazyTokenVerifier, automaticScheduling: lazyAutomaticScheduling }));
   app.route(
     "/v1",
     createAccountDeletionRoutes({
@@ -164,9 +185,9 @@ const createRuntimeDependencies = (bindings: BackendBindings): AppDependencies =
     requireBinding(bindings, "ACCOUNT_DELETION_STATUS_SECRET"),
   );
 
-  // The broad Supabase secret is constructed only inside the account-deletion
-  // adapter. Normal profile reads and writes always carry the user's JWT and
-  // publishable key so Postgres RLS remains authoritative.
+  // Normal request repositories always carry the user's JWT and publishable
+  // key. The secret is restricted to deletion administration and the separate
+  // scheduled job / notification factories, never ordinary scheduling APIs.
   const deletionAdmin = new SupabaseDeletionAdminAdapter(
     supabaseUrl,
     requireBinding(bindings, "SUPABASE_SECRET_KEY"),
@@ -193,6 +214,7 @@ const createRuntimeDependencies = (bindings: BackendBindings): AppDependencies =
     deletionStatus: new SupabaseDeletionStatusAdapter(userConfiguration),
     availability: new SupabaseAvailabilityRepository(userConfiguration),
     hosting: new SupabaseHostingRepository(userConfiguration),
+    automaticScheduling: new SupabaseAutomaticSchedulingRepository(userConfiguration),
   };
 };
 

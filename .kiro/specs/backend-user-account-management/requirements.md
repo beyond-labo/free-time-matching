@@ -63,7 +63,7 @@ iOS初版でSign in with Appleから得たSupabaseセッションを検証し、
 4. If 同じ冪等キーで削除要求を再送した, the Backend shall 重複処理せず同じ受付結果を返す
 5. If Apple失効または後続削除が失敗した, the Backend shall 受付記録をactionRequiredとして保持し、通常プロフィールAPIへのアクセスを拒否する
 6. The Backend shall opaqueな状況照会tokenでaccepted、processing、completed、actionRequiredを区別して取得できるようにし、生tokenは保存しない
-7. The Backend shall Supabaseの特権secretとApple署名鍵を削除用Adapterだけへ注入し、通常プロフィール処理へ渡さない
+7. The Backend shall ユーザー向けアカウント処理ではSupabaseの特権secretとApple署名鍵を削除用Adapterだけへ注入し、通常プロフィール処理へ渡さない。自動照合・通知の特権RPCはAutomaticScheduling/Notificationの独立したサーバー処理へ限定し、iOSへsecretを渡さない
 
 ### Requirement 4: データ保護と検証可能性
 

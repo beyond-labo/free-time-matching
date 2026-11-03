@@ -12,11 +12,19 @@ sources:
     title: App Review Guidelines
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/steering/roadmap.md
     - .kiro/specs/ios-app-foundation/brief.md
     - .kiro/specs/ios-friendship/brief.md
     - .kiro/specs/ios-hosting/brief.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+自動提案・予定と友達プロフィールの定型通報/ブロックを実Backendへ接続する。匿名相手は提案IDから解決する。既存Prototypeの任意補足やblock一覧を実保存・実提供されたと表示しない。ブロック/退会でpendingと未来予定を停止する。通知許可・device登録とAPNs配送はAutomaticScheduling/Notificationへ委譲する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # iOS 安全機能と設定 Brief
 
@@ -26,22 +34,22 @@ kiro:
 
 ## Current State
 
-設定、安全機能、通知設定、サポート、退会画面とプロトタイプ状態遷移がある。アカウント削除は fresh Apple 再認証、Apple token revoke、Supabase Auth hard delete を行う Production Backend へ接続し、通報・ブロック・通知・運営処理は引き続きプロトタイプまたは未接続である。
+設定、安全機能、通知設定、サポート、退会画面とプロトタイプ状態遷移がある。アカウント削除は fresh Apple 再認証、Apple token revoke、Supabase Auth hard delete を行う Production Backend へ接続し、定型通報・ブロック・通知登録をAutomaticSchedulingの実契約へ接続する。運営管理と実配信の実環境確認は別の準備事項である。
 
 ## Desired Outcome
 
-対象に近い場所から理由を選んで通報し、通報と独立してブロックできる。設定から通知、ブロック一覧、規約、プライバシー、問い合わせ、ログアウト、アカウント削除へ到達できる。削除は影響を説明し、受付と完了を区別する。
+対象に近い場所から理由を選んで通報し、通報と独立してブロックできる。設定から通知、規約、プライバシー、問い合わせ、ログアウト、アカウント削除へ到達できる。ブロックは対象近くで操作し、実リスト未提供の人数を表示しない。削除は影響を説明し、受付と完了を区別する。
 
 ## Approach
 
-Safety と AccountDeletion の Port を定義し、iOS は入力、影響確認、送信状態、受付状態を所有する。削除だけを Production Adapter へ接続し、ブロックの横断的な予定影響は Hosting との Application 契約で表す。通報・ブロックの実サーバー処理と運営対応は対象外として明示する。
+Safety と AccountDeletion の Port を定義し、iOS は入力、影響確認、送信状態、受付状態を所有する。削除と新しい安全操作を実Adapterへ接続する。匿名の2人提案では影響IDを返す旧Prototype previewを使わず、友達解除・申請/招待停止・未確定提案と未来予定の取消を定型文で確認し、最新状態へサーバーで適用する。運営管理は対象外とする。
 
 ## Scope
 
 ### In
 
 - 対象自動設定、定型理由、任意500文字の補足、重複送信防止を持つ通報シート。
-- ブロック影響確認、ブロック一覧、解除しても友達関係を自動復活しない説明。
+- 匿名性を守る固定のブロック影響確認。旧Prototypeの一覧・解除導線は実提供と扱わない。
 - 招待・回答・確定・取消の通知設定、任意の暇リマインダー、OS設定導線。
 - 規約、プライバシー、コミュニティルール、問い合わせ、運営情報。
 - 削除対象と予定影響、再認証要求、受付／処理中／完了／再試行の画面状態。

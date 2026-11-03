@@ -21,6 +21,7 @@
 | [iOS CI/CD](operations/ios-ci-cd.md) | 署名とTestFlight配布の運用手順 |
 | [Android CI/CD](operations/android-ci-cd.md) | 署名とGoogle Play internal track配布の運用手順 |
 | [iOS初版の実装・リリース判定](operations/ios-first-release-readiness.md) | プロトタイプで検証済みの範囲とリリース前の残件 |
+| [自動提案・予定成立の運用](operations/automatic-scheduling.md) | 相互許可、定期検出、通知設定、DB/実機検証と評価 |
 
 ## 文書の扱い
 
@@ -30,4 +31,4 @@
 
 機能実装へ進む際は、AGENTS.md に従って要件、設計、タスクを作成し、各段階をレビューします。
 Backend CI/CDの仕様は`.kiro/specs/backend-ci-cd/`、iOS CI/CDの仕様は`.kiro/specs/ios-ci-cd/`、Android CI/CDの仕様は`.kiro/specs/android-ci-cd/`にあります。
-iOS初版の依存順は`.kiro/steering/roadmap.md`、各機能仕様は`.kiro/specs/ios-*`、Backendのユーザー管理と友達関係の仕様は`.kiro/specs/backend-*`にあります。iOSは認証・プロフィール・友達関係・削除を実Backendへ接続し、最初の内部TestFlightはstagingを使用します。暇・募集はPrototype、AndroidはCI/CD用の最小アプリです。
+iOS初版の依存順は`.kiro/steering/roadmap.md`、各機能仕様は`.kiro/specs/ios-*`、Backendの基盤仕様は`.kiro/specs/backend-*`にあります。第一段階は [自動提案・予定成立](../.kiro/specs/automatic-friend-scheduling/requirements.md) へ変更しました。認証・友達・本人暇・手動募集の既存実APIを土台に、ホストなしの提案と双方OKによる確定を追加します。最初の実環境検証先はstagingです。AndroidはCI/CD用の最小アプリです。

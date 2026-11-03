@@ -97,7 +97,7 @@ struct AvailabilityEditorFeature {
                 id: slotID,
                 interval: TimeIntervalRange(id: slotID, start: start, end: end),
                 category: category,
-                visibility: visibility
+                visibility: .privateUntilAccepted
             )
         }
 
@@ -222,8 +222,8 @@ struct AvailabilityEditorFeature {
                 state.metadataConfirmed = false
                 return .none
 
-            case let .visibilityChanged(visibility):
-                state.visibility = visibility
+            case .visibilityChanged:
+                state.visibility = .privateUntilAccepted
                 state.metadataConfirmed = false
                 return .none
 

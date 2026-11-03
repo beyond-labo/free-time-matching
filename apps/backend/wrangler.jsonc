@@ -12,6 +12,7 @@
   "env": {
     "staging": {
       "name": "himatch-backend-staging",
+      "triggers": { "crons": ["*/15 * * * *"] },
       "workers_dev": false,
       "routes": [
         {
@@ -22,6 +23,7 @@
     },
     "production": {
       "name": "himatch-backend-production",
+      "triggers": { "crons": ["*/15 * * * *"] },
       "workers_dev": false,
       "routes": [
         {

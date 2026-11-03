@@ -9,6 +9,7 @@ sources:
     title: iOS アプリ統合調査
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-app-integration/requirements.md
     - .kiro/specs/ios-app-foundation/design.md
     - .kiro/specs/ios-availability/design.md
@@ -16,6 +17,13 @@ kiro:
     - .kiro/specs/ios-hosting/design.md
     - .kiro/specs/ios-safety-settings/design.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/受信箱で再取得する。旧session・旧revisionの応答を捨てる。Home/Inbox/友達/設定へ提案・確定予定・許可を投影し、新機能の業務状態を所有元Reducerへ集約する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Design Document
 
@@ -80,7 +88,7 @@ apps/ios/HimatchTests/AppIntegration/
 
 ## Contracts
 
-`AppProjectionRepository` は `home()`、`inbox()`、`friendPlans(friendID)` の read-only async 操作だけを持つ。DTO は ownerFeature と entityID を持ち、変更操作は Root delegate が所有機能へ route する。確定予定と `friendPlans` は DEBUG の Prototype fixture 専用とし、Release の投影には実 Backend の確定予定があるように表示しない。
+`AppProjectionRepository` は `home()`、`inbox()`、`friendPlans(friendID)` の read-only async 操作だけを持つ。DTO は ownerFeature と entityID を持ち、変更操作は Root delegate が所有機能へ route する。旧Hostingの確定予定と `friendPlans` fixtureはDEBUG専用とする。新しいAutomaticSchedulingのsnapshotは実Backendの提案・確定予定を持ち、所有機能のReducerをHome/Inboxから参照する。
 
 `HimatchPrototypeScenario` は actor 内で全 fixture を保持し、feature adapter factory と reset(seed) を提供する。block/delete は actor メソッド一回で関連状態と revision を更新する。各 Adapter は自機能 Port だけを実装する facade である。
 

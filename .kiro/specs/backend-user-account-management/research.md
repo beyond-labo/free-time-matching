@@ -142,3 +142,8 @@ kiro:
 - 2026-09-22: ProでもProject-scoped roleは提供されないことを確認し、stagingとproductionを常に別Organization／別CI identityへ分離する方針へ更新。productionだけをApp Store公開前にPro、stagingをFreeとし、Proを可用性・backup・log・Email supportのために採用する手順を追加。
 - 2026-09-22: Dashboardを再確認し、両OrganizationがFreeで各1 Project、TeamはOwnerだけ、owner accountのtokenは未発行、GitHub `staging` EnvironmentにSupabase tokenは未登録であることを確認。現在地からCI account招待を開始し、未分離時のOrganization作成とProject transfer、classic token発行、GitHub Environment登録、公開前のproduction Pro変更を別工程として実行するrunbookへ改訂。
 - 2026-09-22: 運用手順を一時的なDashboard状態から独立させ、完成形とcheckpointを基準に未完了工程から再開できる構成へ改訂。Project transferは既存構成を補正する場合だけの経路とし、productionのPro変更は初期セットアップからApp Store公開前の工程へ分離。
+
+## 2026-11-03 自動予定成立の統合確認
+
+アカウント削除の既存契約を保ち、新業務テーブルの停止/未来予定取消/token停止を追加migrationのhookで接続した。通常プロフィールへ特権を渡さず、照合/通知は独立したサーバー専用RPCへ限定。既存auth/削除pgTAPと全Worker試験、退会後quotaと過去予定の新試験が成功。
+詳細な証拠と限界は [自動予定成立の検証記録](../automatic-friend-scheduling/research.md) を参照する。

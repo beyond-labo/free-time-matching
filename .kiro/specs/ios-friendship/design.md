@@ -9,15 +9,23 @@ sources:
     title: iOS 友達関係調査
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-friendship/requirements.md
     - .kiro/specs/ios-app-foundation/design.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+友達別の自動提案許可はAutomaticSchedulingの設定を表示・更新する。友達承認を許可に読み替えない。関係解除で許可とpendingを失効させ、確定予定は暗黙に消さない。通報・ブロックは実APIへ委譲する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Design Document
 
 ## Overview
 
-Friendship が関係と申請のクライアント状態を所有し、一覧、コード入力、プロフィールを TCA 状態として構成する。Release は build-time configuration が指す Backend Friendship API（最初の内部 TestFlight は STG）、DEBUG デモは共有 Prototype scenario を利用する。安全操作と募集作成へは ID を渡す Navigation delegate のみ公開し、募集側は受け取った友達を選択済みにして共通時間軸を開く。
+Friendship が関係と申請のクライアント状態を所有し、一覧、コード入力、プロフィールを TCA 状態として構成する。Release は build-time configuration が指す Backend Friendship API（最初の内部 TestFlight は STG）、DEBUG デモは共有 Prototype scenario を利用する。安全操作と自動提案許可は所有機能へIDを渡して委譲する。既存手動募集のNavigation delegateは互換性として維持する。
 
 ## Boundary Commitments
 
@@ -74,7 +82,7 @@ apps/ios/HimatchTests/Friendship/
 - `FriendshipError`: unavailableCode、conflict、permissionLost、transport。コードの詳細理由は外へ出さない。
 
 FriendProfile の delegate は `invite(friendID)`、`report(target)`、`block(userID)` と DEBUG Prototype 専用の `openPlan(planID)`。他機能の View や Adapter を import しない。
-`FriendPlanProjection` は Integration が提供する DEBUG Prototype 専用の read-only 契約で、fixture の確定予定の有無と plan ID だけを返す。Friendship は予定を変更せず、Release で確定予定を実 Backend から取得したように表示しない。
+`FriendPlanProjection` は旧HostingのDEBUG fixture用として維持する。実際の自動提案・予定はAutomaticSchedulingの投影を使い、Friendshipはその予定の正本を持たず確認・取消へ委譲する。
 
 ## Requirements Traceability
 

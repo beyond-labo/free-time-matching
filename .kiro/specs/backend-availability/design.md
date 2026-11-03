@@ -15,6 +15,7 @@ sources:
     title: API 契約方針
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - apps/backend/src/Availability/Domain/Model/Availability.ts
     - apps/backend/src/Availability/Application/Port/AvailabilityRepository.ts
     - apps/backend/src/Availability/Infrastructure/Repository/SupabaseAvailabilityRepository.ts
@@ -23,6 +24,13 @@ kiro:
     - supabase/migrations/202609250001_availability.sql
     - supabase/tests/availability.test.sql
 ---
+
+## 第一段階での適用（2026-10-30）
+
+本人限定APIとRLS、旧shareOnHostingの入力互換性を維持する。照合専用のsecurity definer境界はAutomaticSchedulingが所有する。追加migrationのRPC wrapperとstatement hookでlock順を揃え、暇変更の完了後にpendingを再検証する。union/subtractの一時分割で誤取消しない。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Backend 暇時間 API 設計
 

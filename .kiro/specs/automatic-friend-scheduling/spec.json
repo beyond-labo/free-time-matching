@@ -1,0 +1,71 @@
+{
+  "feature_name": "automatic-friend-scheduling",
+  "created_at": "2026-10-29T14:00:00+09:00",
+  "updated_at": "2026-11-03T02:55:40.492882+00:00",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true,
+  "freshness": {
+    "status": "current",
+    "pending": [],
+    "checked_inputs": {
+      ".kiro/specs/automatic-friend-scheduling/brief.md": "bbbf69c963c5a99ddd010fe3fe349af9c03506a92918cdf244b03b993addd105",
+      ".kiro/specs/automatic-friend-scheduling/design.md": "cbddc435c4148b80a0ac9ecd1f2e77e688f1aa903a1d636b7ec7b69fe22ae7d3",
+      ".kiro/specs/automatic-friend-scheduling/requirements.md": "8ab72ed847e89290c089dbd4d9ab40532878fdf5dce6acf4a49cea90bff21bcc",
+      ".kiro/specs/automatic-friend-scheduling/research.md": "6b949e160c1fd6f58d1e908900d071e7d9ccedd341cf84f7946f3df97f412502",
+      ".kiro/specs/automatic-friend-scheduling/tasks.md": "0b4742eef293f709bb75bddfd73edbeecbd9423ca4beab17077fa2623ae5dca0",
+      ".kiro/steering/product.md": "31de2652a88437981922574de16f1e4bf87a277af2fafb75f5f5f73f166952eb",
+      ".kiro/steering/roadmap.md": "fa6242de7a3c79e8b0f912ace093eba73f985a30bcf894a0777f86e9ee870952",
+      "apps/backend/src/AutomaticScheduling/Application/Port/AutomaticSchedulingRepository.ts": "37a3568b43759bb81eb70c00dc2187eb3a7ec091422c13cb70e4d74f38357b2c",
+      "apps/backend/src/AutomaticScheduling/Domain/Model/AutomaticScheduling.ts": "a650f5b704c36f763a22823aeffade69b538cabf8f0957d98e7702a309ce920e",
+      "apps/backend/src/AutomaticScheduling/Infrastructure/Adapter/SupabaseSchedulingTickAdapter.ts": "01d4daf8ebff3fccebb57a7ec333e36bb7a40c1118ce8c61f028105b32e838f4",
+      "apps/backend/src/AutomaticScheduling/Infrastructure/Repository/SupabaseAutomaticSchedulingRepository.ts": "9c05e71327527a355ee9c59c94ed15774ed1d385049098a90f17d675a699a2f1",
+      "apps/backend/src/AutomaticScheduling/Presentation/Route/AutomaticSchedulingRoutes.ts": "a279548aa41edeacc13954d41879d77789c4d86c98c52d49e4a09e88a2036038",
+      "apps/backend/src/Composition/createApp.ts": "72c3c5a11f1bd73c91212782a38942923f8d21fe3f775969296a9805eae6de6b",
+      "apps/backend/src/EntryPoint/index.ts": "9c01c6c18dc4ca311ecc96f9aa8073e4e01e59b417d70c90c12a04e302662210",
+      "apps/backend/src/Hosting/Domain/Hosting.ts": "58e8e2e7a0c27b374d3d133a2535117046522e26f3a8e644f615c82117c194ad",
+      "apps/backend/src/Notification/Application/Port/NotificationDeliveryPort.ts": "4403e559e11db4b41047c05340933e70a0fdb464e180db3693103802809099c7",
+      "apps/backend/src/Notification/Application/UseCase/DeliverSchedulingNotifications.ts": "75ca9c8f654e2b4b7fc8a0427a39df2ed8fae3b446d673f9c7be8868d6c3eb27",
+      "apps/backend/src/Notification/Composition/Factory/dispatchSchedulingNotifications.ts": "dc9ab9fe1895499271c70fc8b3645f00041f6ed92dd4d49984aa9caddab5f960",
+      "apps/backend/src/Notification/Domain/Model/NotificationDelivery.ts": "7c4224f5733de175a31c1520f675e8d70eb81661b1dbca22cf3273ec6d47d2fc",
+      "apps/backend/src/Notification/Infrastructure/Adapter/ApnsNotificationAdapter.ts": "8c4ee22fb2da425586c8fd662e1f387fcd4f8ba1f3d47c73223063ca0d3244b1",
+      "apps/backend/src/Notification/Infrastructure/Repository/SupabaseNotificationDeliveryRepository.ts": "b3849dae1dd9bae5525440681d06726a5431e032ab117aa96a3e615a0b1a8d36",
+      "apps/backend/src/Shared/Infrastructure/SupabaseRestClient.ts": "a47390d3957f9f7df9c69ae362b689b3a6c7c43dc4fab0ddb31525a835b73bc4",
+      "apps/backend/test/automatic-scheduling.worker.test.ts": "ac5add17b15ff09c794a625272f1c602af791400a14e87e32fa556c2a5b40173",
+      "apps/backend/test/notification.worker.test.ts": "5047cd8474dded16cf24393ab9df969677f9f9247e223f52db8421acf38702cb",
+      "apps/backend/test/supabase-rest-client.worker.test.ts": "33f293ac4e5db8e45dd6b310dd121e5451be4a19812718f29ebce8f4724260e5",
+      "apps/backend/wrangler.jsonc": "ce1659338a497f258da641a7119dac6d5673b3770b8d78d9353f5b8b65abe3d4",
+      "apps/ios/Himatch/App/Composition/AppRuntime.swift": "047ab71bd6655541949d5c9abdfb280b52c263dbcd6ea9f52fff9a7039b09a3b",
+      "apps/ios/Himatch/App/Presentation/AppFeature.swift": "2c0d474af102ecf8d2e570a593791eff981ba449749713d4147882f5b46d7231",
+      "apps/ios/Himatch/App/Presentation/AppView.swift": "9c56819dae5d9886515c446a82d9a72af2b8a56a766f53ca02b6336c1da8cd6c",
+      "apps/ios/Himatch/AutomaticScheduling/Application/Port/AutomaticSchedulingRepository.swift": "20a7db028f4daf184fb7ded14631ec6a375ae4d013ded6cea021ba7de0d72607",
+      "apps/ios/Himatch/AutomaticScheduling/Application/UseCase/AutomaticSchedulingUseCase.swift": "6feb076c9bdd1a4fbda8e17f7c6eb45038b53d54b28450c48ceced4628a82047",
+      "apps/ios/Himatch/AutomaticScheduling/Domain/Model/AutomaticSchedulingModels.swift": "4f5d59de20f95504e5800127853cf625cb08ae25ec9929109bc080ce6452f98b",
+      "apps/ios/Himatch/AutomaticScheduling/Infrastructure/Adapter/BackendAutomaticSchedulingAdapter.swift": "d3d2e5f525ae1c9365b78c46912417bf29669c1c422dd2b70bb73e5074798923",
+      "apps/ios/Himatch/AutomaticScheduling/Infrastructure/Adapter/SchedulingPushAdapter.swift": "84f9dd12d989ed63e289488f82274633e4a749ae24bac202bea6058f119da052",
+      "apps/ios/Himatch/AutomaticScheduling/Presentation/Dependency/AutomaticSchedulingEffects.swift": "91b159cf6d97fff83b21194d4ee80fa3eb924a2e9eeef2e23dc345232191fce2",
+      "apps/ios/Himatch/AutomaticScheduling/Presentation/Reducer/AutomaticSchedulingFeature.swift": "8bed805457135554b42338f5edc15e3f920b151f9401e6e4f417a98db632c338",
+      "apps/ios/Himatch/AutomaticScheduling/Presentation/View/AutomaticSchedulingView.swift": "48b47a739f534b300594dd093ff97cc5a374ba79e4447af2b38051c9bb3a1cd7",
+      "apps/ios/Himatch/Himatch.entitlements": "f704697bfa90b164ec3baf0014ac0c3aa3635cb137b9f0bb751efbdfbd3ece0f",
+      "apps/ios/HimatchTests/AutomaticScheduling/AutomaticSchedulingTests.swift": "fe50db56dbe7bd80fb3cb0b5fc30d6268db9d5c99beef36c3ff9e80dec227602",
+      "docs/architecture/api-contracts.md": "c61f5068194f366f3a0de5d7ffe207d68e6667a825d377e118c2159367db010c",
+      "docs/product/overview.md": "9294a2b8a4aba21ef6f3aacc634678961f7392a08f1c64388dcbfaf409677d77",
+      "supabase/migrations/202610300001_automatic_scheduling.sql": "36c8493f7b29867e040139985753ac16239eeda87c1c9f9252cdcacd899ac62b",
+      "supabase/tests/automatic_scheduling.test.sql": "de5cfc490396f49848bc78bf27cdc88700fe0e1164de3b4acba49f9568442500"
+    }
+  }
+}

@@ -1,5 +1,7 @@
 # API 契約
 
+第一段階の主フローは [自動提案・予定成立](../../.kiro/specs/automatic-friend-scheduling/requirements.md) へ変更した。既存Hostingの手動招待・部分回答契約は互換性として維持し、自動確定へ名前だけ置換して使わない。
+
 ## 所有者と生成方向
 
 公開契約は生成処理の実装時に `apps/backend/openapi/openapi.yaml` へ配置します。

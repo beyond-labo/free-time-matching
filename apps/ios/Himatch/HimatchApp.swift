@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct HimatchApp: App {
+    @UIApplicationDelegateAdaptor(SchedulingAppDelegate.self) private var appDelegate
     static let displayName = "ひまっち"
 
     private let store: StoreOf<AppFeature>

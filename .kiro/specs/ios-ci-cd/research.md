@@ -153,3 +153,8 @@ Apple Developer Account の現行証明書発行 UI と Keychain Access の一�
 ### 2026-09-16
 
 Qiita 記事を起点に Apple と GitHub の一次資料を再確認し、Xcode 26.6、API key upload、Environment 分離を採用した。影響先は iOS project、GitHub workflows、運用・技術文書。
+
+## 2026-11-03 自動予定成立の統合確認
+
+APNs entitlementのdevelopment/productionとAPI sandbox/productionをビルド設定で一致させた。MCP全186件、Release build、最終生成物の登録前起動smokeを確認。Push capability付きprofile・実署名archive・TestFlightは外部検証であり、Simulator成功へ読み替えない。
+詳細な証拠と限界は [自動予定成立の検証記録](../automatic-friend-scheduling/research.md) を参照する。

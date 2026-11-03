@@ -147,3 +147,8 @@ XcodeBuildMCPでPR候補のDebug/Releaseビルドに成功し、両方の生成I
 ローカルXcode SDKで、確認文付き `requestConfirmation(result:confirmationActionName:showPrompt:)` が非推奨、新APIがiOS 18以降であることを確認した。ユーザーはiOS 17の募集送信・取消をアプリ内確認へ引き継ぐ変更を選択した。解決済み `PreparedSystemAction` を保存し、既存の前面復帰とSystemActionReviewViewへ渡してIntent側では変更を実行しない。iOS 18以降のSiri確認、暇の操作、本人束縛と再送契約は維持する。確認の場所を具体化する設計変更であり、要件3.3/3.5の実行前確認は維持する。
 
 XcodeBuildMCPのDebug/Releaseビルドは警告・エラー0件で成功した。ログは `build_sim_2026-10-07T04-42-56-172Z_pid23618_0ecb5b7a.log` と `build_sim_2026-10-07T04-43-06-749Z_pid23618_1df857ea.log`。入力保存・認証前引継ぎ防止・本人束縛・デモ分離・確認文等の関連テスト20件成功、0失敗・0スキップ（`test_sim_2026-10-07T04-43-42-479Z_pid23618_2d4127cd.xcresult`）。iOS 17実機のSiriからアプリへの復帰は未確認であり、タスク7を未完のまま維持する。
+
+## 2026-10-30 第一段階への同期
+
+ユーザーの自動提案・双方OKによる確定への変更に基づき、既存の暇登録・区間削除と手動Hosting音声操作の互換性契約を維持する。第一段階の主導線は自動提案へ置換し、Siriを含む暇登録だけで参加OKを生成しない。確定予定は新機能が所有し、旧Hostingの確定対象外を製品全体へ適用しない。
+新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。

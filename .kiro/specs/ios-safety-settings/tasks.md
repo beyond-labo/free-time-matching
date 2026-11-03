@@ -9,9 +9,17 @@ sources:
     title: iOS 安全機能・設定設計
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-safety-settings/requirements.md
     - .kiro/specs/ios-safety-settings/design.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+自動提案・予定と友達プロフィールの定型通報/ブロックを実Backendへ接続する。匿名相手は提案IDから解決する。既存Prototypeの任意補足やblock一覧を実保存・実提供されたと表示しない。ブロック/退会でpendingと未来予定を停止する。通知許可・device登録とAPNs配送はAutomaticScheduling/Notificationへ委譲する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Implementation Plan
 
@@ -21,13 +29,13 @@ kiro:
   - _Boundary: SafetyApplication, AccountDeletionApplication_
 
 - [ ] 2. Prototype Safety / Deletion / NotificationSettings Adapter を実装する
-  - 通報受付、重複抑止、block preview conflict と更新投影、通知設定の保存失敗、削除 accepted / processing / completed / actionRequired を再現する。
+  - 通報受付、重複抑止、匿名2人の固定ブロック効果と更新投影、通知設定の保存失敗、削除 accepted / processing / completed / actionRequired を再現する。
   - _Requirements: 1.4, 1.5, 2.2, 2.3, 2.5, 2.6, 3.6, 5.4, 5.5, 5.6, 6.4_
   - _Boundary: PrototypeSafetyAdapter, PrototypeAccountDeletionAdapter, PrototypeNotificationSettingsAdapter_
   - _Depends: 1_
 
 - [ ] 3. 通報とブロック画面を実装する
-  - 対象自動設定、定型理由、500文字補足、成功・失敗、独立操作、影響 preview・再確認を操作できる。
+  - 対象自動設定、定型理由、成功後の操作ID受付番号、成功・失敗、独立操作、匿名の固定効果確認を操作できる。
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
   - _Boundary: ReportFeature, BlockFeature_
   - _Depends: 2_

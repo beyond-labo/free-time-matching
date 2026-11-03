@@ -135,3 +135,8 @@ kiro:
 
 - ユーザー依頼と現行 Worker/migration/test の調査から新規仕様を作成した。
 - 既存実装を「本番証明済み」とは扱わず、実 Supabase concurrency、staging/production、OpenAPI、観測 redaction を未検証として設計・タスクへ反映した。
+
+## 2026-10-30 第一段階への同期
+
+ユーザーの自動提案・双方OKによる確定への変更に基づき、本人限定APIとRLS、旧shareOnHostingの入力互換性を維持する。照合専用のsecurity definer境界はAutomaticSchedulingが所有する。追加migrationのRPC wrapperとstatement hookでlock順を揃え、暇変更の完了後にpendingを再検証する。union/subtractの一時分割で誤取消しない。
+新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。

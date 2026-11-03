@@ -14,7 +14,7 @@ struct HomeView: View {
                         notices(snapshot)
                         HomeTimelineView(
                             store: store.scope(state: \.homeTimeline, action: \.homeTimeline),
-                            items: Self.scheduleItems(snapshot)
+                            items: Self.scheduleItems(snapshot, scheduling: store.automaticScheduling.snapshot)
                         )
                     }
                 } else {
@@ -62,9 +62,18 @@ struct HomeView: View {
     @ViewBuilder
     private func notices(_ snapshot: AppSnapshot) -> some View {
         let pending = snapshot.invitations.count + snapshot.requests.count
-        let showsNotices = pending > 0 || !snapshot.hostings.isEmpty || snapshot.availability.isEmpty || store.isAvailabilityLoading || store.availabilityLoadError
+        let proposals = store.automaticScheduling.snapshot?.proposals.filter { $0.status == .pending } ?? []
+        let showsNotices = store.automaticScheduling.snapshot?.enabled == false || !proposals.isEmpty || store.automaticScheduling.error != nil || store.automaticScheduling.isLoading || pending > 0 || !snapshot.hostings.isEmpty || snapshot.availability.isEmpty || store.isAvailabilityLoading || store.availabilityLoadError
         if showsNotices {
             VStack(spacing: HimatchSpacing.xs) {
+                if store.automaticScheduling.snapshot?.enabled == false {
+                    NoticeBanner(icon: "sparkles", title: "自動提案はオフです", detail: "設定と友達画面で明示的に許可できます") { store.send(.selectTab(.settings)) }
+                }
+                SchedulingStatusView(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling))
+                ForEach(proposals) { proposal in
+                    SchedulingProposalCard(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling), proposal: proposal)
+                        .himatchCard()
+                }
                 if pending > 0 {
                     NoticeBanner(icon: "bell.badge.fill", title: "要対応があります", detail: "\(pending)件") {
                         store.send(.showInbox(true))
@@ -118,11 +127,7 @@ struct HomeView: View {
             .buttonStyle(.himatchPrimary)
             .accessibilityHint("次の15分から2時間の暇を登録します。時間はあとで調整できます")
 
-            Button {
-                store.send(.homeTimeline(.selectionModeChanged(.hosting)))
-            } label: {
-                Text("友達を誘う")
-            }
+            Button { store.send(.showInbox(true)) } label: { Text("提案と予定") }
             .buttonStyle(.himatchSecondary(tint: HimatchColor.accent, fullWidth: false))
             .frame(minHeight: HimatchMetrics.primaryButtonHeight)
         }
@@ -132,7 +137,7 @@ struct HomeView: View {
         .background(.bar)
     }
 
-    static func scheduleItems(_ snapshot: AppSnapshot) -> [HomeScheduleItem] {
+    static func scheduleItems(_ snapshot: AppSnapshot, scheduling: SchedulingSnapshot? = nil) -> [HomeScheduleItem] {
         let availability = snapshot.availability.map { slot in
             HomeScheduleItem(
                 id: .availability(slot.id),
@@ -149,6 +154,11 @@ struct HomeView: View {
                 notes: hosting.participants.map { "\($0.friend.displayName)さんが参加OK" }
             )
         }
+        let automaticPlans = (scheduling?.proposals ?? []).filter { $0.status == .confirmed }.map { proposal in
+            HomeScheduleItem(id: .plan(proposal.id), interval: proposal.interval,
+                             title: "オンラインで遊ぶ予定", systemImage: "calendar.badge.checkmark", kind: .plan,
+                             notes: [proposal.peer.map { "参加者: \($0.nickname)" } ?? "参加者を確認中", "取消や実施後の任意回答は「提案と予定」から行えます。"])
+        }
 #if DEBUG
         let plans = snapshot.plans.map { plan in
             HomeScheduleItem(
@@ -163,9 +173,9 @@ struct HomeView: View {
                 ]
             )
         }
-        return availability + hostings + plans
+        return availability + hostings + plans + automaticPlans
 #else
-        return availability + hostings
+        return availability + hostings + automaticPlans
 #endif
     }
 }

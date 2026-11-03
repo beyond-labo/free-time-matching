@@ -9,8 +9,16 @@ sources:
     title: iOS 初版仕様間レビュー
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-app-integration/brief.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/受信箱で再取得する。旧session・旧revisionの応答を捨てる。Home/Inbox/友達/設定へ提案・確定予定・許可を投影し、新機能の業務状態を所有元Reducerへ集約する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Requirements Document
 
@@ -26,9 +34,9 @@ kiro:
 
 #### Acceptance Criteria
 
-1. The iOS app shall Home に自分の暇を所有元 ID 付きの読み取り投影として表示し、確定予定の投影は DEBUG の Prototype fixture に限定する
-2. The iOS app shall 統合受信箱に友達申請と Hosting 更新を要対応・進行中・終了として表示する
-3. The iOS app shall 友達プロフィールの確定予定 ID 投影を DEBUG の Prototype fixture に限定し、Release で実 Backend の確定予定として表示しない
+1. The iOS app shall Home に自分の暇を所有元 ID 付きの読み取り投影として表示し、AutomaticSchedulingの提案と確定予定を実Backendの読み取り投影として表示し、旧Hostingの確定fixtureだけDEBUGに限定する
+2. The iOS app shall 統合受信箱に友達申請・AutomaticSchedulingの提案/確定/取消と、既存Hosting更新を要対応・進行中・終了として表示する
+3. The iOS app shall 友達プロフィールからAutomaticSchedulingの実確定予定を確認・取消できるようにし、旧Hostingの確定fixtureと区別する
 4. The iOS app shall 投影からの変更操作を所有機能の Navigation / UseCase へ委譲する
 
 ### Requirement 2: 共有プロトタイプ整合性
@@ -52,9 +60,9 @@ kiro:
 1. The AppCompositionRoot shall 全 Adapter、UseCase、Reducer を生成して Root Store へ注入する
 2. The iOS app shall ホーム・友達・設定と各詳細を所有 ID / delegate action で遷移させる
 3. The repository verification shall filesystem-synchronized app/test group、TCA 1.26.1、Package.resolved、entitlements の存在と整合を検査する
-4. The integration tests shall DEBUG のデモ開始、暇登録、友達確認、募集、回答、確定、通報、ブロック、削除受付の主要経路を fixture で検証し、確定を Release の提供機能として扱わない
+4. The integration tests shall DEBUG のデモ開始、暇登録、友達確認、募集、回答、確定、通報、ブロック、削除受付の主要経路を fixture で検証し、旧Hostingのfixture確定をReleaseの提供機能として扱わず、自動提案の実確定は別の実契約試験で検証する
 5. The repository verification shall iOSテストがSwift Testingを使用し、XCTestのimportまたはXCTestCase継承を含まないことを検査する
-6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除・Friendship・本人の暇時間・Hostingの実Backend Adapterを注入し、DEBUGの明示的なデモだけでPrototype Adapterを使用する
+6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除・Friendship・本人の暇時間・Hosting・AutomaticSchedulingの実Backend Adapterを注入し、DEBUGの明示的なデモだけでPrototype Adapterを使用する
 7. The integration tests shall セッション復元、未設定プロフィール、ログアウト、削除後アクセス停止を検証する
 8. The AppCompositionRoot shall 最初の内部TestFlightでbuild-time configurationからSTG SupabaseとSTG APIを選択する
 9. The integration tests shall Release構成の暇登録が固定エラーを返さず、認証済み利用者のBackend応答で成功・失敗を判定することを検証する

@@ -15,9 +15,17 @@ sources:
     title: Offering account deletion in your app
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-safety-settings/brief.md
     - .kiro/specs/ios-hosting/requirements.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+自動提案・予定と友達プロフィールの定型通報/ブロックを実Backendへ接続する。匿名相手は提案IDから解決する。既存Prototypeの任意補足やblock一覧を実保存・実提供されたと表示しない。ブロック/退会でpendingと未来予定を停止する。通知許可・device登録とAPNs配送はAutomaticScheduling/Notificationへ委譲する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Requirements Document
 
@@ -28,7 +36,7 @@ kiro:
 ## Boundary Context
 
 - **In scope**: iOS の通報・ブロック入力と状態、設定、通知設定、サポート文書導線、Apple再認証を伴う実アカウント削除。
-- **Out of scope**: 運営管理、SLA、APNs、通報・ブロックのBackend横断処理、非同期削除Queue。
+- **Out of scope**: 運営管理、SLA、非同期削除Queue。APNs配信と通報・ブロックのBackend横断処理はAutomaticSchedulingが所有し、本仕様の入口から実契約へ接続する。
 - **Adjacent expectations**: Backend はApple token失効とSupabase Auth user削除を所有し、iOSへ必要最小限の削除状態だけ返す。
 
 ## Requirements
@@ -39,8 +47,8 @@ kiro:
 
 #### Acceptance Criteria
 
-1. When プロフィール、友達申請、招待、募集詳細から通報を開いた, the iOS app shall 対象ユーザーまたは募集を自動設定する
-2. The iOS app shall 不適切な表示名、迷惑な招待、なりすまし、嫌がらせ、その他の定型理由と500文字以内の任意補足を提供する
+1. When プロフィール、友達申請、招待、募集詳細、自動提案・予定から通報を開いた, the iOS app shall 対象ユーザーまたは募集・提案を自動設定する。匿名提案は提案IDからサーバーが対象を解決し、相手IDを開示しない
+2. The iOS app shall 不適切な表示名、迷惑な招待、なりすまし、嫌がらせ、その他の定型理由と定型通報を提供する。既存Prototypeの任意補足は実保存されたと表示しない
 3. The iOS app shall 通報者情報を相手へ表示しないことと運営が確認することを説明する
 4. When 通報が受理された, the iOS app shall 受付番号と完了を表示し任意のブロック導線を提供する
 5. If 送信が失敗または結果不明である, the iOS app shall 受付済みと表示せず同じ operationID で照会・再送できるようにする
@@ -52,11 +60,11 @@ kiro:
 #### Acceptance Criteria
 
 1. The iOS app shall 通報せずブロック、ブロックせず通報の両方を許可する
-2. Before ブロックを実行する, the iOS app shall 友達解除、新規申請・招待停止、未確定回答無効化、確定予定への影響を Backend preview から表示する
+2. Before ブロックを実行する, the iOS app shall 匿名の2人提案の固定効果として、友達解除、新規申請・招待停止、未確定提案と今後の確定予定の取消を確認表示し、相手の識別情報や影響IDを返す旧Prototype previewを使わない
 3. When ブロックが完了した, the iOS app shall 誰が誰をブロックしたかを他の参加者へ表示しない
 4. When ブロックを解除した, the iOS app shall 友達関係と以前の招待が自動復活しないことを表示する
-5. If preview 以降に状態が変わった, the iOS app shall 最新影響を再取得して再確認を求める
-6. When ブロックが完了した, the iOS app shall Backend が返す更新済み friendship、hosting、plan の識別子を使って各投影を再取得し、友達解除、未確定回答無効化、今後の招待停止、確定予定の離脱または取消結果を表示する
+5. When ブロックを確認した, the iOS app shall 最新の関係・提案・予定に同じ固定効果を原子的に適用し、成功応答のsnapshotから再取得する。結果不明なら同じ操作IDで再試行する
+6. When ブロックが完了した, the iOS app shall Backendの最新snapshotと所有機能の再読込で各投影を更新し、友達解除、未確定回答無効化、今後の招待停止、確定予定の離脱または取消結果を表示する
 
 ### Requirement 3: 通知設定と Push 非必須
 
@@ -64,7 +72,7 @@ kiro:
 
 #### Acceptance Criteria
 
-1. The iOS app shall 招待、回答、確定、取消の通知設定を変更できるようにする
+1. The iOS app shall 自動提案、確定、取消の通知許可を変更できるようにする
 2. The iOS app shall 暇登録リマインダーを初期オフにし、有効化時だけ曜日・時刻を設定する
 3. The iOS app shall 通知拒否後に繰り返し許可を迫らず、OS通知設定への明示的な導線を提供する
 4. The iOS app shall Push 許可をログイン、受信箱、回答、確定の利用条件にしない
@@ -77,7 +85,7 @@ kiro:
 
 #### Acceptance Criteria
 
-1. The iOS app shall 設定にプロフィール、ログアウト、アカウント削除、通知、ブロック一覧、問い合わせ、利用規約、プライバシー、コミュニティルール、バージョン、運営情報を表示する
+1. The iOS app shall 設定にプロフィール、ログアウト、アカウント削除、通知、問い合わせ、利用規約、プライバシー、コミュニティルール、バージョン、運営情報を表示する
 2. While 利用停止中である, the iOS app shall 問い合わせ、ログアウト、アカウント削除への到達を維持する
 3. The iOS app shall 実際に連絡可能な問い合わせ先をアプリ内と公開 Support URL の準備事項として示す
 4. The iOS app shall 友達グラフを Contacts / linked to user / App Functionality として申告する引継ぎをプライバシー文書へ残す

@@ -14,10 +14,15 @@ final class AppRuntime {
     let friendship: FriendshipClient
     let availability: BackendAvailabilityAdapter
     let hosting: BackendHostingAdapter
+    let scheduling: AutomaticSchedulingUseCase
+    let pushEnvironment: String?
+    private let schedulingDeviceWriter = SchedulingDeviceWriter()
     let deletionStore = KeychainDeletionStatusTokenStore().client()
     let handoff = SystemActionHandoffCoordinator()
 
     init(bundle: Bundle = .main) {
+
+        pushEnvironment = try? SchedulingPushEnvironment.apiValue(bundle.object(forInfoDictionaryKey: "HIMATCH_APNS_ENVIRONMENT") as? String)
 
         do {
             let configuration = try AppConfiguration(bundle: bundle)
@@ -31,6 +36,7 @@ final class AppRuntime {
             friendship = BackendFriendshipAdapter(baseURL: configuration.apiBaseURL).client()
             availability = BackendAvailabilityAdapter(baseURL: configuration.apiBaseURL)
             hosting = BackendHostingAdapter(baseURL: configuration.apiBaseURL)
+            scheduling = AutomaticSchedulingUseCase(repository: BackendAutomaticSchedulingAdapter(baseURL: configuration.apiBaseURL).repository())
         } catch {
             let message = error.localizedDescription
             authentication = .unconfigured(message)
@@ -39,6 +45,7 @@ final class AppRuntime {
             friendship = .unconfigured(message)
             availability = BackendAvailabilityAdapter(baseURL: URL(string: "https://invalid.local/")!)
             hosting = BackendHostingAdapter(baseURL: URL(string: "https://invalid.local/")!)
+            scheduling = AutomaticSchedulingUseCase(repository: BackendAutomaticSchedulingAdapter(baseURL: URL(string: "https://invalid.local/")!).repository())
         }
 
     }
@@ -86,6 +93,64 @@ final class AppRuntime {
 
     var business: HimatchClient {
         Self.productionBusiness(authentication: authentication, availability: availability, hosting: hosting)
+    }
+
+    var schedulingEffects: AutomaticSchedulingEffects {
+        let scheduling = scheduling
+        let authentication = authentication
+        let deletionStore = deletionStore
+        let environment = pushEnvironment
+        let deviceWriter = schedulingDeviceWriter
+        let token: @Sendable (String) async throws -> String = { expectedOwner in
+            guard try deletionStore.load() == nil, try deletionStore.loadOperationID() == nil,
+                  let session = try await authentication.restoreSession(), session.userID == expectedOwner else {
+                throw SchedulingFailure.unauthorized
+            }
+            return session.accessToken
+        }
+        let registerDevice: @Sendable (String, Bool, String) async throws -> Void = { deviceToken, enabled, owner in
+            guard let environment else { throw SchedulingFailure.rejected }
+            try await deviceWriter.write {
+                let accessToken = try await token(owner)
+                _ = try await scheduling.registerDevice(token: deviceToken, environment: environment, enabled: enabled, accessToken: accessToken)
+            }
+        }
+        return .init(
+            load: { owner in try await scheduling.load(token: token(owner)) },
+            execute: { command, operationID, owner in
+                try await scheduling.execute(command, operationID: operationID, token: token(owner))
+            },
+            requestNotifications: { owner in
+                _ = try await token(owner)
+                guard try await SchedulingPushAdapter.shared.requestPermission() else { return false }
+                guard environment != nil else { throw SchedulingFailure.rejected }
+                let deviceToken = try await SchedulingPushAdapter.shared.register()
+                try await registerDevice(deviceToken, true, owner)
+                return true
+            },
+            synchronizeDevice: { owner in
+                guard environment != nil else { return }
+                if !(await SchedulingPushAdapter.shared.enabled) {
+                    // A new account must also reclaim a disabled token after an offline logout.
+                    if let deviceToken = await SchedulingPushAdapter.shared.storedToken {
+                        try await registerDevice(deviceToken, false, owner)
+                    }
+                    return
+                }
+                let allowed = await SchedulingPushAdapter.shared.allowed()
+                if allowed {
+                    let deviceToken = try await SchedulingPushAdapter.shared.register()
+                    try await registerDevice(deviceToken, true, owner)
+                } else if let deviceToken = await SchedulingPushAdapter.shared.storedToken {
+                    try await registerDevice(deviceToken, false, owner)
+                }
+            },
+            disableDevice: { owner in
+                await SchedulingPushAdapter.shared.disableLocally()
+                guard let deviceToken = await SchedulingPushAdapter.shared.storedToken, environment != nil else { return }
+                try await registerDevice(deviceToken, false, owner)
+            }
+        )
     }
 
     func requestSystemActionHandoff(operationID: UUID) {

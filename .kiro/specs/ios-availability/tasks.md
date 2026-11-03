@@ -9,9 +9,17 @@ sources:
     title: iOS 暇時間設計
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-availability/requirements.md
     - .kiro/specs/ios-availability/design.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+第一段階の新規/編集は非公開固定。自動提案と実確定予定はAutomaticSchedulingの読み取り投影であり、旧Hosting fixtureのDEBUG制限を新しい実予定へ適用しない。暇変更でpendingを再検証するが、確定予定は別取消とする。既存Hostingの募集中削除guardは互換性として維持する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Implementation Plan
 

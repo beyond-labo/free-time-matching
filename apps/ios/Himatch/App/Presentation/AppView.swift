@@ -40,6 +40,10 @@ struct AppView: View {
         .onReceive(NotificationCenter.default.publisher(for: .systemActionRequested)) { _ in
             store.send(.systemActionsForeground)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .schedulingNotificationOpened)) { _ in
+            store.send(.systemActionsForeground)
+            if store.route == .main { store.send(.showInbox(true)) }
+        }
         .sheet(isPresented: Binding(
             get: { store.route == .main && store.systemActionOperationID != nil },
             set: { if !$0 { store.send(.systemActionDismissed) } }
@@ -83,8 +87,9 @@ private struct OnboardingView: View {
                 }
 
                 VStack(alignment: .leading, spacing: HimatchSpacing.m) {
-                    InfoRow(icon: "lock.fill", title: "暇時間は初期設定で非公開", detail: "友達のホームに常時表示されません。")
-                    InfoRow(icon: "checkmark.circle.fill", title: "参加OKした時間だけ共有", detail: "選んだ候補時間と表示名が主催者に伝わります。")
+                    InfoRow(icon: "lock.fill", title: "暇時間は非公開", detail: "登録は誘いを受け取ってよいという意思です。参加OKではありません。")
+                    InfoRow(icon: "sparkles", title: "自動提案は初期オフ", detail: "双方が許可した友達とのみ、共通の暇からオンラインの遊びを提案します。双方OKで予定が確定します。")
+                    InfoRow(icon: "person.crop.circle.badge.checkmark", title: "相手名は双方OKで表示", detail: "OK共有を選んだ人だけ先に名前とOKを共有します。提案日時から共通の暇の存在を推測される可能性があります。")
                     InfoRow(icon: "bubble.left.and.bubble.right", title: "場所や接続先は普段の連絡手段で", detail: "アプリでは時間と参加者を決めるところまで。")
                 }
                 .himatchCard()
@@ -380,31 +385,12 @@ private struct SettingsView: View {
                     }
                 }
 
-                Section {
-                    Toggle(isOn: Binding(get: { store.invitationNotifications }, set: { _ in store.send(.toggleInvitationNotifications) })) {
-                        Label("招待", systemImage: "envelope")
-                    }
-                    Toggle(isOn: Binding(get: { store.responseNotifications }, set: { _ in store.send(.toggleResponseNotifications) })) {
-                        Label("回答の更新", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    Toggle(isOn: Binding(get: { store.planNotifications }, set: { _ in store.send(.togglePlanNotifications) })) {
-                        Label("募集と回答", systemImage: "megaphone")
-                    }
-                    Toggle(isOn: Binding(get: { store.reminderEnabled }, set: { _ in store.send(.toggleReminder) })) {
-                        Label("暇登録のリマインダー", systemImage: "bell")
-                    }
-                } header: {
-                    Text("通知")
-                } footer: {
-                    Text("通知を許可しなくても、受信箱からすべての操作を行えます。")
-                }
+                SchedulingSettingsView(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling))
 
                 Section("安全") {
-                    LabeledContent {
-                        Text("\(store.snapshot?.blocked.count ?? 0)人")
-                    } label: {
-                        Label("ブロックしたユーザー", systemImage: "hand.raised.slash")
-                    }
+                    Label("友達や提案の詳細から通報・ブロックできます", systemImage: "hand.raised.slash")
+                    Text("ブロックすると新しい申請・招待・自動提案を止め、今後の確定予定を取り消します。")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
 
                 Section {
@@ -520,6 +506,21 @@ struct InboxView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("自動提案と予定") {
+                    SchedulingStatusView(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling))
+                    ForEach(store.automaticScheduling.snapshot?.proposals.filter { $0.status == .pending || $0.status == .confirmed } ?? []) { proposal in
+                        SchedulingProposalCard(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling), proposal: proposal)
+                    }
+                    if store.automaticScheduling.snapshot?.proposals.isEmpty == true {
+                        Text("自動提案はまだありません。双方の許可と共通の暇があると届きます。")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                Section("終了した提案") {
+                    ForEach(store.automaticScheduling.snapshot?.proposals.filter { $0.status != .pending && $0.status != .confirmed } ?? []) { proposal in
+                        SchedulingProposalCard(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling), proposal: proposal)
+                    }
+                }
                 Section("要対応") {
                     ForEach(store.snapshot?.invitations ?? []) { invitation in
                         InvitationResponseCard(
@@ -723,6 +724,7 @@ private struct FriendDetailView: View {
     let store: StoreOf<AppFeature>
     let friend: FriendProfile
     @State private var removeConfirmationPresented = false
+    @State private var reportConfirmationPresented = false
 
     var body: some View {
         List {
@@ -735,12 +737,11 @@ private struct FriendDetailView: View {
                 .accessibilityElement(children: .combine)
             }
             Section {
-                Button { store.send(.inviteFriendFromProfile(friend.id)) } label: {
-                    Label("時間を選んで誘う", systemImage: "megaphone")
-                }
-                Button { store.send(.showReport(true)) } label: {
+                SchedulingPermissionView(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling), friendID: friend.id)
+                SchedulingStatusView(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling))
+                Button { reportConfirmationPresented = true } label: {
                     Label("通報", systemImage: "exclamationmark.bubble")
-                }
+                }.disabled(!store.automaticScheduling.canMutate)
                 Button(role: .destructive) { store.send(.setBlockTarget(friend)) } label: {
                     Label("ブロック", systemImage: "hand.raised.slash")
                 }
@@ -750,8 +751,21 @@ private struct FriendDetailView: View {
             } footer: {
                 Text("友達の暇一覧や、友達の友達は表示しません。")
             }
+            if !confirmedPlans.isEmpty {
+                Section("この友達との確定予定") {
+                    ForEach(confirmedPlans) { proposal in
+                        SchedulingProposalCard(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling), proposal: proposal)
+                    }
+                }
+            }
         }
         .navigationTitle(friend.displayName)
+        .onAppear { store.send(.automaticScheduling(.refresh)) }
+        .confirmationDialog("通報理由を選んでください", isPresented: $reportConfirmationPresented, titleVisibility: .visible) {
+            Button("迷惑な申請・お誘い") { store.send(.automaticScheduling(.send(.reportFriend(friend.id, .spam)))) }
+            Button("嫌がらせ") { store.send(.automaticScheduling(.send(.reportFriend(friend.id, .harassment)))) }
+            Button("表示名・なりすまし・その他") { store.send(.automaticScheduling(.send(.reportFriend(friend.id, .other)))) }
+        }
         .sheet(isPresented: Binding(get: { store.reportPresented }, set: { store.send(.showReport($0)) })) {
             ReportView(store: store, targetName: friend.displayName)
         }
@@ -765,7 +779,7 @@ private struct FriendDetailView: View {
         ) {
             Button("ブロック", role: .destructive) { store.send(.confirmBlock(friend.id)) }
         } message: {
-            Text("友達関係を解除し、新しい申請と招待を止めます。解除しても友達関係は復活しません。")
+            Text("友達関係を解除し、新しい申請・手動招待・自動提案を止め、未確定提案と今後の確定予定を取り消します。解除しても以前の友達関係や許可は復活しません。")
         }
         .confirmationDialog(
             "\(friend.displayName)さんとの友達関係を解除しますか？",
@@ -775,11 +789,17 @@ private struct FriendDetailView: View {
             Button("友達を解除", role: .destructive) { store.send(.removeFriend(friend.id)) }
                 .disabled(store.isLoading)
         } message: {
-            Text("新しい招待と暇時間の共有は停止します。")
+            Text("新しい自動提案と手動招待を止め、未確定提案を取り下げます。確定済みの予定は残り、別に取り消せます。")
         }
         .onChange(of: store.snapshot?.friends.contains(where: { $0.id == friend.id }) ?? false) {
             _, remainsFriend in
             if !remainsFriend { dismiss() }
+        }
+    }
+
+    private var confirmedPlans: [SchedulingProposal] {
+        (store.automaticScheduling.snapshot?.proposals ?? []).filter {
+            $0.status == .confirmed && $0.peer?.userId == friend.id
         }
     }
 }
@@ -910,7 +930,8 @@ private struct AccountDeletionView: View {
         NavigationStack {
             List {
                 Section("削除されるもの") {
-                    Label("プロフィール、暇時間、友達、募集と招待", systemImage: "trash")
+                    Label("プロフィール、暇時間、友達、募集と招待、自動提案", systemImage: "trash")
+                    Text("未確定の提案を終了し、今後の確定予定を取り消し、通知配信を停止します。")
                     Label("主催中の予定は取消され、参加予定から離脱します", systemImage: "calendar.badge.minus")
                     Label("この端末のセッションを停止します", systemImage: "iphone.slash")
                 }

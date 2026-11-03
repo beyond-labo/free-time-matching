@@ -1,96 +1,97 @@
 ---
 type: Roadmap
-title: "iOS 初版ロードマップ"
-description: "暇時間のOR管理と友達への実招待・回答までの仕様分割"
+title: "自動提案・予定成立の第一段階ロードマップ"
+description: "既存基盤を再利用し4週間の仮説検証単位で2人の遊びを成立させる"
 status: stable
 sources:
-  - id: user-ios-first-release
-    resource: conversation://2026-09-20/ios-first-release
-    title: iOS 初版の必要要件・画面仕様案
+  - id: user-stage-one
+    resource: conversation://2026-10-29/automatic-friend-scheduling
+    title: ホストなしの自動提案と双方OKでの予定確定
 kiro:
   depends_on:
     - docs/product/overview.md
-    - docs/architecture/ios-architecture.md
-    - docs/architecture/api-contracts.md
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
 ---
 
-# iOS 初版ロードマップ
+# 第一段階ロードマップ
 
 ## Overview
 
-暇時間を本人が予定を入れたい時間として扱い、重複登録はOR統合する。選択した承認済み友達全員へ実Backendで招待し、相手が部分時間を回答できる。予定の最終確定とPush配信は後続工程とする。
-Backend のうちユーザーアカウント管理、友達関係、本人限定の暇時間を実 Backend 境界とし、Sign in with Apple、Supabaseセッション、プロフィール、期限付き招待コード、友達申請・承認・解除、暇枠の登録・参照・削除、アカウント削除を接続する。初回接続先は STG とし、production 環境への deploy は別工程とする。募集・Push・運営処理は引き続きプロトタイプ境界とし、実環境の複数ユーザー整合性を実装済みとは扱わない。
+手動の暇登録を起点に、許可された承認済み友達2人の共通時間をシステムが検出し、一つの提案へ各自が参加OK／見送りで回答する。双方OKで自動確定し、通知・取消・安全機能まで実Backendで成立させる。[^user-stage-one]
+4週間は小規模開発の計画仮説とし、5〜20人の既知の友達で検証する。機能の生成、承認、実装、実環境検証は区別する。
 
 ## Approach Decision
 
-単一の巨大仕様ではなく、ユーザーが独立して操作・検証できる機能境界へ分割する。
-共通の起動・プロフィール・3タブを先に置き、暇時間と友達を並行可能な前提機能、募集を両者の下流、安全・設定を全フローへ作用する最後の境界とする。
+既存の認証・友達・本人暇を再利用し、ホストなしの提案・予定ライフサイクルを `automatic-friend-scheduling` にまとめる。
+手動Hostingのホスト権限・複数招待・部分回答へ名前だけ置換して流用しない。手動募集は既存API互換性として保持し、第一段階の必須導線から外す。
 
 ## Scope
 
-- iOS 17 以降の SwiftUI / TCA クライアント。
-- Sign in with Apple のクライアント境界、初期説明、プロフィール、ホーム・友達・設定の3タブ。
-- 暇時間のOR統合・区間削除、友達、募集・招待・部分回答、安全機能、設定・退会の画面とクライアント状態遷移。
-- 認証・プロフィール・友達関係・本人の暇・募集・回答・取消の実 Backend Adapter（初回 STG）と、未接続の主要フローを再現するDEBUG専用Prototype Adapter。
-- Apple の UGC、アカウント削除、Push 非必須、プライバシー申告に関する iOS 側の導線と説明。
+- 15分単位・未来14日の非公開手動暇登録、承認済み友達2人のオンラインの遊び。
+- 初期オフの自動提案、友達別の相互許可、共通時間検出、一つの日時の提案。
+- ワンタップ回答、双方OKで自動確定、取消、通知、受信箱、通報・ブロック・退会の整合。
+- 週1件までと同一ペア連続抑制、成立・煩わしさ・プライバシーの小規模評価。
 
-対象外は友達の暇の直接共有・募集照合、予定の最終確定、Push・APNs配信、友達ブロック・通報のBackend保存、運営管理画面、非同期削除Queue、正式な App Store 提出、チャット、自由投稿、位置情報、連絡先同期、カレンダー、決済、Android とする。
-
-## 製品の共通方針
-
-[製品方針](product.md) に従い、予定設定・調整の再入力や再選択を減らす。Siri 連携は既存の暇・募集操作への新しい入口として扱い、参加OK・予定確定や公開範囲の意味を変更しない。
+次段階は3人以上、パーソナライズ、定期暇学習、カレンダー連携、自動再調整。当面はLLM交渉、位置推定、店舗検索・予約、チャット、未知の人を対象外とする。
 
 ## Constraints
 
-- 暇登録、参加 OK、予定確定を別の意思表示として扱う。
-- 非公開情報の漏えい防止はサーバー責務であり、プロトタイプ表示だけを安全性の検証証拠にしない。
-- Push を拒否しても受信箱から主要フローを完了できる。
-- 画面のタップ領域は 44 x 44pt を一般基準とし、15分枠を小さなマスだけで操作させない。
-- TCA と Clean Architecture の既存依存方向を維持する。
-- iOS の単体・Reducer・統合テストは Swift Testing で記述し、XCTest を import または継承しない。
+- 暇登録、自動提案許可、参加OK、予定確定は別の意思と状態。
+- 相手の生の暇は公開しない。名前と参加OKの共有は本人が選択し初期オフ。双方OK後は互いの名前と予定を表示する。本人限定RLSを広げず内部照合の権限を分ける。
+- サーバーで許可・安全・暇・競合・頻度を再検証し、通知失敗でも確定状態を二重化しない。
+- Pushを利用条件にしない。Prototypeの成功を認可・並行性・実配信の証拠にしない。
+- iOS17以降、SwiftUI/TCA、Swift Testing、既存Clean Architectureの依存方向を維持する。
 
 ## Boundary Strategy
 
-- `ios-app-foundation`: 起動、認証境界、プロフィール、3タブ、共通状態、Composition の入口。
-- `ios-availability`: 自分の暇時間とホーム時間軸。公開ポリシーの選択を所有する。
-- `ios-friendship`: 招待コード、友達申請、友達一覧、プロフィール操作を所有する。
-- `ios-hosting`: 時間軸からの募集、招待・部分回答・取消、受信箱を所有する。
-- `ios-safety-settings`: 通報、ブロック、通知設定、規約導線、退会のユーザー操作を所有する。
-- `ios-app-integration`: Home・Inbox の読み取り投影、共有 Prototype scenario、Root Composition、全機能統合検証を所有する。
-- `backend-user-account-management`: Supabase JWT検証、本人プロフィール、Apple再認証を伴うアカウント削除を所有する。
-- `backend-friendship`: 招待コード、申請、相互承認、友達一覧・解除の実 API・DB を所有し、最初に STG で検証する。
-- `backend-availability`: 本人限定の暇枠登録・参照・区間OR・減算を所有する。
-- `backend-hosting`: 承認済み友達への実招待・受信・部分回答・取消と認可を所有する。
+- `backend-user-account-management`: 認証・プロフィール・削除受付の既存正本。
+- `backend-availability` / `ios-availability`: 本人の正確な暇と入力。自動参加を所有しない。
+- `backend-friendship` / `ios-friendship`: 承認済み関係と友達操作。自動提案許可を友達承認へ混ぜない。
+- `automatic-friend-scheduling`: 相互許可、内部照合、提案、回答、自動確定、取消、頻度、通知・安全との整合を縦に所有する。
+- `ios-app-integration`: 新機能のCompositionとHome/Inboxへの投影を接続する。
+- `ios-safety-settings`: 通報・ブロック・退会の入口と最新の影響表示。
+- `backend-hosting` / `ios-hosting`: 既存の手動招待・部分回答の互換性。自動提案の代わりとして使わない。
 
 ## Specs (dependency order)
 
-- [x] ios-app-foundation -- 起動説明、Sign in with Apple 境界、プロフィール、3タブと共通画面状態。Dependencies: none
-- [x] backend-user-account-management -- Supabase認証済み本人、プロフィール、アカウント削除。Dependencies: ios-app-foundation, ios-safety-settings
-- [x] backend-friendship -- 期限付き招待コード、申請、相互承認、友達一覧・解除。Dependencies: backend-user-account-management
-- [x] backend-availability -- 本人限定の暇枠登録・参照・区間OR・減算。Dependencies: backend-user-account-management, ios-availability
-- [x] backend-hosting -- 承認済み友達への実招待・受信・部分回答・取消。Dependencies: backend-availability, backend-friendship
-- [x] ios-availability -- ホーム時間軸と暇時間の登録・編集・公開設定。Dependencies: ios-app-foundation
-- [x] ios-friendship -- 友達一覧、招待コード、申請、プロフィールのSTG実接続。Dependencies: ios-app-foundation, backend-friendship
-- [x] ios-hosting -- 時間軸からの募集、実招待、部分回答、取消。Dependencies: ios-app-foundation, ios-availability, ios-friendship, backend-hosting
-- [x] ios-safety-settings -- 通報、ブロック、通知設定、サポート、アカウント削除。Dependencies: ios-app-foundation, ios-friendship, ios-hosting
-- [x] ios-app-integration -- 横断読み取り投影、Prototype scenario、Root Composition、統合検証。Dependencies: ios-app-foundation, ios-availability, ios-friendship, ios-hosting, ios-safety-settings
+- [x] automatic-friend-scheduling -- ホストなしの2人提案・合意・確定・取消・頻度・通知・安全。Dependencies: backend-user-account-management, backend-friendship, backend-availability
 
-- [ ] ios-siri-actions -- Siri・ショートカットからの暇登録・区間削除、募集条件設定・作成・取消。設計生成済み。工程承認の正本は spec.json。Dependencies: ios-app-foundation, ios-availability, ios-friendship, ios-hosting
+このチェックは仕様生成の完了を示し、実装完了を意味しない。工程承認と実装準備状態の正本は各 `spec.json`。
 
 ## Existing Spec Updates
 
-- `ios-app-foundation`: Production Apple認証、セッション復元、プロフィールAPIを対象へ追加する。
-- `ios-safety-settings`: fresh Apple再認証、削除API、ローカルアクセス停止を対象へ追加する。
-- `ios-app-integration`: Release Compositionで認証・友達関係・暇の実 Backend Adapterを必須にし、初回接続先を STG、PrototypeをDEBUGへ限定する。
-- `ios-friendship`: Release CompositionでBackend Friendship Adapterを必須にし、最初の内部 TestFlight ではコード・申請・友達をSTGへ接続する。
-- `ios-ci-cd`: 製品実装と TCA 追加後も既存 build/test/TestFlight 経路が成立することを再検証する。CI/CD の責務や秘密管理契約は変更しない。
+| 仕様 | 更新対象と再検証 |
+| --- | --- |
+| ios-app-foundation | 要件1.1: 主催者前提の初回説明を、非公開暇・初期オフ・明示回答・自動確定へ置換 |
+| ios-availability | 要件1.2/1.8/1.10、3、4.6、7: 非公開固定、Homeの提案・実確定予定投影、暇変更と提案の再検証。OR・15分入力は再利用 |
+| backend-availability | 要件2/3.4/8.6: 本人API・RLSを維持し、内部照合・提案中の暇変更と旧shareOnHosting互換性を区別 |
+| ios-friendship / backend-friendship | 友達追加・解除を再利用。友達別許可は新機能へ委譲し、解除・再追加で許可を復活させない |
+| ios-safety-settings | 要件1/2/3/5/6: 提案・予定を通報対象へ追加、実ブロック・退会の関連状態無効化、提案・確定・取消通知 |
+| ios-app-integration | 要件1/2/3: 実提案・予定の投影、実Adapter、セッション切替、2アカウント検証。DEBUG確定fixtureを実績としない |
+| ios-siri-actions | 暇の登録・削除は再利用。手動募集の音声入口は既存互換性として区別し、暇登録を参加OKにしない |
+| backend-hosting / ios-hosting | 旧手動募集として全現存成果物を位置付け直し、自動提案の要件や達成証拠として使わない |
 
-- `ios-app-integration`: Siri 操作から認証・画面へ入力を引き継ぐ Composition 契約を、Siri 要件承認後に設計・タスクへ同期する。既存実装の完了状態とは分けて管理する。
+認証・CI/CD・旧手動募集の既存成果を一律に未完了へ戻さない。変更した受け入れ条件を証明しない完了項目だけを再評価する。
+
+## スプリント計画
+
+| 週 | 実装する体験 | 検証仮説・受け入れ証拠 |
+| --- | --- | --- |
+| 1 | 友達と15分単位の非公開暇登録、初期オフ・友達別許可 | 登録負担、片側許可では提案されないこと |
+| 2 | アプリ非起動時も共通時間を検出し一つの提案 | システム発の誘いへの反応、週上限・ペア抑制・開示境界 |
+| 3 | 各自1回答で双方OKから自動確定 | 日程調整0回、片側OKでは未確定、同時操作・再送でも1予定 |
+| 4 | 通知・取消・安全・TestFlight準備 | Push拒否時の成立、ブロック/退会、複数実機、実際の遊びの確認 |
 
 ## Direct Implementation Candidates
 
-- `docs/product/overview.md` と iOS 関連文書を、認証・プロフィール・削除・友達関係・本人の暇の実 Backend 境界（初回 STG）と、その他機能のPrototype境界へ同期する。
+仕様と承認が揃った後、既存API互換性を維持しながら新機能とiOS導線を追加する。実装コードの変更は依頼範囲に含まれる。デプロイ・アップロード・外部配布はこの変更作成の実施済み事項としない。
+
+## 成功の確認
+
+提案から実際に遊べた割合を最優先にし、確定率、実際に遊べたかの未回答、各自の操作数、往復調整回数を分ける。煩わしさと意図しない暇公開の受け止めも確認する。
 
 ## 変更履歴
 
-- 2026-09-25: TestFlight Releaseで暇登録が固定エラーを返す事象を受け、本人限定の暇登録・参照・削除を実Backend境界へ追加した。募集照合や友達向け共有は引き続き未実装。
+- 2026-10-29: ユーザーの第一段階方針に従い、ホストが手動募集し最終確定とPushを後続に送る旧ロードマップを置換した。旧仕様の実装・検証履歴は各仕様に維持する。
+
+[^user-stage-one]: 2026-10-29 の第一段階方針と実装コードを含める追加指示。

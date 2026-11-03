@@ -137,6 +137,7 @@ struct AppFeatureTests {
         let store = TestStore(initialState: state) { AppFeature() }
 
         await store.send(.authenticationInvalidated("サインインし直してください。")) {
+            $0.automaticScheduling.revision += 1
             $0.authenticationSession = nil
             $0.snapshot = nil
             $0.isDemo = false
@@ -181,6 +182,7 @@ struct AppFeatureTests {
         )
 
         await store.send(.deletionSubmitted(receipt)) {
+            $0.automaticScheduling.revision += 1
             $0.accountDeletionReceipt = receipt
             $0.deletionOperationID = nil
             $0.authenticationSession = nil
@@ -233,6 +235,7 @@ struct AppFeatureTests {
             $0.isLoading = true
         }
         await store.receive(\.deletionSubmitted) {
+            $0.automaticScheduling.revision += 1
             $0.accountDeletionReceipt = AccountDeletionReceipt(
                 reference: receipt.reference,
                 status: .actionRequired,
@@ -544,9 +547,8 @@ struct AppFeatureTests {
                 slotID: UUID(0)
             )
         }
-        await store.send(.availabilityEditor(.presented(.visibilityChanged(.shareOnHosting)))) {
-            $0.availabilityEditor?.visibility = .shareOnHosting
-        }
+        await store.send(.availabilityEditor(.presented(.visibilityChanged(.shareOnHosting))))
+        #expect(store.state.availabilityEditor?.visibility == .privateUntilAccepted)
         await store.send(.availabilityEditor(.dismiss)) {
             $0.availabilityEditor = nil
         }

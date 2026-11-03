@@ -29,13 +29,15 @@ Pull Requestでは一時Postgresへmigrationを初期適用し、staging／produ
 | Variable | `SUPABASE_URL` | Supabase project URL |
 | Variable | `SUPABASE_PUBLISHABLE_KEY` | 通常のAuth/Data API呼出し |
 | Variable | `APPLE_CLIENT_ID` | native App ID / token audience |
-| Secret | `SUPABASE_SECRET_KEY` | 削除用adapterだけが使用するAuth Admin資格情報 |
+| Secret | `SUPABASE_SECRET_KEY` | 削除用Auth Adminと、独立した自動照合・通知配送のサービス専用RPC |
 | Secret | `APPLE_TEAM_ID` | Apple client secretのissuer |
 | Secret | `APPLE_KEY_ID` | Apple client secretのkey id |
 | Secret | `APPLE_PRIVATE_KEY` | Apple client secret署名鍵 |
 | Secret | `ACCOUNT_DELETION_STATUS_SECRET` | status tokenの決定的HMAC（32文字以上） |
 
 `SUPABASE_SECRET_KEY` は通常のプロフィールRepositoryやJWT検証へ注入しません。
+
+自動提案・双方OKによる確定・取消・許可・安全操作は `/v1/automatic-scheduling` 配下の本人JWT APIです。定期処理はstaging/production別の15分Cronから呼びます。Pushを送る場合は `APNS_TEAM_ID`、`APNS_KEY_ID`、`APNS_PRIVATE_KEY`、`APNS_TOPIC` をまとめて設定します。詳細は [運用・検証手順](../../docs/operations/automatic-scheduling.md) を参照してください。外部資格情報の設定、STGへの配備、実APNs配信はローカルテストと区別します。
 JWT issuerとJWKS URLは`SUPABASE_URL`の同一origin・固定pathから導出し、任意の鍵サーバーへ差し替えられないようにします。
 Apple credentialとのsubject一致を確認した後だけ、削除adapterがApple tokenをrevokeし、Supabase Auth userをhard deleteします。
 削除状態はAuth userへの外部キーを持たない最小tombstoneとして残り、公開status関数は生のstatus token hashを返しません。
