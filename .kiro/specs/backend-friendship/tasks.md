@@ -9,9 +9,17 @@ sources:
     title: Backend 友達関係設計
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/backend-friendship/requirements.md
     - .kiro/specs/backend-friendship/design.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+友達承認APIの意味を変えず、自動提案の許可はAutomaticSchedulingが別に保存する。解除・再追加で許可を復活させない。追加migrationのwrapper/hookにより関係変更と提案確定の順序を揃える。ブロック状態の相手との新規申請・手動招待を拒否する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Implementation Plan
 

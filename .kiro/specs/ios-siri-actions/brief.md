@@ -9,11 +9,19 @@ sources:
     title: Siri 操作公開と予定調整の負荷最小化の依頼
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/steering/product.md
     - .kiro/specs/ios-availability/requirements.md
     - .kiro/specs/ios-hosting/requirements.md
     - .kiro/specs/ios-friendship/requirements.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+既存の暇登録・区間削除と手動Hosting音声操作の互換性契約を維持する。第一段階の主導線は自動提案へ置換し、Siriを含む暇登録だけで参加OKを生成しない。確定予定は新機能が所有し、旧Hostingの確定対象外を製品全体へ適用しない。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Siri 予定・ホスト操作
 
@@ -21,13 +29,13 @@ kiro:
 予定の設定・調整に画面を開く、日時を選び直す、友達を探す負荷がある。ユーザーはこの負荷を可能な限りゼロにし、Siri へ操作を公開することを求めている。[^user-siri-low-effort]
 
 ## Current State
-iOS 17 以降の SwiftUI/TCA アプリに本人の暇の登録・区間削除と、承認済み友達への募集作成・取消がある。App Intents の公開はない。予定の最終確定は現行製品の対象外。
+iOS 17 以降の SwiftUI/TCA アプリに本人の暇の登録・区間削除と、承認済み友達への募集作成・取消がある。App Intentsで暇・手動募集を操作する既存実装があり、実機の日本語Siri検証は未実施。予定確定はAutomaticSchedulingが所有し、Siri操作の対象外とする。
 
 ## Desired Outcome
 Siri とショートカットから日時と必要な条件を指定し、同じ業務操作を実行する。既に渡した値は聞き直さず、不足や曖昧さだけを補う。
 
 ## Approach
-独立仕様 `ios-siri-actions` がシステムからの入力・対象解決・結果応答を所有する。暇や募集の業務契約は既存仕様を再利用する。App Intents は Apple の公式公開経路を採用候補とし、具体的な構成は要件承認後の設計で確定する。
+独立仕様 `ios-siri-actions` がシステムからの入力・対象解決・結果応答を所有する。暇や募集の業務契約は既存仕様を再利用する。App Intentsは既存の公式公開経路を使い、暇登録を参加OKへ読み替えない。
 
 ## Scope
 - In: 暇登録、区間削除、日時・友達・開催条件を指定する募集作成、本人の募集取消、日本語の発見導線、認証・競合・失敗からの復帰。

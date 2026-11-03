@@ -158,6 +158,10 @@ jobs:
           APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
           APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
           ACCOUNT_DELETION_STATUS_SECRET: ${{ secrets.ACCOUNT_DELETION_STATUS_SECRET }}
+          APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
+          APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
+          APNS_PRIVATE_KEY: ${{ secrets.APNS_PRIVATE_KEY }}
+          APNS_TOPIC: ${{ vars.APNS_TOPIC }}
         run: |
           set -euo pipefail
           required=(
@@ -177,6 +181,14 @@ jobs:
             fi
           done
 
+          apns_configured=0
+          for name in APNS_TEAM_ID APNS_KEY_ID APNS_PRIVATE_KEY APNS_TOPIC; do
+            if [[ -n "${!name:-}" ]]; then apns_configured=$((apns_configured + 1)); fi
+          done
+          if [[ "$apns_configured" -ne 0 && "$apns_configured" -ne 4 ]]; then
+            echo "Configure all four APNs settings together." >&2
+            exit 1
+          fi
           secrets_file="$RUNNER_TEMP/worker-secrets.json"
           trap 'rm -f "$secrets_file"' EXIT
           jq -n '{
@@ -184,8 +196,12 @@ jobs:
             APPLE_TEAM_ID: env.APPLE_TEAM_ID,
             APPLE_KEY_ID: env.APPLE_KEY_ID,
             APPLE_PRIVATE_KEY: env.APPLE_PRIVATE_KEY,
+            APNS_TEAM_ID: env.APNS_TEAM_ID,
+            APNS_KEY_ID: env.APNS_KEY_ID,
+            APNS_PRIVATE_KEY: env.APNS_PRIVATE_KEY,
+            APNS_TOPIC: env.APNS_TOPIC,
             ACCOUNT_DELETION_STATUS_SECRET: env.ACCOUNT_DELETION_STATUS_SECRET
-          }' >"$secrets_file"
+          } | with_entries(select(.value != null and .value != ""))' >"$secrets_file"
           chmod 600 "$secrets_file"
 
           deployment_output="$RUNNER_TEMP/wrangler-staging-deploy.txt"

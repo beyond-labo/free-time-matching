@@ -18,6 +18,7 @@ struct SystemActionHandoffTests {
         }
         await store.send(.authenticationInvalidated("再認証してください。")) {
             $0.systemActionOperationID = nil
+            $0.automaticScheduling.revision += 1
             $0.authenticationSession = nil
             $0.route = .onboarding
             $0.alertMessage = "再認証してください。"

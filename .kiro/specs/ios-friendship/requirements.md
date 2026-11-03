@@ -9,9 +9,17 @@ sources:
     title: iOS 初版の必要要件・画面仕様案
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-friendship/brief.md
     - .kiro/specs/ios-app-foundation/requirements.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+友達別の自動提案許可はAutomaticSchedulingの設定を表示・更新する。友達承認を許可に読み替えない。関係解除で許可とpendingを失効させ、確定予定は暗黙に消さない。通報・ブロックは実APIへ委譲する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Requirements Document
 
@@ -56,10 +64,10 @@ kiro:
 
 #### Acceptance Criteria
 
-1. When 友達プロフィールを開いた, the iOS app shall 表示名、プリセットアイコン、友達を誘う、通報、ブロック、友達解除を表示する
+1. When 友達プロフィールを開いた, the iOS app shall 表示名、プリセットアイコン、自動提案の友達別許可、通報、ブロック、友達解除を表示する。手動招待は既存互換性として区別する
 2. The iOS app shall 友達の一日の暇一覧と友達の友達一覧を表示しない
 3. When 友達解除を確認した, the iOS app shall 新しい招待と共有が停止することを説明して解除 Port を呼ぶ
-4. Where DEBUG Prototype にその友達との確定予定 fixture がある, the iOS app shall 予定が暗黙に消えないことをデモ内で示し、Release に未接続の確定・離脱導線を表示しない
+4. When その友達との確定予定がある, the iOS app shall 友達解除だけで予定が消えないことを説明し、自動提案機能の予定確認・取消へ案内する
 5. If プロフィール権限を失った, the iOS app shall 詳細を残さず友達一覧へ戻す
 6. When 友達プロフィールの「友達を誘う」を選んだ, the iOS app shall Hosting の時間軸選択へ遷移し、その友達を招待先として選択済みにする
 

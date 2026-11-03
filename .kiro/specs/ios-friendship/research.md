@@ -47,3 +47,8 @@ kiro:
 - 2026-09-20: ユーザーの友達追加・管理・公開制約を新規仕様へ反映。
 - 2026-09-23: `BackendFriendshipAdapter`、友達状態の Reducer/UI、旧 session 応答の破棄、手動再読込、権限喪失時の詳細画面 dismiss を実装。署名検査 13 件と Swift Testing 33 件を iPhone 17 Pro Max Simulator で確認。STG 実アカウント smoke は未実施。
 - 2026-09-23: 実装依頼と `Production Placeholder` の調査に基づき、`backend-friendship` を上流に追加し、最初の内部 TestFlight は STG の実 Backend へ接続する方針に更新。
+
+## 2026-10-30 第一段階への同期
+
+ユーザーの自動提案・双方OKによる確定への変更に基づき、友達別の自動提案許可はAutomaticSchedulingの設定を表示・更新する。友達承認を許可に読み替えない。関係解除で許可とpendingを失効させ、確定予定は暗黙に消さない。通報・ブロックは実APIへ委譲する。
+新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。

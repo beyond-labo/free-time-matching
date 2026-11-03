@@ -9,9 +9,17 @@ sources:
     title: iOS アプリ統合設計
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-app-integration/requirements.md
     - .kiro/specs/ios-app-integration/design.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/受信箱で再取得する。旧session・旧revisionの応答を捨てる。Home/Inbox/友達/設定へ提案・確定予定・許可を投影し、新機能の業務状態を所有元Reducerへ集約する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Implementation Plan
 
@@ -21,7 +29,7 @@ kiro:
   - _Boundary: HimatchPrototypeScenario_
 
 - [ ] 2. 横断読み取り投影を実装する
-  - Home、統合受信箱を owner ID 付きで返し、変更操作を所有機能へ route する。友達との確定予定は DEBUG Prototype fixture だけで投影する。
+  - Home、統合受信箱を owner ID 付きで返し、変更操作を所有機能へ route する。旧Hostingの確定fixtureはDEBUGに限定し、AutomaticSchedulingの実確定予定をHome/Inboxへ別の所有元IDで投影する。
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
   - _Boundary: AppProjectionRepository_
   - _Depends: 1_
@@ -36,7 +44,7 @@ kiro:
   - _Depends: 1, 2_
 
 - [ ] 4. repository verify と全機能統合テストを完了する
-  - project構造、TCA pin、Supabase pin、entitlements、Swift Testing専用検査、STG接続設定、セッション復元・logout・削除後停止に加え、実Backendの暇OR・招待・回答と主要デモ経路を別々に検証する。予定確定は未接続と明示する。
+  - project構造、TCA pin、Supabase pin、entitlements、Swift Testing専用検査、STG接続設定、セッション復元・logout・削除後停止に加え、実Backendの暇OR・招待・回答と主要デモ経路を別々に検証する。旧Hostingの確定fixtureを実予定と混同せず、AutomaticSchedulingの実確定・取消とMCP回帰検証を別の証拠にする。
   - _Requirements: 3.3, 3.4, 3.5, 3.7, 3.8, 3.11, 3.12_
   - _Boundary: AppIntegrationValidation_
   - _Depends: 1, 2, 3_

@@ -9,11 +9,19 @@ sources:
     title: Siri 操作公開と予定調整の負荷最小化の依頼
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/steering/product.md
     - .kiro/specs/ios-availability/requirements.md
     - .kiro/specs/ios-hosting/requirements.md
     - .kiro/specs/ios-friendship/requirements.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+既存の暇登録・区間削除と手動Hosting音声操作の互換性契約を維持する。第一段階の主導線は自動提案へ置換し、Siriを含む暇登録だけで参加OKを生成しない。確定予定は新機能が所有し、旧Hostingの確定対象外を製品全体へ適用しない。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Requirements Document
 

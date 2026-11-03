@@ -91,3 +91,8 @@ kiro:
 XcodeBuildMCPのDebugビルド（`build_sim_2026-10-06T23-52-10-758Z_pid23618_378275e8.log`）とReleaseビルド（`build_sim_2026-10-06T23-53-40-257Z_pid23618_1f2340dd.log`）が成功した。既存のSiri確認APIの非推奨警告1件が残る。
 
 逆参照を照合し、Hostingの候補区間・回答・認可、Siriの日時引継ぎ・本人束縛・通常実依存、Backend Availabilityの15分境界・OR・区間減算・非公開契約には意味変更がないと判断した。これらの承認と既存タスク状態は維持する。roadmapの時間軸所有境界も維持する。
+
+## 2026-10-30 第一段階への同期
+
+ユーザーの自動提案・双方OKによる確定への変更に基づき、第一段階の新規/編集は非公開固定。自動提案と実確定予定はAutomaticSchedulingの読み取り投影であり、旧Hosting fixtureのDEBUG制限を新しい実予定へ適用しない。暇変更でpendingを再検証するが、確定予定は別取消とする。既存Hostingの募集中削除guardは互換性として維持する。
+新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。

@@ -100,3 +100,8 @@ kiro:
 - 2026-09-23: ローカル Supabase CLI 2.117.0 で既存 migration からの初期適用、public schema lint、pgTAP 61 件を実行し成功。Friendship pgTAP は初回 ensure、解決、申請、承認、拒否、取消、解除、再成立、operation target binding、非当事者エラー統一を含む。
 - 2026-09-23: Backend は Worker test 28 件、health smoke 3 件、Wrangler dry-run build、iOS は署名検査 13 件と Swift Testing 33 件、repository verify を実行し成功。STG への deploy と複数実アカウント smoke は本作業では未実施。
 - 2026-09-23: 実装依頼と最新 `origin/main` のコード調査を根拠に、`Production Placeholder` を Backend Friendship へ置換し、初回は STG に接続する設計を追加。独立レビューに基づき operation target binding、pair lock、非当事者エラー統一、active tombstone と単調 version を追加。
+
+## 2026-10-30 第一段階への同期
+
+ユーザーの自動提案・双方OKによる確定への変更に基づき、友達承認APIの意味を変えず、自動提案の許可はAutomaticSchedulingが別に保存する。解除・再追加で許可を復活させない。追加migrationのwrapper/hookにより関係変更と提案確定の順序を揃える。ブロック状態の相手との新規申請・手動招待を拒否する。
+新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。

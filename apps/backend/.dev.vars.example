@@ -9,3 +9,10 @@ APPLE_TEAM_ID=REPLACE_ME
 APPLE_KEY_ID=REPLACE_ME
 APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nREPLACE_ME\n-----END PRIVATE KEY-----
 ACCOUNT_DELETION_STATUS_SECRET=replace-with-at-least-32-random-characters
+
+# Optional APNs delivery. Configure all four together. With none configured,
+# app inbox notifications remain available and the outbox waits for delivery.
+# APNS_TEAM_ID=REPLACE_ME
+# APNS_KEY_ID=REPLACE_ME
+# APNS_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nREPLACE_ME\n-----END PRIVATE KEY-----
+# APNS_TOPIC=com.example.himatch

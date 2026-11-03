@@ -21,7 +21,7 @@ struct AvailabilityEditorView: View {
                         .disabled(store.metadataConfirmed || store.isSaving)
                     }
                     categorySection
-                    visibilitySection
+                    InfoRow(icon: "lock.fill", title: "暇時間は非公開", detail: "登録は参加OKではありません。自動提案への回答は別に行います。")
                     Label("暇を登録しても、参加OKや予定の確定にはなりません。", systemImage: "info.circle")
                         .font(HimatchFont.supporting)
                         .foregroundStyle(.secondary)

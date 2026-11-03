@@ -22,10 +22,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		C10000000000000000000007 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
-		C10000000000000000000008 /* Himatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Himatch-Info.plist"; sourceTree = "<group>"; };
 		C10000000000000000000005 /* Himatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Himatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C10000000000000000000006 /* HimatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HimatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C10000000000000000000007 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		C10000000000000000000008 /* Himatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Himatch-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -223,6 +223,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				HIMATCH_APNS_ENVIRONMENT = development;
 				INFOPLIST_FILE = "Config/Himatch-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "ひまっち";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -231,7 +232,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.7;
+				MARKETING_VERSION = 0.1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -249,11 +250,12 @@
 				CURRENT_PROJECT_VERSION = "$(HIMATCH_CURRENT_PROJECT_VERSION)";
 				DEVELOPMENT_TEAM = "$(HIMATCH_DEVELOPMENT_TEAM)";
 				GENERATE_INFOPLIST_FILE = YES;
+				HIMATCH_APNS_ENVIRONMENT = production;
 				HIMATCH_CODE_SIGN_IDENTITY = "";
 				HIMATCH_CODE_SIGN_STYLE = Automatic;
 				HIMATCH_CURRENT_PROJECT_VERSION = 1;
 				HIMATCH_DEVELOPMENT_TEAM = 3AR6NX434Z;
-				HIMATCH_MARKETING_VERSION = 0.1.7;
+				HIMATCH_MARKETING_VERSION = 0.1.8;
 				HIMATCH_PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch;
 				HIMATCH_PROVISIONING_PROFILE_SPECIFIER = "";
 				INFOPLIST_FILE = "Config/Himatch-Info.plist";

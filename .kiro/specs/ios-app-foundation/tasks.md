@@ -9,9 +9,17 @@ sources:
     title: iOS アプリ基盤設計
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-app-foundation/requirements.md
     - .kiro/specs/ios-app-foundation/design.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+登録前説明は非公開暇・自動提案初期オフ・友達別相互許可・個別回答を区別する。認証と3タブは既存実装を再利用する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Implementation Plan
 

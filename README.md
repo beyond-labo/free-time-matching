@@ -10,9 +10,9 @@ Backend は公開 OpenAPI を所有し、各モバイルアプリは Clean Archi
 iOS には SwiftUI/TCA アプリ、Swift Testing、Xcode プロジェクトがあります。
 GitHub Actions は pull request の iOS build/test と、明示的な tag または手動実行による TestFlight upload を提供します。
 Android には最小Composeアプリ、JVM単体テスト、Gradleプロジェクトがあり、pull requestのlint/test/buildと、明示的なtagまたは手動実行によるGoogle Play internal track配布を提供します。
-Backendには最小Hono Worker、`GET /healthz`、Workers Runtimeテスト、Cloudflare向けCI/CDがあります。
+BackendにはHono Worker、認証・プロフィール・友達・本人暇・手動招待のAPI、Workers Runtimeテスト、Cloudflare向けCI/CDがあります。
 Terraformにはstagingとproductionの環境別rootとR2 remote state境界がありますが、実Cloudflare resourceはまだ宣言していません。
-OpenAPI、認証、DB、契約生成ツールは未実装です。iOS 製品機能は Backend 未接続のプロトタイプ実装です。
+第一段階を、非公開暇の自動照合から双方OKで予定を確定する体験へ移行します。[自動予定成立仕様](.kiro/specs/automatic-friend-scheduling/requirements.md) と [運用・検証手順](docs/operations/automatic-scheduling.md) を参照してください。実装コードと実環境での動作確認・配布の証拠は区別します。
 未実装の層やツールのための予約ファイルは作成しません。
 
 ## 検証

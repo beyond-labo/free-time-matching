@@ -72,3 +72,8 @@ Root Composition と友達状態の統合を iPhone 17 Pro Max Simulator でビ�
 0.1.7 のホーム smoke で、明示DEBUGデモのプロフィール保存が実Backend Clientへ流れて失敗する既存不具合を発見した。Composition の `demoClient` 注入と `isDemo` 条件で修復し、要件3.6のデモ境界へ同期する。Release認可・通常Debug・Siri契約を変更せず、既存未完了タスクや未承認工程を今回の部分検証だけで完了へ変更しない。
 
 `AppFeatureDemoDependencyTests` の明示デモ保存・通常実依存・プロフィール招待遷移を含むSwift Testing 168件成功（2026-10-04）の証拠を再利用し、2026-10-07にXcodeBuildMCPでDebug/Releaseビルド成功を確認した。ホーム両表示は同じ読み取りsnapshotを使い、最終予定確定や友達の暇を追加しない。全機能統合のタスク3/4は未完を維持する。
+
+## 2026-10-30 第一段階への同期
+
+ユーザーの自動提案・双方OKによる確定への変更に基づき、AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/受信箱で再取得する。旧session・旧revisionの応答を捨てる。Home/Inbox/友達/設定へ提案・確定予定・許可を投影し、新機能の業務状態を所有元Reducerへ集約する。
+新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。

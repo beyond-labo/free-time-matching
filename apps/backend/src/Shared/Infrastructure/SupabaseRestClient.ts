@@ -21,7 +21,16 @@ export const supabaseFetch = async (
 ): Promise<Response> => {
   const headers = new Headers(init.headers);
   headers.set("apikey", configuration.apiKey);
-  headers.set("authorization", `Bearer ${accessToken ?? configuration.apiKey}`);
+  if (accessToken !== undefined) {
+    headers.set("authorization", `Bearer ${accessToken}`);
+  } else if (configuration.apiKey.startsWith("sb_")) {
+    // Publishable/secret API keys are not JWTs. The gateway resolves their
+    // database role from apikey; only a user's access JWT belongs in Bearer.
+    headers.delete("authorization");
+  } else {
+    // Preserve the legacy anon/service_role JWT transport during migration.
+    headers.set("authorization", `Bearer ${configuration.apiKey}`);
+  }
   if (init.body !== undefined && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }

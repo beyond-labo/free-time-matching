@@ -43,6 +43,7 @@ struct AppFeature {
         var profileValidationMessage: String?
 
         var homeTimeline = HomeTimelineFeature.State()
+        var automaticScheduling = AutomaticSchedulingFeature.State()
         @Presents var availabilityEditor: AvailabilityEditorFeature.State?
         var hostingListPresented = false
 
@@ -135,6 +136,7 @@ struct AppFeature {
         case logoutCompleted
 
         case homeTimeline(HomeTimelineFeature.Action)
+        case automaticScheduling(AutomaticSchedulingFeature.Action)
         case availabilityEditor(PresentationAction<AvailabilityEditorFeature.Action>)
         case removeAvailability(UUID)
         case quickSaveSucceeded(AppSnapshot, slotID: UUID)
@@ -211,18 +213,32 @@ struct AppFeature {
     @Dependency(\.calendar) var calendar
     @Dependency(\.uuid) var uuid
     @Dependency(\.systemActionHandoffClient) var systemActionHandoffClient
+    @Dependency(\.automaticSchedulingEffects) var schedulingEffects
 
     var body: some ReducerOf<Self> {
         Scope(state: \.homeTimeline, action: \.homeTimeline) {
             HomeTimelineFeature()
         }
+        Scope(state: \.automaticScheduling, action: \.automaticScheduling) {
+            AutomaticSchedulingFeature()
+        }
         Reduce { state, action in
             let client = state.isDemo ? (demoClient ?? self.client) : self.client
             switch action {
+            case .automaticScheduling(.delegate(.authenticationInvalidated)):
+                return .send(.authenticationInvalidated("サインインし直してください。"))
+            case .automaticScheduling(.delegate(.safetyChanged)):
+                return .merge(.send(.reloadFriendships), .send(.reloadHostings))
+            case .automaticScheduling:
+                return .none
             case .systemActionsForeground:
-                guard state.route == .main, !state.isDemo else { return .none }
+                guard state.route == .main, !state.isDemo, let schedulingOwner = state.authenticationSession?.userID else { return .none }
                 return .merge(
                     .send(.reloadAvailability), .send(.reloadHostings),
+                    .send(.automaticScheduling(.activate(schedulingOwner))),
+                    .run { [owner = state.authenticationSession?.userID] _ in
+                        if let owner { try? await schedulingEffects.synchronizeDevice(owner) }
+                    },
                     .run { send in
                         if let id = await systemActionHandoffClient.pendingOperationID() {
                             await send(.systemActionAvailable(id))
@@ -355,7 +371,13 @@ struct AppFeature {
                     }
                     let previousOwner = state.authenticationSession?.userID
                     let ownerChanged = previousOwner != nil && previousOwner != session.userID
-                    if ownerChanged { state.systemActionOperationID = nil }
+                    if ownerChanged {
+                        state.systemActionOperationID = nil
+                        let revision = state.automaticScheduling.revision + 1
+                        state.automaticScheduling = .init()
+                        state.automaticScheduling.revision = revision
+                        state.snapshot = nil
+                    }
                     state.authenticationSession = session
                     guard state.route != .deletionAccepted else { return .none }
                     return .merge(
@@ -370,6 +392,9 @@ struct AppFeature {
                     let previousOwner = state.authenticationSession?.userID
                     state.systemActionOperationID = nil
                     state.authenticationSession = nil
+                    let revision = state.automaticScheduling.revision + 1
+                    state.automaticScheduling = .init()
+                    state.automaticScheduling.revision = revision
                     state.isAvailabilityLoading = false
                     state.isFriendshipLoading = false
                     guard state.route != .deletionAccepted else { return .none }
@@ -385,6 +410,9 @@ struct AppFeature {
                 let previousOwner = state.authenticationSession?.userID
                 state.systemActionOperationID = nil
                 state.authenticationSession = nil
+                let revision = state.automaticScheduling.revision + 1
+                state.automaticScheduling = .init()
+                state.automaticScheduling.revision = revision
                 state.isAvailabilityLoading = false
                 state.isFriendshipLoading = false
                 state.snapshot = nil
@@ -436,7 +464,8 @@ struct AppFeature {
                 state.snapshot?.profileIcon = profile.presetIcon.rawValue
                 state.route = .main
                 guard !state.isDemo, state.authenticationSession != nil else { return .none }
-                return .merge(.send(.reloadFriendships), .send(.reloadAvailability), .send(.reloadHostings))
+                return .merge(.send(.reloadFriendships), .send(.reloadAvailability), .send(.reloadHostings),
+                              .send(.automaticScheduling(.activate(state.authenticationSession!.userID))))
 
             case .reloadAvailability:
                 guard !state.isDemo, let session = state.authenticationSession else { return .none }
@@ -576,8 +605,14 @@ struct AppFeature {
                     .run { [owner = state.authenticationSession?.userID] send in
                         do {
                             if let owner { await systemActionHandoffClient.invalidate(owner) }
+                            var deviceDisableFailed = false
+                            if let owner {
+                                do { try await schedulingEffects.disableDevice(owner) }
+                                catch { deviceDisableFailed = true }
+                            }
                             try await authenticationClient.signOut()
                             await send(.logoutCompleted)
+                            if deviceDisableFailed { await send(.operationFailed("ログアウトしました。端末の通知停止は確認できませんでした。通知本文に相手名や暇時間は含まれません。")) }
                         } catch {
                             await send(.operationFailed(error.localizedDescription))
                         }
@@ -585,7 +620,9 @@ struct AppFeature {
                 )
 
             case .logoutCompleted:
+                let schedulingRevision = state.automaticScheduling.revision + 1
                 state = State()
+                state.automaticScheduling.revision = schedulingRevision
                 state.route = .onboarding
                 state.isLoading = false
                 return .cancel(id: CancelID.friendship)
@@ -701,7 +738,7 @@ struct AppFeature {
                 })?.id ?? slotID
                 state.homeTimeline.lastSavedItem = .availability(actualSlotID)
                 state.homeTimeline.quickSaveSuccessCount += 1
-                return .none
+                return refreshScheduling(state)
 
             case let .quickSaveFailed(message):
                 state.homeTimeline.selection?.isSaving = false
@@ -712,7 +749,7 @@ struct AppFeature {
                 state.availabilityRevision += 1
                 applyBusinessSnapshot(snapshot, to: &state)
                 state.homeTimeline.selection = nil
-                return .none
+                return refreshScheduling(state)
 
             case .availabilityDeletionBlocked:
                 state.isLoading = false
@@ -730,7 +767,7 @@ struct AppFeature {
                 if let savedStart {
                     state.homeTimeline.focus(on: savedStart, item: nil, now: now, calendar: calendar)
                 }
-                return .none
+                return refreshScheduling(state)
 
             case let .availabilityEditor(.presented(.delegate(.showExistingSlot(id)))):
                 state.availabilityEditor = nil
@@ -943,12 +980,12 @@ struct AppFeature {
                 guard presented, !state.isDemo, let session = state.authenticationSession else { return .none }
                 let revision = state.hostingRevision
                 let userID = session.userID
-                return .run { [client] send in
+                return .merge(refreshScheduling(state), .run { [client] send in
                     do {
                         let hosting = try await client.loadHostings()
                         await send(.hostingLoadCompleted(hosting.hostings, hosting.invitations, revision: revision, userID: userID))
                     } catch { await send(.hostingLoadFailed(error.localizedDescription, revision: revision, userID: userID)) }
-                }
+                })
 
             case let .hostingLoadCompleted(hostings, invitations, revision, userID):
                 guard revision == state.hostingRevision, state.authenticationSession?.userID == userID else { return .none }
@@ -1204,7 +1241,7 @@ struct AppFeature {
                 state.addFriendPresented = false
                 state.isLoading = false
                 state.clearFriendshipOperation()
-                return .none
+                return refreshScheduling(state)
 
             case let .friendshipMutationFailed(message, reload, userID):
                 guard state.authenticationSession?.userID == userID else { return .none }
@@ -1219,7 +1256,7 @@ struct AppFeature {
                 applyBusinessSnapshot(snapshot, to: &state)
                 state.isLoading = false
                 revalidateSelection(&state)
-                return .none
+                return refreshScheduling(state)
 
             case let .showReport(presented):
                 state.reportPresented = presented
@@ -1256,6 +1293,7 @@ struct AppFeature {
 
             case let .confirmBlock(id):
                 state.blockTarget = nil
+                if !state.isDemo { return .send(.automaticScheduling(.send(.blockFriend(id)))) }
                 return .run { send in await send(.snapshotMutationCompleted(client.block(id))) }
 
             case .toggleInvitationNotifications:
@@ -1359,6 +1397,9 @@ struct AppFeature {
 
             case let .deletionSubmitted(receipt):
                 state.accountDeletionReceipt = receipt
+                let schedulingRevision = state.automaticScheduling.revision + 1
+                state.automaticScheduling = .init()
+                state.automaticScheduling.revision = schedulingRevision
                 state.deletionOperationID = nil
                 state.deletionRecoveryMessage = nil
                 state.authenticationSession = nil
@@ -1472,6 +1513,11 @@ struct AppFeature {
                 }
             }
         }
+    }
+
+    private func refreshScheduling(_ state: State) -> Effect<Action> {
+        guard !state.isDemo, let owner = state.authenticationSession?.userID, state.automaticScheduling.ownerID == owner else { return .none }
+        return .send(.automaticScheduling(.refresh))
     }
 
     private func applyBusinessSnapshot(_ snapshot: AppSnapshot, to state: inout State) {

@@ -156,7 +156,7 @@ JWTはissuer=`<SUPABASE_URL>/auth/v1`、audience=`authenticated`、role=`authent
 
 ## Security Considerations
 
-- 特権secretは削除Compositionだけへ注入し、ログ・応答・通常Repositoryへ渡さない。
+- アカウント処理の特権secretは削除Compositionだけへ注入し、ログ・応答・通常Repositoryへ渡さない。自動照合と通知配送は別のサーバーCompositionでサービス専用RPCを呼び、本人JWTのRepositoryと混在させない。Apple署名鍵は削除Adapterに限定する。
 - JWTのsubjectをrequest入力で上書きしない。
 - 状況tokenは高エントロピーsecretを鍵にしたreferenceの決定的HMACとし、冪等再送でも同じtokenを再構成する。DBにはSHA-256 hashだけを保存し、生tokenは保存・ログ出力しない。
 - Auth user削除後も既発行JWTは期限まで暗号学的に有効なため、RLSで削除受付済みを拒否する。

@@ -272,9 +272,8 @@ struct AvailabilityEditorFeatureTests {
         client.addAvailability = { _ in throw AvailabilityValidationError.outsideWindow }
         let store = makeStore(editor(anchor: date(3, 22, 0)), client: client)
 
-        await store.send(.visibilityChanged(.shareOnHosting)) {
-            $0.visibility = .shareOnHosting
-        }
+        await store.send(.visibilityChanged(.shareOnHosting))
+        #expect(store.state.slot.visibility == .privateUntilAccepted)
         await store.send(.saveTapped) {
             $0.isSaving = true
         }
@@ -284,7 +283,7 @@ struct AvailabilityEditorFeatureTests {
         }
         #expect(store.state.start == date(3, 22, 0))
         #expect(store.state.end == date(4, 0, 0))
-        #expect(store.state.visibility == .shareOnHosting)
+        #expect(store.state.visibility == .privateUntilAccepted)
     }
 
     @Test("保存前に開始時刻を過ぎた場合は送信せず、次の15分へ合わせられる")

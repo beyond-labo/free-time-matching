@@ -12,9 +12,17 @@ sources:
     title: SignInWithAppleButton
 kiro:
   depends_on:
+    - .kiro/specs/automatic-friend-scheduling/requirements.md
     - .kiro/specs/ios-app-foundation/brief.md
     - docs/architecture/ios-architecture.md
 ---
+
+## 第一段階での適用（2026-10-30）
+
+登録前説明は非公開暇・自動提案初期オフ・友達別相互許可・個別回答を区別する。認証と3タブは既存実装を再利用する。
+
+新しい受け入れ条件と実装タスクは [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) と [その実装計画](../automatic-friend-scheduling/tasks.md) を正本とする。既存タスクのチェックは記載された既存契約の証拠であり、新しい提案・確定・通知・安全の達成を示さない。
+
 
 # Requirements Document
 
@@ -36,7 +44,7 @@ iOS 初版の入口として、暇時間の非公開原則を登録前に説明�
 
 #### Acceptance Criteria
 
-1. When アプリを未登録状態で起動した, the iOS app shall 暇時間は初期設定で友達へ表示されず参加 OK した時間だけ主催者へ伝わることを表示する
+1. When アプリを未登録状態で起動した, the iOS app shall 暇は本人限定で、自動提案は初期オフ、友達別に双方が許可しても個別の参加OKではないことを説明する。参加OK時の名前・回答共有は本人が選び、双方OKで予定が自動確定することを表示する
 2. The iOS app shall 登録前画面から利用規約、プライバシーポリシー、問い合わせ先へ到達できるようにする
 3. When 利用者が Apple 認証を開始した, the iOS app shall Apple 標準UIへSHA-256 nonceを設定し、identity tokenとraw nonceをSupabase Authへ渡す
 4. If サーバー認証が利用できない, the iOS app shall 認証済みと扱わず再試行可能なエラーを表示する

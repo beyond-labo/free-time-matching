@@ -22,6 +22,7 @@ enum AppCompositionRoot {
             $0.friendshipClient = runtime.friendship
             $0.deletionStatusTokenStore = runtime.deletionStore
             $0.himatchClient = runtime.business
+            $0.automaticSchedulingEffects = runtime.schedulingEffects
             let service = runtime.systemActions
             $0.systemActionHandoffClient = SystemActionHandoffClient(
                 pendingOperationID: { try? await service.pendingHandoff()?.operationID },

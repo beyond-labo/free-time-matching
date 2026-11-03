@@ -13,6 +13,9 @@ kiro:
     - .kiro/specs/ios-hosting/design.md
 ---
 
+> 適用範囲（2026-10-29）: この文書は既存の手動募集・招待・部分回答の互換性契約を記録する。第一段階の中心は [自動提案・予定成立](../automatic-friend-scheduling/requirements.md) へ置換した。本文の「対象外」は手動Hosting境界の対象外を意味し、製品全体の自動確定・通知を後続へ送る判断には使わない。既存タスクの完了は自動提案の達成証拠ではない。
+
+
 # Implementation Plan
 
 - [x] 1. Hosting のドメインと Backend Adapter を実装する
