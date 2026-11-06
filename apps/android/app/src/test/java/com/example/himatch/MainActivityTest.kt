@@ -6,6 +6,6 @@ import org.junit.Test
 class MainActivityTest {
     @Test
     fun welcomeMessageUsesProductName() {
-        assertEquals("ひまっち（仮）", welcomeMessage())
+        assertEquals("アイマノ", welcomeMessage())
     }
 }

@@ -36,7 +36,7 @@ fun HimatchApp() {
     }
 }
 
-internal fun welcomeMessage(): String = "ひまっち（仮）"
+internal fun welcomeMessage(): String = "アイマノ"
 
 @Preview(showBackground = true)
 @Composable

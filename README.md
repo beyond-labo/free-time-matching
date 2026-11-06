@@ -1,4 +1,4 @@
-# ひまっち（仮）
+# アイマノ
 
 iOS、Android、Backend を独立して開発、リリースするモノレポです。
 Backend は公開 OpenAPI を所有し、各モバイルアプリは Clean Architecture を採用する方針です。iOS は TCA、Android は Jetpack Compose をUIに使います。

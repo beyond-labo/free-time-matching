@@ -4,8 +4,8 @@ import Testing
 @Suite("Himatch app")
 @MainActor
 struct HimatchTests {
-    @Test("表示名はひまっち")
+    @Test("表示名はアイマノ")
     func displayName() {
-        #expect(HimatchApp.displayName == "ひまっち")
+        #expect(HimatchApp.displayName == "アイマノ")
     }
 }

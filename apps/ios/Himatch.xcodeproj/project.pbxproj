@@ -225,7 +225,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HIMATCH_APNS_ENVIRONMENT = development;
 				INFOPLIST_FILE = "Config/Himatch-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "ひまっち";
+				INFOPLIST_KEY_CFBundleDisplayName = "アイマノ";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -259,7 +259,7 @@
 				HIMATCH_PRODUCT_BUNDLE_IDENTIFIER = com.example.himatch;
 				HIMATCH_PROVISIONING_PROFILE_SPECIFIER = "";
 				INFOPLIST_FILE = "Config/Himatch-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "ひまっち";
+				INFOPLIST_KEY_CFBundleDisplayName = "アイマノ";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (

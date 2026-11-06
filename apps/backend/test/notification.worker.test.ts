@@ -35,7 +35,7 @@ describe("notification delivery", () => {
     expect(verified.payload.iat).toBeTypeOf("number");
     expect(new Headers(requests[1]!.init.headers).get("authorization")).toBe(headers.get("authorization"));
     expect(JSON.parse(requests[0]!.init.body as string)).toEqual({
-      aps: { alert: { title: "ひまっち", body: "予定が確定しました。アプリで確認してください。" }, sound: "default" },
+      aps: { alert: { title: "アイマノ", body: "予定が確定しました。アプリで確認してください。" }, sound: "default" },
     });
   });
 

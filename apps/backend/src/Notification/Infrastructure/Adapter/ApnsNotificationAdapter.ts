@@ -28,7 +28,7 @@ export class ApnsNotificationAdapter implements NotificationPushPort {
         "apns-collapse-id": delivery.id,
         "apns-expiration": String(Math.floor(Date.now() / 1000) + 3600),
       },
-      body: JSON.stringify({ aps: { alert: { title: "ひまっち", body: message(delivery.kind) }, sound: "default" } }),
+      body: JSON.stringify({ aps: { alert: { title: "アイマノ", body: message(delivery.kind) }, sound: "default" } }),
       signal: AbortSignal.timeout(10_000),
     });
     if (response.status === 200) return "sent";

@@ -1,7 +1,7 @@
 {
   "feature_name": "backend-friendship",
   "created_at": "2026-09-23T12:28:14+09:00",
-  "updated_at": "2026-11-03T02:55:40.492882+00:00",
+  "updated_at": "2026-11-07T08:44:12+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
@@ -49,11 +49,11 @@
       "apps/backend/src/Composition/createApp.ts": "72c3c5a11f1bd73c91212782a38942923f8d21fe3f775969296a9805eae6de6b",
       "apps/ios/Himatch/App/Composition/AppCompositionRoot.swift": "f9d24364e709eb32966401374874dc1833f12fff8bf2e30feb4ae7911c19653c",
       "apps/ios/Himatch/App/Domain/HimatchClient.swift": "2029af7da58ef9c29b334bbd9703c428d01859088cfbd126772ed4a053bf62f6",
-      "apps/ios/Himatch/App/Presentation/AppView.swift": "9c56819dae5d9886515c446a82d9a72af2b8a56a766f53ca02b6336c1da8cd6c",
+      "apps/ios/Himatch/App/Presentation/AppView.swift": "96b1604817c2ca8b6f5e7c121ac2aaa7c7a55502f8787e6f33362906d002bf49",
       "docs/architecture/api-contracts.md": "c61f5068194f366f3a0de5d7ffe207d68e6667a825d377e118c2159367db010c",
       "docs/architecture/ios-architecture.md": "512eaf7d4b5256b174906db0678f0c98ec7d49b88190272ce5f6c85f970af55e",
       "docs/architecture/technology.md": "5bc566bc85ac112c3dc3c5963e32044a1a48c3691aad79829b1eba782f2896b8",
-      "docs/product/overview.md": "9294a2b8a4aba21ef6f3aacc634678961f7392a08f1c64388dcbfaf409677d77",
+      "docs/product/overview.md": "1714bbd464c0437a88540ffc54428b0dba8a765988c03b54d6fc3469f4ebb4fb",
       "supabase/migrations/202609210001_auth_profile_and_deletion.sql": "e14e80ff831e426c7a43f66b1c96d4396072a19d315000b7af11e38775a46fe6"
     }
   }
