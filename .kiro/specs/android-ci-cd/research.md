@@ -116,4 +116,4 @@ GitHub Actionsの実行で `sdkmanager` がPATHに存在しないことを確認
 
 ### 検証と承認の反映
 
-namespace、applicationId、Kotlin packageと配置、検証スクリプトの参照先を照合しnode scripts/verify.mjsが成功した。ローカルにJava RuntimeがなくGradle検証は未実施。PR CIでのlint・unit test・assembleDebug確認待ちのためタスク6は未完了とする。 独立レビューで認証・APNs設定後のBackend再配布順と事前の開発署名インストールを明確化し、再レビューでブロッカーなし。ユーザーの明示承認は要件・設計・タスク・コード・文書の識別子移行を対象とするため、生成済み工程の承認を再反映する。実環境設定、実機ログイン・削除・通知、ストア配布は未実施。
+namespace、applicationId、Kotlin packageと配置、検証スクリプトの参照先を照合しnode scripts/verify.mjsが成功した。ローカルにJava RuntimeがなくGradle検証は未実施。commit cabc8d7の[Android CI](https://github.com/beyond-labo/free-time-matching/actions/runs/42317215240)でlint・unit test・assembleDebugが成功し、タスク6を完了とした。 独立レビューで認証・APNs設定後のBackend再配布順と事前の開発署名インストールを明確化し、再レビューでブロッカーなし。ユーザーの明示承認は要件・設計・タスク・コード・文書の識別子移行を対象とするため、生成済み工程の承認を再反映する。実環境設定、実機ログイン・削除・通知、ストア配布は未実施。
