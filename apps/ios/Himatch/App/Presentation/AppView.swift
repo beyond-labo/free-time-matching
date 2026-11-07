@@ -78,7 +78,7 @@ private struct OnboardingView: View {
                 Spacer(minLength: HimatchSpacing.l)
                 IconAvatar(systemImage: "calendar.badge.clock", size: 72)
                 VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
-                    Text("ひまっち")
+                    Text(HimatchApp.displayName)
                         .font(HimatchFont.screenTitle)
                         .foregroundStyle(HimatchColor.accent)
                     Text("暇な時間を預けて、友達と遊ぶ予定を決めよう。")

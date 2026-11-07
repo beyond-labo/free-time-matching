@@ -158,3 +158,15 @@ Qiita 記事を起点に Apple と GitHub の一次資料を再確認し、Xcode
 
 APNs entitlementのdevelopment/productionとAPI sandbox/productionをビルド設定で一致させた。MCP全186件、Release build、最終生成物の登録前起動smokeを確認。Push capability付きprofile・実署名archive・TestFlightは外部検証であり、Simulator成功へ読み替えない。
 詳細な証拠と限界は [自動予定成立の検証記録](../automatic-friend-scheduling/research.md) を参照する。
+
+## aimano識別子移行（2026-11-07）
+
+ユーザーが別アプリ化、端末内情報の自動移行なし、既存サーバーデータ保持、旧アプリの並行サポート終了を承認し、iOSとAndroidのID変更・文書更新・既存PR反映を依頼した。iOSのDebug／Release app IDを`com.beyond-labo.aimano`、test IDを`com.beyond-labo.aimano.tests`とする。Keychain削除確認用serviceは`com.beyond-labo.aimano.account-deletion`へ揃える。既存Teamで新App IDとSign in with Apple／Push capabilityを登録し、新profile、新App Store Connectレコード、`IOS_BUNDLE_ID`を一致させる。外部資格情報と実配布はrunbookの確認条件として扱う。
+
+コード・runbookへの反映と外部設定・実配布の実施を分ける。外部切替と実機検証は本作業では未実施。検証結果は追記する。
+
+### 検証と承認の反映
+
+XcodeBuildMCPで表示名・Bundle IDのSwift Testing 2件が成功（0失敗）。Debug／Releaseの生成Info.plistはcom.beyond-labo.aimanoとアイマノで一致し、Release Simulatorビルドは警告・エラー0件で成功。署名preflightのPython試験13件とnode scripts/verify.mjsが成功した。 独立レビューで認証・APNs設定後のBackend再配布順と事前の開発署名インストールを明確化し、再レビューでブロッカーなし。ユーザーの明示承認は要件・設計・タスク・コード・文書の識別子移行を対象とするため、生成済み工程の承認を再反映する。実環境設定、実機ログイン・削除・通知、ストア配布は未実施。
+
+commit cabc8d7の[iOS CI](https://github.com/beyond-labo/free-time-matching/actions/runs/42317215293)でもビルドと全テストが成功した。同commitのAndroid、Backend、Supabase、Repository CIも成功。後続の検証記録追記はアプリコード・依存・設定を変更しないため、このCI証拠を再利用する。

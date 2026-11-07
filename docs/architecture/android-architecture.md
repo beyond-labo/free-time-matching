@@ -16,7 +16,7 @@
 ## 実装時の配置例
 
 ```text
-app/src/main/java/com/example/himatch/hosting/
+app/src/main/java/com/beyondlabo/aimano/hosting/
 ├── domain/
 ├── application/
 ├── presentation/
@@ -24,7 +24,7 @@ app/src/main/java/com/example/himatch/hosting/
 ```
 
 Java/Kotlin packageは通常のAndroid規約に従ってlowercaseにし、型名はPascalCaseにします。
-具体的なpackage name `com.example.himatch` は署名不要CI用の既定値で、配布時はEnvironment variableから上書きします。
+namespaceとKotlin package、既定のapplicationIdは `com.beyondlabo.aimano` とします。配布時もEnvironment variable `ANDROID_PACKAGE_NAME` に同じ値を指定します。
 
 ## テスト
 

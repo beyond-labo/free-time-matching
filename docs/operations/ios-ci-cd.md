@@ -48,8 +48,8 @@ Supabase設定はAuthのsign-in／session更新だけに使います。プロフ
 Apple Developer Accountの`Certificates, Identifiers & Profiles`から`Identifiers`を開き、Explicit Bundle IDを登録します。
 利用するcapabilityだけを有効にし、値をGitHub variable `IOS_BUNDLE_ID`へ登録します。
 
-repository内の`com.example.himatch`は署名不要CI用の既定値です。
-TestFlight archiveでは`IOS_BUNDLE_ID`で上書きします。
+repository内の既定Bundle IDは`com.beyond-labo.aimano`です。
+TestFlight archiveでも`IOS_BUNDLE_ID=com.beyond-labo.aimano`を設定します。
 
 ### 3. Apple Distribution証明書
 
@@ -72,7 +72,7 @@ Apple Developer Accountの`Profiles`からDistribution用の`App Store Connect` 
 登録済みBundle IDとApple Distribution証明書を選び、profileをdownloadします。
 
 ```sh
-base64 -i Himatch_App_Store.mobileprovision | pbcopy
+base64 -i Aimano_App_Store.mobileprovision | pbcopy
 ```
 
 Base64文字列を`IOS_PROVISIONING_PROFILE_BASE64`へ登録します。
@@ -135,6 +135,43 @@ workflow完了後、App Store Connectの対象アプリから`TestFlight`を開�
 4. External Testingを使う場合はBeta App Reviewに必要な情報を登録する。
 
 upload成功はApp Store公開を意味しません。
+
+## アイマノのApp IDへ移行する
+
+2026-11-07の承認により、表示名に加えてBundle IDも変更する。
+iOSのBundle IDは`com.beyond-labo.aimano`、Apple DeveloperのApp IDのDescriptionは`アイマノ`とする。
+App IDのapplication identifierは既存Teamのprefixと新Bundle IDから構成される。
+App Store Connectの数値のApple IDは新しいアプリレコード作成時に自動採番される。
+Xcode project／scheme／moduleと`HIMATCH_*`のbuild settingは既存のものを使う。
+
+### 承認済みの移行条件
+
+- 新Bundle IDは別アプリとして配布し、旧アプリの並行サポートを終了する。
+- 端末内のログイン状態、未送信のSiri操作、削除状況確認情報、設定の自動移行は行わない。新アプリで再ログインし、通知許可を確認する。
+- 既存のSupabase Project、Auth user、プロフィール、友達、暇、予定のサーバーデータを保持する。
+- 新アプリから既存のSupabase user IDで再ログインできることを切替前に確認する。別user IDになった場合は切替を止め、既存データを再作成せずApple identity設定を調べる。
+
+### AppleとGitHubを準備する
+
+1. 本書の手順2と[Apple認証の設定手順](supabase-auth.md#aimanoへの識別子切替)に従い、既存Teamで`com.beyond-labo.aimano`のExplicit App IDを登録する。`Sign in with Apple`と`Push Notifications`を有効にする。
+2. アカウント削除用Sign in with Apple KeyのPrimary App ID関連付けを確認する。新Primary App IDを使う場合は対応するKeyを作成し、既存Primaryにgroupingする場合はそのgroupとKeyの対応を確認する。
+3. 新App IDと既存の有効なApple Distribution証明書を選び、`Aimano App Store`などのApp Store Connect profileを生成する。`application-identifier`、Sign in with Apple、`aps-environment=production`を確認する。本書の手順4に従いGitHub `testflight`の`IOS_PROVISIONING_PROFILE_BASE64`へ登録する。
+4. App Store Connectの`Apps → ＋ → New App`から、名前`アイマノ`、日本語、新Bundle ID、一意なSKU（例 `aimano-ios`）でアプリレコードを作成する。Apple IDを控え、API keyの利用者が新アプリへアクセスできることを確認する。
+5. 旧レコードが同じ名前を使用していて新規登録が拒否された場合は、Appleの名前変更手順に従って旧レコードの名前を変更する。公開状態によっては旧レコードの新バージョンと審査が必要となるため、新アプリの名称が保存できることを先に確認する。
+6. GitHub `testflight` Environmentの`IOS_BUNDLE_ID`を`com.beyond-labo.aimano`へ設定する。SupabaseとBackendの接続先は既存の対象環境を使う。Backendの`APPLE_CLIENT_ID`と`APNS_TOPIC`、必要なKeyの設定は[認証切替手順](supabase-auth.md#aimanoへの識別子切替)に従う。
+7. 既存アプリレコードのTestFlightグループは新レコードで作成し直し、テスターを招待する。旧buildへの配布を終了する。旧App IDとKeyの削除・失効は、処理中の削除受付と移行確認が完了した後に別途判断する。
+
+[AppleのApp ID登録](https://developer.apple.com/help/account/identifiers/register-an-app-id/)、[アプリレコード作成](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app/)、[profile再生成](https://developer.apple.com/help/account/provisioning-profiles/edit-download-or-delete-profiles)、[名前・Bundle ID・Apple IDの仕様](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information)を参照する。
+
+### 新識別子のビルドを配布する
+
+1. 本変更を含むcommitを`main`へ反映し、本書の「TestFlightへ配布する」に従ってtagまたは現在の`main`への手動実行で配布する。失敗した旧commitの再実行は、そのcommitのコードをビルドする。
+2. 生成IPAのInfo.plistで`CFBundleDisplayName=アイマノ`、`CFBundleIdentifier=com.beyond-labo.aimano`を確認する。
+3. 新レコードのTestFlightからインストールし、ホーム画面、起動画面、新App IDでのAppleログイン、既存プロフィール・友達・予定の参照、Push許可と実通知を確認する。
+4. 移行確認専用のアカウントで、Apple再認証とアカウント削除の完了・再送・状況照会を検証する。保持対象の利用者データを検証用に削除しない。
+5. 実機で「アイマノで暇を登録」などSiri／ショートカットのフレーズを確認する。App Shortcutsは`\(.applicationName)`から表示名を参照する。旧アプリ向けショートカットは新アプリで作成し直す。
+
+App Store Connectの名称保存、実環境の資格情報切替、TestFlight upload、実機検証、App Store審査と公開は、それぞれの実施証拠で確認する。
 
 ## 失敗時に復旧する
 

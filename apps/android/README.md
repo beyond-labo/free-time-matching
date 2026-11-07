@@ -2,6 +2,7 @@
 
 Google Play internal track配布までの経路を検証する最小Jetpack Composeアプリです。
 製品機能、Clean Architectureの機能層、Backend API clientはまだ実装していません。
+namespace、Kotlin package、既定applicationIdは`com.beyondlabo.aimano`です。
 
 JDK 21、Android SDK Platform 37、Build Tools 36.0.0を用意し、リポジトリルートから次を実行します。
 

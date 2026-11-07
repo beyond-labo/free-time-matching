@@ -53,6 +53,8 @@ GitHub Actions 上で iOS アプリのビルドとテストを再現可能にし
 5. When upload が成功した, the iOS CD shall 配布した IPA を短期保持の GitHub Artifact として識別可能に保存する
 6. When archiveを作成した, the iOS CD shall `SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`API_BASE_URL`だけを公開アプリ設定としてbuild settingへ渡し、server secretをiOS binaryへ渡さない
 
+7. The iOS project shall appのDebug／Release Bundle IDを`com.beyond-labo.aimano`、test targetを同IDの`.tests`として設定し、TestFlightの`IOS_BUNDLE_ID`も新IDに揃える手順を定義する
+
 ### Requirement 3: 秘密情報と運用境界
 
 **Objective:** As a リポジトリ管理者, I want 署名素材と配布権限を最小範囲で管理したい, so that pull request やコミットから漏えい・誤配布しない

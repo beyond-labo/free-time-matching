@@ -30,7 +30,7 @@ versionCodeは`run_number * 100 + run_attempt`から生成するため、再実�
 developer accountの本人確認、契約、支払い情報を先に完了します。
 
 一意なpackage nameを決め、GitHub Environment variable `ANDROID_PACKAGE_NAME`へ登録します。
-repository内の`com.example.himatch`は署名不要CI用の既定値です。
+namespace、Kotlin package、既定applicationId、配布用`ANDROID_PACKAGE_NAME`は`com.beyondlabo.aimano`を使います。
 [Google Playのアプリ作成手順](https://support.google.com/googleplay/android-developer/answer/9859152)も確認してください。
 
 ### 2. upload key
@@ -118,6 +118,21 @@ workflow完了後、Google Play Consoleの`Internal testing`でversionCodeとrel
 testerはopt-in linkから参加し、Google Play経由でinstallします。
 internal testingはproduction公開ではなく、検索からは見つかりません。
 [internal testingの設定手順](https://support.google.com/googleplay/android-developer/answer/9845334)も確認してください。
+
+## aimanoのpackage IDへ移行する
+
+2026-11-07の承認に基づき、applicationIdとnamespaceを`com.beyondlabo.aimano`にする。
+Kotlinのpackageと配置先は`com/beyondlabo/aimano`とし、Manifestの`.MainActivity`を同じnamespaceで解決する。
+AndroidのapplicationIdにハイフンは使えないため、iOSの`com.beyond-labo.aimano`とはこの部分が異なる。
+
+1. Play Consoleで名前`アイマノ`の新しいアプリを作成し、現行package IDで署名したAABを手動uploadしてinternal trackを初期化する。
+2. 新アプリのPlay App Signingとupload keyを設定し、配布用service accountへ新アプリに必要なアクセスを設定する。必要な資格情報を本書の初回セットアップに従ってGitHub `play-internal` Environmentへ登録する。
+3. 同Environmentの`ANDROID_PACKAGE_NAME`を`com.beyondlabo.aimano`にし、新アプリのversionCodeと一致する値で配布する。Environment名が既存設定と一致することをワークフローで確認する。
+4. 新アプリのinternal testing groupへテスターを登録し、opt-in linkからインストールして表示名と起動を確認する。旧アプリのテスト配布と並行サポートを終了する。
+5. 新package IDでは端末内データ・設定は新規になる。旧アプリのローカルデータの自動移行は行わない。現在のAndroid実装は最小Composeアプリで、Supabaseログインや業務データ取得は未実装である。
+
+[AndroidのapplicationId・namespace仕様](https://developer.android.com/build/configure-app-module)と[Google Playの新アプリ作成手順](https://support.google.com/googleplay/android-developer/answer/9859152)を参照する。
+署名資産・Play Console登録と実配布は外部作業であり、コードのbuild/test成功とは別に確認する。
 
 ## 失敗時に復旧する
 

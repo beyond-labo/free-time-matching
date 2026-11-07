@@ -107,3 +107,13 @@ GitHub Actionsの実行で `sdkmanager` がPATHに存在しないことを確認
 ### 2026-09-18
 
 ユーザー依頼を起点にAndroidとGoogleの一次資料を確認し、API 36、AGP 9.4.0、Gradle 9.6.0、JDK 21 build runtime/toolchain、Java/Kotlin 17 target、AGP内蔵Kotlin 2.2.10、Compose BOM 2026.08.00、Play internal track配布を採用した。
+
+## aimano識別子移行（2026-11-07）
+
+ユーザーが別アプリ化、端末内情報の自動移行なし、既存サーバーデータ保持、旧アプリの並行サポート終了を承認し、iOSとAndroidのID変更・文書更新・既存PR反映を依頼した。namespace、Kotlin package、既定applicationIdを`com.beyondlabo.aimano`へ統一する。Kotlinのmain/testファイルは`com/beyondlabo/aimano`へ移し、Manifestの相対`.MainActivity`を解決する。配布時は`ANDROID_PACKAGE_NAME`も同値にする。新Playアプリへ署名AABを配布し、端末内情報の自動移行と旧アプリの並行サポートは行わない。
+
+コード・runbookへの反映と外部設定・実配布の実施を分ける。外部切替と実機検証は本作業では未実施。検証結果は追記する。
+
+### 検証と承認の反映
+
+namespace、applicationId、Kotlin packageと配置、検証スクリプトの参照先を照合しnode scripts/verify.mjsが成功した。ローカルにJava RuntimeがなくGradle検証は未実施。commit cabc8d7の[Android CI](https://github.com/beyond-labo/free-time-matching/actions/runs/42317215240)でlint・unit test・assembleDebugが成功し、タスク6を完了とした。 独立レビューで認証・APNs設定後のBackend再配布順と事前の開発署名インストールを明確化し、再レビューでブロッカーなし。ユーザーの明示承認は要件・設計・タスク・コード・文書の識別子移行を対象とするため、生成済み工程の承認を再反映する。実環境設定、実機ログイン・削除・通知、ストア配布は未実施。

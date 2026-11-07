@@ -50,6 +50,8 @@ GitHub Actions上でAndroidアプリのビルド、lint、単体テストを再�
 4. When buildが成功した, the Android CD shall 一意なversionCodeを設定し、同じjobで生成した署名済みAABをGoogle Play internal trackへcommitする
 5. When uploadが成功した, the Android CD shall 配布したAABを短期保持のGitHub Artifactとして保存する
 
+6. The Android project shall namespace、Kotlin package、既定applicationIdを`com.beyondlabo.aimano`に揃え、配布用`ANDROID_PACKAGE_NAME`、新Playアプリ登録、端末内データ非移行と旧アプリ終了をrunbookに定義する
+
 ### Requirement 3: 秘密情報と運用境界
 
 **Objective:** As a リポジトリ管理者, I want 署名素材と配布権限を最小範囲で管理したい, so that pull requestやcommitから漏えい・誤配布しない

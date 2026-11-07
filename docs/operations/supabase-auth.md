@@ -269,7 +269,7 @@ Proへ変更してもclassic tokenの到達範囲は変わりません。
 ### 3. AuthとSign in with Appleを設定する
 
 先にTestFlightで使用する実Bundle IDを決めます。
-Repository内の`com.example.himatch`は署名不要CI用の値であり、Apple DeveloperとSupabaseへ登録しません。
+現行のiOS Bundle IDは`com.beyond-labo.aimano`です。Apple DeveloperとSupabaseにはこの値を登録します。
 実Bundle IDはGitHub `testflight` Environment variableの`IOS_BUNDLE_ID`と同じ値にします。
 
 #### 3.1 Apple DeveloperでApp IDを登録する
@@ -278,9 +278,9 @@ Repository内の`com.example.himatch`は署名不要CI用の値であり、Apple
 2. `Identifiers`一覧左上の追加ボタン`+`を選びます。
 3. `App IDs`を選び、`Continue`を選びます。
 4. typeで`App`を選び、`Continue`を選びます。
-5. `Description`へ`Himatch`など識別できる名前を入力します。
+5. `Description`へ`アイマノ`を入力します。
 6. `Bundle ID`で`Explicit`を選び、実Bundle IDを入力します。
-7. `Capabilities`で`Sign in with Apple`をONにします。
+7. `Capabilities`で`Sign in with Apple`と`Push Notifications`をONにします。
 8. `Configure`が表示された場合は`Enable as a primary App ID`を選びます。
 9. `Server-to-Server Notification Endpoint`は空欄にします。
    初版の削除処理はアプリ内再認証とBackend処理で完結し、このendpointを実装していません。
@@ -650,6 +650,26 @@ npx -y supabase@2.117.0 stop --no-backup
 
 DB migrationは原則forward-onlyです。
 失敗時は適用済みSQLを巻き戻そうとせず、互換性を回復する新しいcorrective migrationを作成します。
+
+## aimanoへの識別子切替
+
+2026-11-07に、新アプリへの移行、端末内データの自動移行なし、既存サーバーデータ保持、旧アプリの並行サポート終了が承認された。
+旧Bundle ID `com.beyond-labo.himatch`は退役対象、新Bundle IDは`com.beyond-labo.aimano`とする。
+SupabaseのOrganization、Project、Auth user、業務DBを継続利用する。
+新しいAuth userの作成や既存プロフィールのコピーで移行を代用しない。
+
+1. Apple Developerで同じTeamに新App IDを作り、Sign in with AppleとPush Notificationsを有効にする。Appleの[App ID grouping](https://developer.apple.com/help/account/capabilities/group-apps-for-sign-in-with-apple/)と[Keyの関連付け](https://developer.apple.com/help/account/capabilities/create-a-sign-in-with-apple-private-key/)に従い、既存Primaryへgroupingするか、新Primaryに対応するKeyを準備する。Keyの利用範囲を確認する。
+2. stagingのSupabase `Authentication → Sign In / Providers → Apple → Client IDs`へ`com.beyond-labo.aimano`を追加する。切替検証中は旧IDも残し、保存する。native `signInWithIdToken`はリスト中のIDをaudienceとして許可する。新App ID用のdevelopment profileで署名した開発ビルドを検証端末にインストールし、Appleへ再ログインする。移行前に控えたSupabase user IDと一致し、プロフィール・友達・暇・予定を参照できることを確認する。
+3. 旧アプリのテスト配布と利用を終了し、処理中の削除受付と未送信操作を確認する。新アプリは旧Keychainの削除状況tokenや未送信Siri操作を自動移行しない。処理中の削除は運営が状況を確認し、新アプリでの新規操作で上書きしない。
+4. 対象GitHub Environment `staging`／`production`のVariable `APPLE_CLIENT_ID`を`com.beyond-labo.aimano`へ設定する。手順1でKeyを変更した場合は、`APPLE_KEY_ID`と`APPLE_PRIVATE_KEY`も対応する値に揃える。手順5のAPNs設定と揃えてから手順6でBackendへ反映する。Backendは単一Client IDを使うため、切替後の旧アプリの削除はサポート終了となる。
+5. Pushを有効にしている環境ではVariable `APNS_TOPIC`を`com.beyond-labo.aimano`へ設定し、APNs Keyが新topicに利用できることを確認する。topic制限付きKeyは許可対象を確認し、必要なら対応するKeyを準備して`APNS_KEY_ID`／`APNS_PRIVATE_KEY`を揃える。Pushを使わない環境ではAPNsの4設定をすべて未設定のままにする。
+6. 手順4・5を揃えてからBackendを再配布し、新CLIENT_IDとPush使用時のtopicが反映されたことを確認する。新App ID用のprofileとGitHub `testflight`の`IOS_BUNDLE_ID`を揃え、新App Store Connectレコードへ配布する。新アプリで通知許可・token登録・実配信、専用アカウントのApple再認証・削除を確認する。具体的な画面操作は[iOSの移行手順](ios-ci-cd.md#アイマノのapp-idへ移行する)を使う。
+7. stagingで再ログイン、既存データ参照、実通知、専用アカウントの削除が成功した後、同じ手順をproductionで行う。旧アプリの利用終了と処理中操作の整理後、SupabaseのApple `Client IDs`から旧IDを外す。
+
+既存DBとAuth userは保持する。旧端末tokenは新topicでAPNsが拒否した際に既存の無効化処理で個別停止する。
+単一`APNS_TOPIC`の実装で新旧アプリを同時配信せず、新アプリでtokenを再登録する。
+KeyやApp IDの失効は、旧アプリの終了と処理中操作の確認を済ませた後に行う。
+[SupabaseのApple provider設定](https://supabase.com/docs/guides/auth/social-login/auth-apple)と[AppleのAPNs topic仕様](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns)を参照する。
 
 ## 鍵とsecretのローテーション
 

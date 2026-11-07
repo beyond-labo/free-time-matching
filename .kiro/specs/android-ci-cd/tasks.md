@@ -43,3 +43,8 @@ kiro:
   - _Requirements: 1.1, 1.2, 1.4, 2.3, 3.1, 3.2, 4.1_
   - _Boundary: IntegrationValidation_
   - _Depends: 1, 2, 3, 4_
+
+- [x] 6. aimano識別子と移行手順を同期して検証する
+  - 新識別子の設定・参照先と運用手順を更新し、ローカル／CIの検証と外部切替の残件を記録する。既存サーバーデータを保持する。
+  - _Requirements: 2.6_
+  - _Boundary: Release, Operations_
