@@ -1,4 +1,4 @@
-package com.example.himatch
+package com.beyondlabo.aimano
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

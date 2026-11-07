@@ -151,3 +151,7 @@ scripts/ios/
 
 - 実 Bundle ID、Team、App Store Connect app record、証明書/profile/API key は repository 外でユーザーが作成する。
 - `testflight` の required reviewer は GitHub plan によって private repository で利用できない場合がある。その場合も Environment 分離、tag/manual trigger、branch/tag rule を適用する。
+
+## aimano識別子への移行
+
+iOSのDebug／Release app IDを`com.beyond-labo.aimano`、test IDを`com.beyond-labo.aimano.tests`とする。Keychain削除確認用serviceは`com.beyond-labo.aimano.account-deletion`へ揃える。既存Teamで新App IDとSign in with Apple／Push capabilityを登録し、新profile、新App Store Connectレコード、`IOS_BUNDLE_ID`を一致させる。外部資格情報と実配布はrunbookの確認条件として扱う。 要件2.7に対応する。

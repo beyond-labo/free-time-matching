@@ -84,3 +84,5 @@ iOS初版でSign in with Appleから得たSupabaseセッションを検証し、
 11. When remote Supabase環境を初期構築する, the runbook shall 東京regionの`himatch-staging`と`himatch-production`を別Projectとして作成し、Data APIを有効、自動table公開を無効、自動RLSを有効にし、Supabase Branchingを環境分離へ使わない手順を定義する
 12. When remote Supabase環境を初期構築する, the runbook shall `beyond-labo-staging`と`beyond-labo-production`をFreeで分離した完成形を先に示し、既存状態にかかわらず未完了のcheckpointから再開できるように、Organization／Project作成、既存Projectのtransferによる補正、環境別Developer CI accountの招待、各accountからのclassic personal access token発行、対応するGitHub Environmentだけへの登録を画面名、選択値、確認結果とともに定義する
 13. Before 実ユーザーを受け入れるApp Store公開, the runbook shall stagingをFreeのまま維持してproductionだけをProへ変更し、Plan変更後も別Organizationと別CI accountのmembershipをclassic personal access tokenの権限境界として維持する手順を定義する
+
+14. When aimanoの新App IDへ切り替える, the runbook shall 既存Supabase Auth userと業務DBを保持し、Apple Client IDs、Keyの関連付け、`APPLE_CLIENT_ID`、`APNS_TOPIC`、profile、配布設定を揃え、同一user IDでの再ログイン・専用アカウントでの削除・新端末登録後の通知を確認する順序と、旧アプリ並行サポート終了・端末内情報非移行を定義する

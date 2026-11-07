@@ -17,11 +17,11 @@ val releaseProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.example.himatch"
+    namespace = "com.beyondlabo.aimano"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = System.getenv("ANDROID_PACKAGE_NAME") ?: "com.example.himatch"
+        applicationId = System.getenv("ANDROID_PACKAGE_NAME") ?: "com.beyondlabo.aimano"
         minSdk = 26
         targetSdk = 36
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 1

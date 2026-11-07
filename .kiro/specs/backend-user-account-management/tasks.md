@@ -48,3 +48,8 @@ kiro:
   - _Requirements: 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10, 4.11, 4.12, 4.13_
   - _Boundary: Database, Operations, Release_
   - _Depends: 1, 2, 3, 4_
+
+- [x] 6. aimano識別子と移行手順を同期して検証する
+  - 新識別子の設定・参照先と運用手順を更新し、ローカル／CIの検証と外部切替の残件を記録する。既存サーバーデータを保持する。
+  - _Requirements: 4.14_
+  - _Boundary: Release, Operations_

@@ -1,7 +1,7 @@
 # Public/local configuration
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_replace_me
-APPLE_CLIENT_ID=com.example.himatch
+APPLE_CLIENT_ID=com.beyond-labo.aimano
 
 # Secrets: use local-only values here and Cloudflare secrets outside local development.
 SUPABASE_SECRET_KEY=sb_secret_replace_me
@@ -15,4 +15,4 @@ ACCOUNT_DELETION_STATUS_SECRET=replace-with-at-least-32-random-characters
 # APNS_TEAM_ID=REPLACE_ME
 # APNS_KEY_ID=REPLACE_ME
 # APNS_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nREPLACE_ME\n-----END PRIVATE KEY-----
-# APNS_TOPIC=com.example.himatch
+# APNS_TOPIC=com.beyond-labo.aimano

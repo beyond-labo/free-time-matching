@@ -18,7 +18,7 @@ Backendの環境に次を4つまとめて設定します。ローカルは無視
 | APNS_TEAM_ID | Secret | APNs署名のissuer |
 | APNS_KEY_ID | Secret | APNs署名キーID |
 | APNS_PRIVATE_KEY | Secret | ES256のp8鍵。ログへ出さない |
-| APNS_TOPIC | Variable | 配信対象のBundle ID |
+| APNS_TOPIC | Variable | `com.beyond-labo.aimano` |
 
 4つとも未設定ならPush配送を保留し、アプリ内通知は引き続き利用できます。一部だけ設定すると設定エラーとして扱います。設定がない状態をPush配信成功とは扱いません。
 既存Workerから配信を停止する場合、GitHub側の値を空にするだけで既存WorkerのSecretが削除されるとは限りません。明示的にWorker側の設定を停止し、アプリ内通知の利用と切り分けて確認します。
@@ -59,3 +59,7 @@ STGへの配備、実APNs、複数実機、TestFlightへのアップロード、
 ## 通報対応
 
 通報は当事者確認後に定型理由を保存し、ブロックとは独立して受け付けます。管理画面・運営SLAはこの変更の対象外です。小規模利用前に権限を限定した通報確認担当と連絡先を決め、運営による非表示・利用停止が必要な場合の手順を準備します。
+
+## aimanoの通知識別子への切替
+
+Bundle ID切替では新App ID用のPush capability、profile、APNs Keyの利用範囲とAPNS_TOPICを揃える。既存DBを保持し、新アプリで通知許可と端末token登録を行う。旧アプリの並行配信は終了し、APNsが旧topicのtokenを拒否した場合は既存の無効化処理で停止する。[認証・通知の切替手順](supabase-auth.md#aimanoへの識別子切替)に従う。

@@ -21,12 +21,12 @@ describe("notification delivery", () => {
       requests.push({ url, init });
       return new Response(null, { status: 200 });
     }));
-    const adapter = new ApnsNotificationAdapter({ teamId: "TEAM", keyId: "KEY", privateKey, topic: "com.example.himatch" });
+    const adapter = new ApnsNotificationAdapter({ teamId: "TEAM", keyId: "KEY", privateKey, topic: "com.beyond-labo.aimano" });
     expect(await Promise.all([adapter.send(delivery), adapter.send({ ...delivery, environment: "production" })])).toEqual(["sent", "sent"]);
     expect(requests[0]!.url).toBe(`https://api.sandbox.push.apple.com/3/device/${delivery.token}`);
     expect(requests[1]!.url).toBe(`https://api.push.apple.com/3/device/${delivery.token}`);
     const headers = new Headers(requests[0]!.init.headers);
-    expect(headers.get("apns-topic")).toBe("com.example.himatch");
+    expect(headers.get("apns-topic")).toBe("com.beyond-labo.aimano");
     expect(headers.get("apns-push-type")).toBe("alert");
     expect(headers.get("apns-collapse-id")).toBe(delivery.id);
     const token = headers.get("authorization")!.replace(/^bearer /, "");
@@ -41,7 +41,7 @@ describe("notification delivery", () => {
 
   it("distinguishes invalid devices from transient APNs failures", async () => {
     const keys = await generateKeyPair("ES256", { extractable: true });
-    const adapter = new ApnsNotificationAdapter({ teamId: "TEAM", keyId: "KEY", privateKey: await exportPKCS8(keys.privateKey), topic: "com.example.himatch" });
+    const adapter = new ApnsNotificationAdapter({ teamId: "TEAM", keyId: "KEY", privateKey: await exportPKCS8(keys.privateKey), topic: "com.beyond-labo.aimano" });
     const responses = [
       new Response(null, { status: 410 }),
       new Response(JSON.stringify({ reason: "BadDeviceToken" }), { status: 400 }),

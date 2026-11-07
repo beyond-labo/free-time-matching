@@ -1,4 +1,4 @@
-package com.example.himatch
+package com.beyondlabo.aimano
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

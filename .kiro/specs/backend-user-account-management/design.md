@@ -172,3 +172,7 @@ JWTはissuer=`<SUPABASE_URL>/auth/v1`、audience=`authenticated`、role=`authent
 - 削除の本人照合、冪等再送、Apple revoke / admin delete失敗、状況token。
 - `pnpm typecheck`、Workers Runtime test、dry-run build。
 - 空DBへのmigration初期適用、DB lint、pgTAP、workflow構造検査。
+
+## aimano識別子への移行
+
+既存のSupabase user IDとDBを維持して、Apple native audienceを`com.beyond-labo.aimano`へ切り替える。Backendは単一`APPLE_CLIENT_ID`で再認証・失効を行い、通知は単一`APNS_TOPIC`を使う。新Keyの関連付け・Apple Client IDs・GitHub Environment・profileを準備し、新アプリの同一user ID復帰を検証した後に旧利用を終了する。認証とAPNsの値を揃えてBackendを配布し、専用アカウントの削除と実通知を確認する。サーバーデータの一括削除やアカウントの再作成は行わず、旧端末tokenはAPNs拒否時の既存無効化処理へ委ねる。 要件4.14に対応する。

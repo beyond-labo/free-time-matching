@@ -2,7 +2,7 @@
 
 SwiftUI/TCA アプリ、Swift Testing、shared scheme を Xcode 26.6 で管理します。iOS テストでは XCTest を使用しません。
 最低 iOS は 17.0、scheme と target は `Himatch`、テスト target は `HimatchTests` です。
-署名不要 CI の既定 Bundle ID は `com.example.himatch` で、TestFlight archive では GitHub Environment の `IOS_BUNDLE_ID` を指定します。
+Bundle ID は `com.beyond-labo.aimano` で、TestFlight archive では GitHub Environment の `IOS_BUNDLE_ID` に同じ値を指定します。
 
 ```sh
 bash scripts/ios/test.sh

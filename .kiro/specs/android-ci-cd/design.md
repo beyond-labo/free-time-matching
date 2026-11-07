@@ -146,3 +146,7 @@ scripts/android/
 - 実package name、Play Console app、upload key、service accountはrepository外でユーザーが作成する。
 - Play APIは初回AABをAPI経由で受け付けない場合があるため、初回releaseはPlay Consoleから手動uploadが必要になり得る。
 - 外部資格情報を使う実uploadはrepository内だけでは検証できない。
+
+## aimano識別子への移行
+
+namespace、Kotlin package、既定applicationIdを`com.beyondlabo.aimano`へ統一する。Kotlinのmain/testファイルは`com/beyondlabo/aimano`へ移し、Manifestの相対`.MainActivity`を解決する。配布時は`ANDROID_PACKAGE_NAME`も同値にする。新Playアプリへ署名AABを配布し、端末内情報の自動移行と旧アプリの並行サポートは行わない。 要件2.6に対応する。
