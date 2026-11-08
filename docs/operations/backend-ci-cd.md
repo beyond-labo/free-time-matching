@@ -397,7 +397,7 @@ secretは`Add secret`を押し、password managerから値を貼り付けて`Add
 | Variable | `SUPABASE_PROJECT_REF` | staging Project ref |
 | Variable | `SUPABASE_URL` | staging Project URL |
 | Variable | `SUPABASE_PUBLISHABLE_KEY` | staging publishable key |
-| Variable | `APPLE_CLIENT_ID` | native App ID／Bundle ID |
+| Variable | `APPLE_CLIENT_ID` | `com.beyond-labo.aimano`（native Bundle ID） |
 | Secret | `CLOUDFLARE_API_TOKEN_READ` | `himatch-staging-plan-read`のtoken |
 | Secret | `CLOUDFLARE_API_TOKEN_WRITE` | `himatch-staging-deploy-write`のtoken |
 | Secret | `R2_STATE_ACCESS_KEY_ID` | staging read/write credentialのAccess Key ID |
@@ -441,7 +441,7 @@ https://api-staging.beyond-labo.com
 | Variable | `SUPABASE_PROJECT_REF` | production Project ref |
 | Variable | `SUPABASE_URL` | production Project URL |
 | Variable | `SUPABASE_PUBLISHABLE_KEY` | production publishable key |
-| Variable | `APPLE_CLIENT_ID` | native App ID／Bundle ID |
+| Variable | `APPLE_CLIENT_ID` | `com.beyond-labo.aimano`（native Bundle ID） |
 | Secret | `CLOUDFLARE_API_TOKEN_WRITE` | `himatch-production-deploy-write`のtoken |
 | Secret | `R2_STATE_ACCESS_KEY_ID` | production read/write credentialのAccess Key ID |
 | Secret | `R2_STATE_SECRET_ACCESS_KEY` | production read/write credentialのSecret Access Key |

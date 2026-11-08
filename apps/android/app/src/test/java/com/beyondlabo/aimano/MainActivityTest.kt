@@ -1,4 +1,4 @@
-package com.example.himatch
+package com.beyondlabo.aimano
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -6,6 +6,6 @@ import org.junit.Test
 class MainActivityTest {
     @Test
     fun welcomeMessageUsesProductName() {
-        assertEquals("ひまっち（仮）", welcomeMessage())
+        assertEquals("アイマノ", welcomeMessage())
     }
 }

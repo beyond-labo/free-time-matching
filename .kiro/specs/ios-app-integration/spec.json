@@ -1,7 +1,7 @@
 {
   "feature_name": "ios-app-integration",
   "created_at": "2026-09-20T17:56:00+09:00",
-  "updated_at": "2026-11-03T02:55:40.492882+00:00",
+  "updated_at": "2026-11-07T08:44:13+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
@@ -52,12 +52,12 @@
       ".kiro/specs/ios-safety-settings/research.md": "7a7833e456f3baffffc6a0eff4d2cdbbf950ec1ccc198caec9a1e8780632c034",
       ".kiro/steering/product.md": "31de2652a88437981922574de16f1e4bf87a277af2fafb75f5f5f73f166952eb",
       ".kiro/steering/roadmap.md": "fa6242de7a3c79e8b0f912ace093eba73f985a30bcf894a0777f86e9ee870952",
-      "apps/ios/Himatch.xcodeproj/project.pbxproj": "6f6b4e2942f0c9767ab0b2851625b4f73b64a3b0ec8ebbb505ae6142ef88339d",
+      "apps/ios/Himatch.xcodeproj/project.pbxproj": "cb8f0d1191efc5d50bfdc5aa19af739a403904ed8e1cf2110dd59dab7f078cd2",
       "docs/architecture/api-contracts.md": "c61f5068194f366f3a0de5d7ffe207d68e6667a825d377e118c2159367db010c",
       "docs/architecture/ios-architecture.md": "512eaf7d4b5256b174906db0678f0c98ec7d49b88190272ce5f6c85f970af55e",
       "docs/architecture/technology.md": "5bc566bc85ac112c3dc3c5963e32044a1a48c3691aad79829b1eba782f2896b8",
       "docs/operations/ci-cd.md": "6b7a14dcb0a2eb69d1f42c15991836bf22ac4a918a30a8c6ef4fb93c3088bb63",
-      "docs/product/overview.md": "9294a2b8a4aba21ef6f3aacc634678961f7392a08f1c64388dcbfaf409677d77"
+      "docs/product/overview.md": "73410814549aa1187a520bdb467c0fd9ab861b24d287dd8de7e156e88592e757"
     }
   }
 }

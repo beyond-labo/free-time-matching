@@ -20,7 +20,7 @@ from validate_signing_assets import ValidationError, validate_crypto_material, v
 
 class SigningAssetValidationTests(unittest.TestCase):
     team_id = "ABCDE12345"
-    bundle_id = "com.example.himatch"
+    bundle_id = "com.beyond-labo.aimano"
     runtime_configuration = {
         "SUPABASE_URL": "https://example.supabase.co",
         "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_test",

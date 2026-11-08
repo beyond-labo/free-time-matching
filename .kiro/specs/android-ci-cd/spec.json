@@ -1,7 +1,7 @@
 {
   "feature_name": "android-ci-cd",
   "created_at": "2026-09-18T00:00:00+09:00",
-  "updated_at": "2026-09-18T07:49:14+09:00",
+  "updated_at": "2026-11-07T09:19:11+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
@@ -23,12 +23,12 @@
     "status": "current",
     "pending": [],
     "checked_inputs": {
-      ".kiro/specs/android-ci-cd/design.md": "f92b9885cb0675079a681ece5580f61103a7f5089474c73a7d25d901c37aa460",
-      ".kiro/specs/android-ci-cd/requirements.md": "c6c3fc30870e957dcf457a1bbfbd3511d93c90aa404ee345eabf37d76ee40b37",
-      ".kiro/specs/android-ci-cd/research.md": "1788aac4dd2df0d4ae69a6b1d213268bd4e83ac84a018ac4df5d4100260fa565",
-      ".kiro/specs/android-ci-cd/tasks.md": "e1f4ea716ad3ab822d238aa32d9c254e1392cfe696bd4f48ec3777c349632844",
+      ".kiro/specs/android-ci-cd/design.md": "83f0af06a65be2ec1d996cf05a7a6c1a04f8dc76a9b10f7e654c611228236c76",
+      ".kiro/specs/android-ci-cd/requirements.md": "f3fce43af49772407b4930d77194910bd5f382af8704d5e546d1383dd49fea37",
+      ".kiro/specs/android-ci-cd/research.md": "bb27490cb9a75ee24ea23c65d658a749320c4b63d9465b2f52403d13fa4d50d8",
+      ".kiro/specs/android-ci-cd/tasks.md": "3c25321580ff984cab200d5bc0cf94d98f2325e0494c87b372587de3a15d3844",
       "docs/architecture/technology.md": "5bc566bc85ac112c3dc3c5963e32044a1a48c3691aad79829b1eba782f2896b8",
-      "docs/operations/android-ci-cd.md": "4003ebce7f82e8f3555df22ec375c0054f05c3442715629bb9b0c10479794b59"
+      "docs/operations/android-ci-cd.md": "c0313ef3f4ed3b7e9755e6e94b766f10e94fd3f1ade8dc7c5b5d6bf908ce03f0"
     }
   }
 }

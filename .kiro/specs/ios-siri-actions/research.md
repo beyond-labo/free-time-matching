@@ -152,3 +152,11 @@ XcodeBuildMCPのDebug/Releaseビルドは警告・エラー0件で成功した�
 
 ユーザーの自動提案・双方OKによる確定への変更に基づき、既存の暇登録・区間削除と手動Hosting音声操作の互換性契約を維持する。第一段階の主導線は自動提案へ置換し、Siriを含む暇登録だけで参加OKを生成しない。確定予定は新機能が所有し、旧Hostingの確定対象外を製品全体へ適用しない。
 新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。
+
+## 製品表示名の変更（2026-11-06）
+
+ユーザー指定で製品表示名を「アイマノ」に変更した。Debug／ReleaseのCFBundleDisplayNameとHimatchApp.displayName、起動画面を同期する。App Shortcutsの既存のapplicationNameトークンが新名を参照するため、design.mdのフレーズ例を更新した。操作・パラメータ・確認・再送の契約は同一であり、名称表記の同期として承認と完了タスクを維持する。新名の日本語Siriと実機Shortcutsはタスク7の未実施範囲に含める。App Store Connectの変更手順はdocs/operations/ios-ci-cd.mdに統合した。
+
+名称変更後にXcodeBuildMCPで表示名のSwift Testing 1件（0失敗）とRelease Simulatorビルドが成功した。Debug／Releaseの生成Info.plistのCFBundleDisplayNameはともに「アイマノ」だった。node scripts/verify.mjsも成功した。AndroidはJava Runtimeがないため単体テスト未実施、実機日本語SiriとApp Store Connectでの保存・配布も未実施。
+
+2026-11-07、PR作成時に最新main（f2ef9f9）へ名称変更だけを移植し、XcodeBuildMCPで表示名テスト1件、Release Simulatorビルド、両構成のCFBundleDisplayNameを再確認した。最新mainで追加されたAPNs通知タイトルも新名へ揃え、既存の通知テスト5件がローカル導入済み依存で成功した。元の作業ツリーの署名・scheme変更はPR候補に含めていない。

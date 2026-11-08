@@ -6,7 +6,7 @@ struct KeychainDeletionStatusTokenStore {
     private static let operationAccount = "operation-id"
     private let service: String
 
-    init(service: String = "com.beyond-labo.himatch.account-deletion") {
+    init(service: String = "com.beyond-labo.aimano.account-deletion") {
         self.service = service
     }
 

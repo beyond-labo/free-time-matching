@@ -1,7 +1,7 @@
 {
   "feature_name": "ios-siri-actions",
   "created_at": "2026-10-04T10:25:08+09:00",
-  "updated_at": "2026-11-03T02:55:40.492882+00:00",
+  "updated_at": "2026-11-07T08:44:41+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
@@ -50,9 +50,9 @@
       ".kiro/specs/ios-safety-settings/requirements.md": "6b3d13e997858af431b33f6f1f4af6b0b3f6d8e8168cd8a5eadc941848ed67c8",
       ".kiro/specs/ios-safety-settings/research.md": "7a7833e456f3baffffc6a0eff4d2cdbbf950ec1ccc198caec9a1e8780632c034",
       ".kiro/specs/ios-siri-actions/brief.md": "9d3c78d46011599dbe7ffa61a3d78ab6d7c7d852c6e4bc7d55c19ad2296327bb",
-      ".kiro/specs/ios-siri-actions/design.md": "4e4485f63e0aebf986aa13e860e91e10b44c950d6650d9e42a2727a84dcd775e",
+      ".kiro/specs/ios-siri-actions/design.md": "ed494447bd159cd9f41983bd230a7cc3897964b2cdeadf4799d42e7e6d117f0b",
       ".kiro/specs/ios-siri-actions/requirements.md": "921883d873231f80c4cd7fb3d791ce48143e1e2b7cd6ba88b3a378e8b73322bf",
-      ".kiro/specs/ios-siri-actions/research.md": "ad66774a78429ac0b3d955463cdf5a489f8c0d65ad69c1ce4d57d6aea4820c92",
+      ".kiro/specs/ios-siri-actions/research.md": "79cd6ce4780daa5b8afd2620d273818ea8913fa8cc468409dea43be1f637befc",
       ".kiro/specs/ios-siri-actions/tasks.md": "91eb457dea1a47414ac35045ced107ec06882eb46d1262fb8926e96609d09c5b",
       ".kiro/steering/product.md": "31de2652a88437981922574de16f1e4bf87a277af2fafb75f5f5f73f166952eb",
       ".kiro/steering/roadmap.md": "fa6242de7a3c79e8b0f912ace093eba73f985a30bcf894a0777f86e9ee870952",
@@ -60,7 +60,7 @@
       "apps/ios/Himatch/App/Composition/AppRuntime.swift": "047ab71bd6655541949d5c9abdfb280b52c263dbcd6ea9f52fff9a7039b09a3b",
       "apps/ios/Himatch/App/Domain/HimatchClient.swift": "2029af7da58ef9c29b334bbd9703c428d01859088cfbd126772ed4a053bf62f6",
       "apps/ios/Himatch/App/Presentation/AppFeature.swift": "2c0d474af102ecf8d2e570a593791eff981ba449749713d4147882f5b46d7231",
-      "apps/ios/Himatch/App/Presentation/AppView.swift": "9c56819dae5d9886515c446a82d9a72af2b8a56a766f53ca02b6336c1da8cd6c",
+      "apps/ios/Himatch/App/Presentation/AppView.swift": "96b1604817c2ca8b6f5e7c121ac2aaa7c7a55502f8787e6f33362906d002bf49",
       "apps/ios/Himatch/App/Presentation/SystemActionHandoff.swift": "a5b25fb7f6446c83b19c06a4d70ba4e30b02857a9b7ee62cc8f7a8edae7d2596",
       "apps/ios/Himatch/App/Presentation/SystemActionReviewView.swift": "d04be99860d1913b7f19b449ffa81adf4ade680ea69fd3bafb7e8b2c1e791919",
       "apps/ios/Himatch/Availability/Domain/AvailabilityModels.swift": "81ff79a3808cef93d277fa4973ce884261992b7d01567ef9165215c7d2db355c",
@@ -69,12 +69,12 @@
       "apps/ios/Himatch/SystemActions/Application/SystemActionService.swift": "e4e0a2db5e72fb2d273efbed7cfc5991c38c2101fab5ba655359556b6d9e5bb8",
       "apps/ios/Himatch/SystemActions/Domain/SystemActionModels.swift": "d670deb046f7dbb36da1a53b30e42c00ca121cf61ddc2c6bf284bba460b857d4",
       "apps/ios/Himatch/SystemActions/Infrastructure/Storage/SystemActionJournal.swift": "25dec24a1d409d3399d9489f18a3e42fb2744718589bea4f99f6e0ebcd8082ef",
-      "apps/ios/Himatch.xcodeproj/project.pbxproj": "6f6b4e2942f0c9767ab0b2851625b4f73b64a3b0ec8ebbb505ae6142ef88339d",
+      "apps/ios/Himatch.xcodeproj/project.pbxproj": "cb8f0d1191efc5d50bfdc5aa19af739a403904ed8e1cf2110dd59dab7f078cd2",
       "docs/architecture/api-contracts.md": "c61f5068194f366f3a0de5d7ffe207d68e6667a825d377e118c2159367db010c",
       "docs/architecture/ios-architecture.md": "512eaf7d4b5256b174906db0678f0c98ec7d49b88190272ce5f6c85f970af55e",
       "docs/architecture/technology.md": "5bc566bc85ac112c3dc3c5963e32044a1a48c3691aad79829b1eba782f2896b8",
       "docs/operations/ci-cd.md": "6b7a14dcb0a2eb69d1f42c15991836bf22ac4a918a30a8c6ef4fb93c3088bb63",
-      "docs/product/overview.md": "9294a2b8a4aba21ef6f3aacc634678961f7392a08f1c64388dcbfaf409677d77"
+      "docs/product/overview.md": "73410814549aa1187a520bdb467c0fd9ab861b24d287dd8de7e156e88592e757"
     }
   }
 }

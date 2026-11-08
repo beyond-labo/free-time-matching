@@ -1,4 +1,4 @@
-package com.example.himatch
+package com.beyondlabo.aimano
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -36,7 +36,7 @@ fun HimatchApp() {
     }
 }
 
-internal fun welcomeMessage(): String = "ひまっち（仮）"
+internal fun welcomeMessage(): String = "アイマノ"
 
 @Preview(showBackground = true)
 @Composable
