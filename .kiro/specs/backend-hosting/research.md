@@ -36,3 +36,4 @@ kiro:
 - 2026-09-26: ユーザーの計画承認により、実Backendで招待・受信・部分回答までを対象とし、最終予定確定は後続に分離した。
 - 2026-09-27: 招待・回答・取消を別レコードと RPC で実装。友達行ロック、本人暇との原子的統合、役割別投影、再送・version 競合を Worker/pgTAP で確認した。STG の送受信確認は残る。
 - 2026-09-27: クロス仕様レビューにより、作成レスポンスは `{ hosting }` のみで本人暇は別途再取得する契約へ記述を修正。回答期限は別フィールドを返さず候補開始時刻から導出する。
+- 2026-11-08: 参加OK後の時間変更・取消が常に `hosting_conflict` になる不具合を修正した。`hosting_respond_before_scheduling`（202609260002 で導入）は参加OK済みの招待を一律に拒否しており、Requirement 4.4 の「expectedVersion が現在と異なる場合だけ競合」と矛盾していた。`supabase/migrations/202611080001_hosting_response_change.sql` で版一致時の変更・取消・再参加を受け付けるよう置き換え、`supabase/tests/hosting.test.sql`（計46件）で確認した。Supabase CLI 2.117.0 の `db lint` と `test db` は成功。契約とAPIは変えていない。

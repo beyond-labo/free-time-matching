@@ -29,9 +29,9 @@ AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/�
   - _Boundary: HimatchPrototypeScenario_
 
 - [ ] 2. 横断読み取り投影を実装する
-  - Home、統合受信箱を owner ID 付きで返し、変更操作を所有機能へ route する。旧Hostingの確定fixtureはDEBUGに限定し、AutomaticSchedulingの実確定予定をHome/Inboxへ別の所有元IDで投影する。
+  - `AppFeature` の所有機能別 State から `HomeDashboard` と統合受信箱を投影し、変更操作を Store の Action で所有機能へ route する。旧Hostingの確定fixtureはDEBUGに限定し、AutomaticSchedulingの実確定予定は所有元Reducerの State / ActionをHome/Inboxから参照する。
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
-  - _Boundary: AppProjectionRepository_
+  - _Boundary: HomeDashboard, AppFeature, AppView_
   - _Depends: 1_
 
 - [ ] 3. Root Composition と Navigation を接続する
@@ -39,7 +39,7 @@ AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/�
   - プロフィール確定後の友達・暇時間の取得を並行し、領域別の読み込み・失敗・再試行を実装して、全画面の操作を塞がないことを検証する。
   - _Requirements: 3.1, 3.2, 3.6, 3.8, 3.9, 3.10, 3.11, 3.12_
   - Siriの実依存共有、認証後FIFO復帰、本人変更時失効の実装と検証は ios-siri-actions タスク3/5/6へ集約する。既存の本仕様全体の未完了状態は維持する。
-  - 部分進捗（0.1.7）: 明示DEBUGデモだけに `demoClient` を注入し、通常Debug/ReleaseとSiriの実依存を維持した。デモ保存・通常依存・招待遷移の回帰テストを含む168件成功とDebug/Releaseビルド成功を確認した。領域別読み込み等の残件は維持する。
+  - 部分進捗（0.1.7、2026-11-08同期）: 明示DEBUGデモだけに `DemoScenarioClient` を依存として注入し、Root は `isDemo` のときだけ `business` を選ぶ。自動提案は `AutomaticSchedulingEffects.routingDemo` が所有者 `"demo"` だけを Prototype へ振り分け、通常Debug/Release・実アカウント・Siriの実依存を維持する。デモ保存・通常依存・招待遷移の回帰テストを含む168件成功とDebug/Releaseビルド成功を確認した。領域別読み込み等の残件は維持する。
   - _Boundary: AppCompositionRoot, AppRuntime, AppFeature_
   - _Depends: 1, 2_
 

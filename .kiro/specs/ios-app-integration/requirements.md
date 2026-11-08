@@ -34,8 +34,8 @@ AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/�
 
 #### Acceptance Criteria
 
-1. The iOS app shall Home に自分の暇を所有元 ID 付きの読み取り投影として表示し、AutomaticSchedulingの提案と確定予定を実Backendの読み取り投影として表示し、旧Hostingの確定fixtureだけDEBUGに限定する
-2. The iOS app shall 統合受信箱に友達申請・AutomaticSchedulingの提案/確定/取消と、既存Hosting更新を要対応・進行中・終了として表示する
+1. The iOS app shall Home に自分の暇を所有元 ID 付きの読み取り投影として表示し、AutomaticSchedulingの提案と確定予定を実Backendの読み取り投影として表示し、旧Hostingの確定fixtureだけDEBUGに限定する。区分の順序と案内は [ios-first-match-flow](../ios-first-match-flow/requirements.md) Requirement 2・3 に従う
+2. The iOS app shall 統合受信箱に友達申請・AutomaticSchedulingの提案/確定/取消と、既存Hosting更新を要対応・進行中・終了として表示し、入口に未対応の友達申請・未回答の提案・未回答のお誘い・未読の参加OKの合計件数を表示する
 3. The iOS app shall 友達プロフィールからAutomaticSchedulingの実確定予定を確認・取消できるようにし、旧Hostingの確定fixtureと区別する
 4. The iOS app shall 投影からの変更操作を所有機能の Navigation / UseCase へ委譲する
 
@@ -60,7 +60,7 @@ AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/�
 1. The AppCompositionRoot shall 全 Adapter、UseCase、Reducer を生成して Root Store へ注入する
 2. The iOS app shall ホーム・友達・設定と各詳細を所有 ID / delegate action で遷移させる
 3. The repository verification shall filesystem-synchronized app/test group、TCA 1.26.1、Package.resolved、entitlements の存在と整合を検査する
-4. The integration tests shall DEBUG のデモ開始、暇登録、友達確認、募集、回答、確定、通報、ブロック、削除受付の主要経路を fixture で検証し、旧Hostingのfixture確定をReleaseの提供機能として扱わず、自動提案の実確定は別の実契約試験で検証する
+4. The integration tests shall DEBUG のデモ開始（友達なし・友達あり）、暇登録、友達確認、自動提案の許可・提案・双方の参加OKによる確定、募集、回答、デモ友達の参加OKと受け取り表示、確定、通報、ブロック、削除受付の主要経路を fixture で検証し、旧Hostingのfixture確定をReleaseの提供機能として扱わず、自動提案の実確定は別の実契約試験で検証する
 5. The repository verification shall iOSテストがSwift Testingを使用し、XCTestのimportまたはXCTestCase継承を含まないことを検査する
 6. The AppCompositionRoot shall Releaseで認証・プロフィール・削除・Friendship・本人の暇時間・Hosting・AutomaticSchedulingの実Backend Adapterを注入し、DEBUGの明示的なデモだけでPrototype Adapterを使用する
 7. The integration tests shall セッション復元、未設定プロフィール、ログアウト、削除後アクセス停止を検証する

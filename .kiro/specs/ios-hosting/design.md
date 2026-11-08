@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "iOS 募集・招待設計"
-description: "時間軸からの募集、実Backend回答、取消の責務設計"
+description: "手動のお誘い作成、実Backendへの返事、取消の責務設計"
 status: stable
 sources:
   - id: ios-hosting-research
@@ -21,7 +21,7 @@ kiro:
 
 ## Overview
 
-Hosting Domain が募集と受信者別回答を所有し、Application が実 Backend との再送・競合を扱う。Presentation は Availability の時間軸選択を募集と回答にも共用し、役割と状態に応じて操作を切り替える。予定確定は今回の Release 契約に含めない。
+Hosting Domain が手動のお誘いと受信者別の返事を所有し、Root の `AppFeature` が実 Backend との再送・競合・アカウント照合を扱う。Presentation は `InvitationComposerFeature` と `InvitationReplyFeature` に入力と検証を分け、作成はホームの候補・暇・カレンダー範囲・友達から、返事は届いたお誘いから開く。予定確定は AutomaticScheduling が所有し、手動 Hosting の Release 契約には含めない。
 
 ## Boundary Commitments
 
@@ -35,7 +35,7 @@ Hosting Domain が募集と受信者別回答を所有し、Application が実 B
 
 ### Allowed Dependencies
 
-- AppFoundation、Availability の時間軸と区間、Friendship の friend ID。認可は Backend が所有し、Safety へ静的依存しない。
+- AppFoundation、Availability の区間とカレンダー選択結果、Friendship の friend ID。認可は Backend が所有し、Safety へ静的依存しない。
 
 ### Revalidation Triggers
 
@@ -45,32 +45,32 @@ Hosting Domain が募集と受信者別回答を所有し、Application が実 B
 
 ```mermaid
 graph LR
-    CreationView --> HostingCreationFeature
-    DetailView --> HostingDetailFeature
-    InboxView --> InboxFeature
-    Features --> HostingUseCases
-    HostingUseCases --> HostingPolicy
-    HostingUseCases --> HostingRepository
-    BackendAdapter --> HostingRepository
-    PrototypeAdapter --> HostingRepository
-    HostingRepository --> BackendContract
+    InvitationComposerView --> InvitationComposerFeature
+    InvitationReplyView --> InvitationReplyFeature
+    HomeView --> AppFeature
+    InboxView --> AppFeature
+    InvitationComposerFeature -->|delegate| AppFeature
+    InvitationReplyFeature -->|delegate| AppFeature
+    AppFeature --> HimatchClient
+    HimatchClient --> BackendHostingAdapter
+    HimatchClient -->|DEBUG demo only| DemoScenarioClient
+    BackendHostingAdapter --> BackendContract
 ```
 
-BackendContract は backend-hosting の実 API とし、通常Debug/Release Composition は Backend Adapter を注入する。Prototypeは明示デモだけに注入する。Repository response は invited count、non-responder identity、availability reason を持たない。
+BackendContract は backend-hosting の実 API とし、通常Debug/Release Composition は `BackendHostingAdapter` を `HimatchClient` へ接続する。Prototype の手動お誘いは `DemoScenarioClient.business` として明示デモだけに使う。Backend response は invited count、non-responder identity、availability reason を持たない。
 
 ## File Structure Plan
 
 ```text
 apps/ios/Himatch/Hosting/
-├── Domain/Model/{Hosting,ParticipationResponse}.swift
-├── Domain/Policy/HostingTransitionPolicy.swift
-├── Application/Port/HostingRepository.swift
-├── Application/UseCase/{CreateHosting,RespondToInvitation,CancelHosting}.swift
+├── Domain/HostingModels.swift
+├── Domain/{TimeCandidatePolicy,ReplyChoicePolicy,ParticipationNoticeDetector}.swift
 ├── Infrastructure/Adapter/BackendHostingAdapter.swift
-├── Infrastructure/Adapter/PrototypeHostingAdapter.swift
 └── Presentation/
-    ├── Reducer/{HostingCreation,HostingDetail,Inbox}Feature.swift
-    └── View/{HostingCreation,HostingDetail,Inbox}View.swift
+    ├── Reducer/{InvitationComposerFeature,InvitationReplyFeature}.swift
+    └── View/{InvitationComposerView,InvitationReplyView,InvitationSentView}.swift
+apps/ios/Himatch/App/Presentation/AppFeature.swift
+apps/ios/Himatch/App/Infrastructure/Prototype/DemoScenarioClient.swift  # DEBUG only
 apps/ios/HimatchTests/Hosting/
 ```
 
@@ -91,7 +91,7 @@ stateDiagram-v2
 
 ## Application Contracts
 
-`HostingRepository` は `create(command, operationID)`、`list/detail`、`respond(command, operationID, expectedVersion)`、`cancel(operationID, expectedVersion)` を提供する。募集作成は選択区間と暇属性を渡し、Backend が暇OR統合と全招待先への送信を一度に確定する。
+`HimatchClient` の Hosting 操作は `loadHostings`、`createHosting`、`respondInvitation(operationID, expectedVersion)`、`cancelHosting(operationID, expectedVersion)` を提供する。`AppFeature` は書き込み開始時の owner を結果 Action に付け、アカウント切替後の結果を破棄する。お誘い作成は選択区間と暇属性を渡し、Backend が暇OR統合と全送信先への送信を一度に確定する。
 
 `HostingDraft.availabilityMetadata` は本人暇のcategoryとvisibilityを明示する。metadataのcategoryがnilなら未選択として送信し、募集カテゴリへフォールバックしない。画面の作成とSiriの作成は明示metadataを渡す。旧呼出しのmetadata未指定と明示未選択を区別する。
 
@@ -104,18 +104,18 @@ Privacy response rules:
 - invitee detail は本人が回答可能な候補だけを含む。
 - 受信者の参加OKは本人の一般的な暇を増やさない。
 
-時間軸の選択は Availability のタップ・長押しドラッグ・調整ハンドルを使う。募集中表示は Hosting の候補区間を Availability の表示へ重ね、暇枠全体へ募集中状態を広げない。募集中区間の削除可否は Backend を正本とする。
+カレンダー画面のタップ・長押しドラッグ・調整ハンドルから誘う場合は、Availability が正規化した範囲を `InvitationComposerFeature` へ渡す。友達プロフィールからはカレンダーを経由せず、友達を選択済みにして composer を開く。お誘い中表示は Hosting の候補区間を Availability の表示へ重ね、暇枠全体へ状態を広げない。お誘い中区間の削除可否は Backend を正本とする。
 
 ## Requirements Traceability
 
 | Requirement | Components | Validation |
 |---|---|---|
-| 1.1-1.7 | HostingCreationFeature / TimelineSelection | interval / selection / validation tests |
+| 1.1-1.7 | InvitationComposerFeature / InvitationStart | interval / selection / validation tests |
 | 2.1-2.5 | privacy response contracts | contract-shape tests |
-| 3.1-3.7 | HostingDetail invitee | reducer / expiry / partial interval tests |
+| 3.1-3.7 | InvitationReplyFeature / ReplyChoicePolicy | reducer / expiry / choice tests |
 | 5.1-5.5 | transition policy, detail | state transition tests |
-| 6.1-6.4 | InboxFeature | push-independent smoke |
-| 7.1-7.4 | repository commands | idempotency / ambiguity tests |
+| 6.1-6.4 | Home / Inbox projection, AppFeature | push-independent smoke |
+| 7.1-7.4 | HimatchClient commands, AppFeature | idempotency / ambiguity / owner tests |
 
 ## Error and Testing Strategy
 
@@ -123,9 +123,12 @@ Privacy response rules:
 - permission lost は詳細を破棄して一覧へ戻す。transport ambiguous は operationID を保持する。
 - Domain: 半開区間、15分境界、取消・期限切れ遷移。
 - Application: privacy DTO、operationID、version競合。
-- Presentation: 時間軸からの作成、役割別詳細、部分回答、受信箱。
+- Presentation: 各開始経路からの作成、全部・前半・後半・時間指定の返事、Home / Inbox 投影。
 - Integration: 暇の選択 → 実募集 → 別アカウントで回答 → 取消。
 
 ## Security Considerations
 
 UIで隠すだけでは Q-01/Q-02 を満たさない。API 実装時は認可済み projection を返し、iOS は内部モデルや他人の暇枠を受け取らない。通常ログへ候補時間や credential を出さない。
+
+## はじめての予定動線による変更
+お誘いの作成入力は `AppFeature` の Root State から `InvitationComposerFeature` へ、返事は `InvitationResponseSelection`（廃止）から `InvitationReplyFeature` と `ReplyChoicePolicy` へ移した。作成・回答・取消の API 呼び出し、operationID、expectedVersion、競合時の再取得はこの設計のまま `AppFeature` が担い、結果には開始時の所有者を付けて別アカウントの結果を捨てる。送信中は作成画面を閉じられない。開催形態の表示名は「会い方」（rawValue は不変）。詳細は [ios-first-match-flow の設計](../ios-first-match-flow/design.md)。

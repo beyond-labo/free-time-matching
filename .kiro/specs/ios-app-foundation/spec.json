@@ -31,11 +31,11 @@
       ".kiro/specs/ios-app-foundation/research.md": "bd5c29a1ac0348ffa34f0ac765e2424fe0e5fb04c6308d21c78a9ffcafc4a3d7",
       ".kiro/specs/ios-app-foundation/tasks.md": "c82c76d719ad29e5107720d81debfe0f8a98a8a338d97acd5fe7476a3a8c4833",
       ".kiro/steering/product.md": "31de2652a88437981922574de16f1e4bf87a277af2fafb75f5f5f73f166952eb",
-      ".kiro/steering/roadmap.md": "fa6242de7a3c79e8b0f912ace093eba73f985a30bcf894a0777f86e9ee870952",
-      "apps/ios/Himatch.xcodeproj/project.pbxproj": "cb8f0d1191efc5d50bfdc5aa19af739a403904ed8e1cf2110dd59dab7f078cd2",
-      "docs/architecture/ios-architecture.md": "512eaf7d4b5256b174906db0678f0c98ec7d49b88190272ce5f6c85f970af55e",
+      ".kiro/steering/roadmap.md": "e614aaa1b8735e6c3249e7184f61138aa58c475383b22ec883b693fa9157af85",
+      "apps/ios/Himatch.xcodeproj/project.pbxproj": "0a583fb2fbc75b9c722bb08d344b46ff542453317b0b8b08955fe07760b52d27",
+      "docs/architecture/ios-architecture.md": "1c3fcbe020ceada88446b6a18d4fbc87a4118ef6826214ef80cf38996584ae59",
       "docs/architecture/technology.md": "5bc566bc85ac112c3dc3c5963e32044a1a48c3691aad79829b1eba782f2896b8",
-      "docs/product/overview.md": "73410814549aa1187a520bdb467c0fd9ab861b24d287dd8de7e156e88592e757"
+      "docs/product/overview.md": "703c81827db76398da34d2351df1ed01260deac7362baf82ce36864a3b7badf9"
     }
   }
 }

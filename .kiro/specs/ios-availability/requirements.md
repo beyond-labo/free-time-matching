@@ -1,7 +1,7 @@
 ---
 type: Requirements
 title: "iOS 暇時間要件"
-description: "ホーム時間軸と非公開を初期値にした暇時間の登録・編集要件"
+description: "ホームから開く時間軸と非公開を初期値にした暇時間の登録・編集要件"
 status: stable
 sources:
   - id: user-ios-first-release
@@ -38,7 +38,9 @@ kiro:
 
 ## Requirements
 
-### Requirement 1: ホームのリストとカレンダー
+### Requirement 1: カレンダー画面のリストとカレンダー
+
+リストとカレンダーはホームの主表示ではなく、ホームから1回の操作で開くカレンダー画面に置く（[ios-first-match-flow](../ios-first-match-flow/requirements.md) Requirement 2.2）。以下の「ホーム」はこの画面を指し、操作仕様は変えない。
 
 **Objective:** As a 利用者, I want 今後の自分の暇と予定を時系列で見たい, so that 登録する日時を直感的に選べる
 
@@ -63,7 +65,7 @@ kiro:
 
 #### Acceptance Criteria
 
-1. When 常設の新規登録または詳細調整を開始した, the iOS app shall 時間軸から引き継いだ表示日時を15分境界へ丸め、位置指定がない場合は現在の次の15分境界を開始とし、2時間後の終了と未選択カテゴリを初期値にする
+1. When ホームの暇の区分・案内・主操作「暇を登録」、カレンダー画面から新規登録、または詳細調整を開始した, the iOS app shall 時間軸から引き継いだ表示日時を15分境界へ丸め、位置指定がない場合は現在の次の15分境界を開始とし、2時間後の終了と未選択カテゴリを初期値にする
 2. The iOS app shall 開始と終了を15分単位で調整し、日付またぎを許可する
 3. If 終了が開始以前、開始が過去、または14日範囲外である, the iOS app shall 保存を止めて理由を表示する
 4. If 新規範囲が既存の暇と重複または接する, the iOS app shall 連続する暇時間の和集合として登録し、属性が異なる場合は統合後のカテゴリを保存前に選ばせ、第一段階の公開設定は非公開にする
@@ -124,6 +126,6 @@ kiro:
 
 #### Acceptance Criteria
 
-1. The iOS app shall 一般の暇と、自分がホストとして招待中の範囲だけを「募集中」として文字と視覚表現で区別する
+1. The iOS app shall 一般の暇と、自分がホストとして招待中の範囲だけを「募集中」として文字と視覚表現で区別する。画面上の名称は「お誘い中」とする（ios-first-match-flow Requirement 9.1）
 2. The iOS app shall 一つの暇枠の一部だけを誘った場合、その部分だけを募集中として表示する
 3. The iOS app shall 暇の登録を招待への参加OKや予定確定として扱わない

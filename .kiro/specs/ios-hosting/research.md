@@ -24,10 +24,10 @@ kiro:
 
 ## Design Decisions
 
-### Decision: 役割別画面ではなく共通詳細を使う
+### Decision: 作成と返事を入力専用の子 Reducer に分ける
 
-- **Selected Approach**: HostingDetailFeature が role と lifecycle から表示状態を導く。
-- **Rationale**: 同じ状態の重複実装と遷移ずれを避ける。
+- **Selected Approach**: `InvitationComposerFeature` と `InvitationReplyFeature` が入力・検証・送信中表示を所有し、Root の `AppFeature` が API、operationID、expectedVersion、owner 照合を所有する。
+- **Rationale**: 作成者と受信者の入力を混ぜず、通信とアカウント境界を Root に一元化して遷移ずれを避ける。
 
 ### Decision: Host detail は参加 OK の投影だけを受け取る
 
@@ -46,6 +46,9 @@ kiro:
 
 ## Change Log
 
+- 2026-11-08: `ios-first-match-flow` 統合の意味照合で、Introduction・Requirement 1.1/1.7・設計本文に旧「ホームと同じ時間軸」と未実装の `HostingCreationFeature` / `HostingDetailFeature` が現行指示として残っていたため、二次カレンダーからの範囲引継ぎ、友達プロフィールから composer への直接遷移、`InvitationComposerFeature` / `InvitationReplyFeature`、Root の owner 照合に置換した。
+- 2026-11-08: [ios-first-match-flow](../ios-first-match-flow/requirements.md) の要件改訂（自動提案を主軸、手動のお誘いを副経路）に伴い、作成の開始経路・会い方の初期値・送信結果の文言・返事の選択肢・画面上の名称の受け入れ条件と設計の補足を更新した。要件の意味が変わったため要件以降の承認を外し、再承認を待つ。
+- 2026-11-08: 独立レビューで、実Backendで参加OK後の時間変更・取消（Requirement 3.4）が `hosting_conflict`（HTTP 409）になる不具合を確認した。原因は `hosting_respond_before_scheduling` が参加OK済みの招待の変更を版に関係なく拒否していたこと。版一致時は受け付ける migration `202611080001_hosting_response_change.sql` で修正し、pgTAP で変更・取消・再参加と版不一致の拒否を確認した。既存要件を満たすためのバグ修正で、要件は変えていない。
 - 2026-09-27: 実 Backend の募集・招待・部分回答・取消を追加した事実へ Brief を同期した。回答期限は候補開始時刻 `start` から導出し、専用 DTO フィールドを持たない契約として設計と要件を揃えた。STG 2アカウント検証は未実施。
 - 2026-09-27: 共通時間軸からの作成、友達プロフィール選択、15分単位の明示回答、募集中表示と取消導線、失敗時の入力保持を実装。Debug Swift Testing 121件と Release Simulator build が通過した。STG 実送受信は未実施。
 - 2026-09-26: ユーザーが時間軸と同じUIによる招待、選んだ友達全員への実送信、一部時間の回答、予定確定の後続移管を確定した。旧 Prototype 専用作成・暇重複による配信選別・必要時間指定・この工程での予定確定は現行契約から外す。根拠は会話の計画承認と backend-hosting 要件。

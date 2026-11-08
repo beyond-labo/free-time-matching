@@ -41,7 +41,7 @@ kiro:
   - _Depends: 2_
 
 - [ ] 4. プロフィールと隣接機能 delegate を実装する
-  - 誘う操作が友達IDを渡して時間軸で招待先を選択済みにすること、通報、ブロック、解除、権限喪失を検証できる。旧Hostingの確定fixtureはDEBUG専用とし、AutomaticSchedulingの実確定予定はその所有機能へ委譲する。
+  - 誘う操作が友達IDを渡し、`InvitationComposerFeature` をその友達が選択済みの状態で直接開くこと、通報、ブロック、解除、権限喪失を検証できる。旧Hostingの確定fixtureはDEBUG専用とし、AutomaticSchedulingの実確定予定はその所有機能へ委譲する。
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
   - _Boundary: FriendProfileFeature_
   - _Depends: 2, 3_

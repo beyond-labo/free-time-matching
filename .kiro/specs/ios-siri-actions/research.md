@@ -29,6 +29,10 @@ Apple の App Intents はアプリの操作とパラメータを Siri とショ�
 主要操作、必須項目不足、対象の曖昧さ、認証、期限、競合、通信結果不明、非公開情報、既存機能への責務分離を照合した。既存契約を変更せず、未実装の予定確定を公開範囲へ含めていない。品質確認は要件承認と区別する。独立レビューで指摘された結果不明時のpayload維持と競合後の新規操作を分離し、既存 Availability の絶対時刻・タイムゾーン・日付またぎ契約を登録と募集の両方へ追加した。
 
 ## 変更記録
+
+### ios-first-match-flow 統合の照合（2026-11-08）
+
+`AppFeature.swift`、`AppView.swift`、`AppCompositionRoot.swift`、`SystemActionReviewView.swift`、`AvailabilityModels.swift`、`docs/architecture/ios-architecture.md` の変更を本仕様と照合した。初回体験を自動提案中心へ再構成し、手動 Hosting の表示用語を「お誘い」「会い方」へそろえ、DEBUG デモの自動提案だけを Prototype へ振り分けた変更である。Siri の暇登録・区間削除・友達を誘う・取消の4操作、`runtime.systemActions` を使う実依存、本人束縛、operationID・payload・expectedVersion を維持する再送、完了後の暇・お誘い再取得は不変であり、本仕様の契約変更はない。
 - 2026-10-04: Siri 対応を独立のシステム連携仕様として追加。負荷低減は再入力・再選択を除去する方針とし、募集送信・取消の意思確認は保持する。当初は要件承認待ちだった。現在の工程状態は spec.json と tasks.md、検証不足は下記の実装同期を参照する。
 
 ## 設計調査（2026-10-04）

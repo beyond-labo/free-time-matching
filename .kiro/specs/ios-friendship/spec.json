@@ -30,17 +30,17 @@
       ".kiro/specs/ios-app-foundation/requirements.md": "884df0996a804b7adeb3b27019bcb69c7cdef3884cd59b291ae497f65eb516d1",
       ".kiro/specs/ios-app-foundation/research.md": "bd5c29a1ac0348ffa34f0ac765e2424fe0e5fb04c6308d21c78a9ffcafc4a3d7",
       ".kiro/specs/ios-friendship/brief.md": "65c2454ae3510370e38938122e7ce54d016f012f4770e3ff096788c61553ec8e",
-      ".kiro/specs/ios-friendship/design.md": "114853e0a6c2667fa49b1ed7993eb1e1e1f95795438f477fb06e8dcace354bbe",
-      ".kiro/specs/ios-friendship/requirements.md": "112a3cf7f5cad96715a21a0f060d73c2eba061d3c5f35792d361c31915ccfac2",
-      ".kiro/specs/ios-friendship/research.md": "05bd837ae7e96e543c1f54b4d858a2b7f35ffefffd01fa87dcd92a7eacdb5cf9",
-      ".kiro/specs/ios-friendship/tasks.md": "0daba26cdcd48a821ca7cfbddb8772a224074e331199e315bb36277526aefa0e",
+      ".kiro/specs/ios-friendship/design.md": "5e84633a41cd2402ce8fcb0d83341de2240e7a5eb55e05c0ec41984a06119d69",
+      ".kiro/specs/ios-friendship/requirements.md": "4041ff7efd0722983f419fa6f36539dffa626e042b294313ed84d789c3a8942f",
+      ".kiro/specs/ios-friendship/research.md": "b895c87b807e63ad57321e80463bddeed65da81e481e654a41c29018d6461214",
+      ".kiro/specs/ios-friendship/tasks.md": "0ada53501cb36c9dbf91975601fb1ffbf506a46e54f20f7681543a9b60855637",
       ".kiro/steering/product.md": "31de2652a88437981922574de16f1e4bf87a277af2fafb75f5f5f73f166952eb",
-      ".kiro/steering/roadmap.md": "fa6242de7a3c79e8b0f912ace093eba73f985a30bcf894a0777f86e9ee870952",
-      "apps/ios/Himatch.xcodeproj/project.pbxproj": "cb8f0d1191efc5d50bfdc5aa19af739a403904ed8e1cf2110dd59dab7f078cd2",
+      ".kiro/steering/roadmap.md": "e614aaa1b8735e6c3249e7184f61138aa58c475383b22ec883b693fa9157af85",
+      "apps/ios/Himatch.xcodeproj/project.pbxproj": "0a583fb2fbc75b9c722bb08d344b46ff542453317b0b8b08955fe07760b52d27",
       "docs/architecture/api-contracts.md": "c61f5068194f366f3a0de5d7ffe207d68e6667a825d377e118c2159367db010c",
-      "docs/architecture/ios-architecture.md": "512eaf7d4b5256b174906db0678f0c98ec7d49b88190272ce5f6c85f970af55e",
+      "docs/architecture/ios-architecture.md": "1c3fcbe020ceada88446b6a18d4fbc87a4118ef6826214ef80cf38996584ae59",
       "docs/architecture/technology.md": "5bc566bc85ac112c3dc3c5963e32044a1a48c3691aad79829b1eba782f2896b8",
-      "docs/product/overview.md": "73410814549aa1187a520bdb467c0fd9ab861b24d287dd8de7e156e88592e757"
+      "docs/product/overview.md": "703c81827db76398da34d2351df1ed01260deac7362baf82ce36864a3b7badf9"
     }
   }
 }

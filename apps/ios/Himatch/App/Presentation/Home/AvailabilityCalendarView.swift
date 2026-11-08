@@ -10,7 +10,7 @@ struct AvailabilityCalendarView: View {
             if let snapshot = store.snapshot {
                 HomeTimelineView(
                     store: store.scope(state: \.homeTimeline, action: \.homeTimeline),
-                    items: HomeView.scheduleItems(snapshot)
+                    items: HomeView.scheduleItems(snapshot, scheduling: store.automaticScheduling.snapshot)
                 )
             } else {
                 ProgressView("読み込み中…").frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -31,7 +31,7 @@ Availability を独立機能として、Domain の `AvailabilitySlot` と `Avail
 
 ### This Spec Owns
 
-- 自分の暇枠、公開ポリシー、入力検証、ホームのリスト・カレンダーと編集シート。Release は本人暇と募集中候補を投影し、AutomaticSchedulingの提案と確定予定は実Backend投影で表示し、旧Hostingの確定fixtureはDEBUGに限定する。
+- 自分の暇枠、公開ポリシー、入力検証、ホームから開くカレンダー画面のリスト・時間軸と編集シート。Release は本人暇とお誘い中の候補を投影し、AutomaticSchedulingの提案と確定予定は実Backend投影で表示し、旧Hostingの確定fixtureはDEBUGに限定する。
 
 ### Out of Boundary
 
@@ -71,12 +71,12 @@ graph LR
 - `floorToQuarterHour`、`nextQuarterHour(after:)`（現在位置からの開始）、`latestEnd(now:)`（`now + 14日` を15分境界へ切り下げた登録可能な最終終了）。
 - `draftInterval(anchor:now:)`：時間軸の位置を切り下げて開始とし、次の15分境界より前なら引き上げる。終了は `min(開始 + 2時間, latestEnd)`。15分も取れなければ nil。
 
-### ホームのリストとカレンダー（HomeTimelineFeature）
+### ホームから開くカレンダー画面（HomeTimelineFeature）
 
-- State に `presentation`（`.list` / `.calendar`、初期値 `.list`）を追加し、ホーム上部の明示的な切替で変更する。日・週表示モードとは独立させ、保存中は切替を無効にする。
+- ホームは今後の本人の暇を常時表示し、カレンダー、暇の追加、主操作「暇を登録」から `AvailabilityCalendarView` を開く。`HomeTimelineFeature.State.presentation`（`.list` / `.calendar`、初期値 `.list`）はこの二次画面内の明示的な切替で変更し、日・週表示モードと独立させ、保存中は切替を無効にする。
 - リストは表示範囲内の終了前項目を日付別・開始時刻順にまとめ、各行に種別ラベルと時刻を表示する。日付またぎは対象日ごとに投影し、タップは既存の項目詳細へ渡す。Releaseは本人暇・自動提案・実確定予定を表示し、既存の手動募集中とDEBUG fixtureを互換性として区別する。
 - 切替は選択日、未保存範囲、操作モードをリセットしない。両表示のコンテナを ZStack 内に保持し、非表示側はタッチとアクセシビリティの対象から除外する。カレンダーのスクロール位置は同じ View セッションで保持し、表示形式の永続設定は追加しない。
-- 選択範囲の確認バーはカレンダー表示中だけ表示する。リストから登録・招待の既存 delegate を使い、時間選択の操作モードと友達プロフィールからの招待は `.calendar` へ移る。Siri と外部 focus は既存の表示形式と日時引継ぎ処理を維持する。
+- 選択範囲の確認バーはカレンダー表示中だけ表示する。リストとカレンダーからは登録・お誘いの既存 delegate を使う。友達プロフィールからのお誘いはこの画面を経由せず、対象の友達を選択済みにした `InvitationComposerFeature` へ直接進む。Siri と外部 focus は既存の表示形式と日時引継ぎ処理を維持する。
 
 - 今日の0時を起点とする14日（index 0〜13）を日表示と週表示で切り替える。週表示は今日から7日と次の7日の2ページとし、範囲外の日を表示しない。
 - State は表示形式、カレンダーの日・週表示モード、起点日、選択日 index、選択中の項目、15分境界へ正規化済みの選択範囲と検証・保存状態を持つ。生の指位置と長押し進行状態は View の `@GestureState` に限定する。項目データは親の snapshot から読み取り専用の `HomeScheduleItem`（本人暇、募集中候補、DEBUG fixture の予定）として受け取る。これが現行の `HomeScheduleProjection` にあたる。
@@ -86,7 +86,7 @@ graph LR
 - 親は選択のたびに日時と範囲を検証する。過去・14日範囲外は選択を消さず理由を表示して登録を無効にする。既存暇との重複・接続はOR統合候補として示し、属性が異なる場合はカテゴリを保存前に選ばせ、第一段階の公開設定は非公開にする。
 - 有効な選択では下部確認バーに範囲、長さ、「参加OKまで非公開」を表示する。「非公開で登録」はカテゴリ nil・`privateUntilAccepted` で保存し、「詳細を調整」は同じ範囲を編集シートへ渡す。選択だけでは保存せず、成功時だけ選択を消し、失敗時は再試行用に保持する。
 - VoiceOver では行ごとの :00 を既定アクション、:15/:30/:45 をカスタムアクションとして提供し、選択範囲には開始・終了を15分ずつ調整するアクション、登録、詳細調整、取消を提供する。週表示の時刻セルは該当日の日表示へ移り15分を選択する。アクセシビリティ文字サイズでは週表示を日ごとの一覧へ切り替える。
-- 常設の「暇を登録」だけは delegate `startAvailability(anchor: nil)` で親へ通知し、次の15分境界から2時間の編集状態を作る。
+- ホームの主操作・案内・暇区分とカレンダー画面の常設「暇を登録」は delegate `startAvailability(anchor: nil)` で親へ通知し、次の15分境界から2時間の編集状態を作る。
 - 既存の暇をタップすると詳細（範囲・公開設定・招待・削除）を表示する。削除モードは時間軸の範囲選択を共用し、重なる複数枠から選択範囲だけを差し引く。募集中の候補と重なる削除は止めて Hosting の取消へ案内する。
 - 日付をまたぐ枠は日ごとに半開区間で切り分け、重なる暇と予定は横に並べる（`TimelineLayout`）。
 
@@ -114,6 +114,7 @@ apps/ios/Himatch/Availability/
     ├── Component/{TimelineLayout,TimelineSelection,AvailabilityFormatting,QuarterHourDatePicker}.swift
     └── View/{HomeTimelineView,TimelineGridViews,TimelineSelectionViews,AvailabilityEditorView}.swift
 apps/ios/Himatch/App/Presentation/Screens/HomeView.swift  # snapshot → HomeScheduleItem の写像と Home の合成
+apps/ios/Himatch/App/Presentation/Home/AvailabilityCalendarView.swift # リストと時間軸の二次画面
 apps/ios/HimatchTests/Availability/
 apps/ios/HimatchTests/Domain/AvailabilityPolicyTests.swift
 ```
@@ -134,7 +135,7 @@ OR統合は重なるか端点が接する区間を連鎖的にまとめ、減算
 
 | Requirement | Components | Validation |
 |---|---|---|
-| 1.1-1.12 | HomeTimelineFeature, TimelineLayout, TimelineSelection, HomeView | reducer / selection / layout tests, list/calendar retention inspection |
+| 1.1-1.12 | HomeTimelineFeature, TimelineLayout, TimelineSelection, AvailabilityCalendarView, HomeView | reducer / selection / layout tests, list/calendar retention inspection |
 | 2.1-2.7 | AvailabilityPolicy, AvailabilityEditorFeature, AppFeature | policy / TestStore |
 | 3.1-3.4 | Visibility, AvailabilityEditorFeature | state / copy tests |
 | 4.1-4.4 | ManageAvailability, AvailabilityEditorFeature | repository conflict tests, save failure TestStore |
@@ -146,4 +147,7 @@ OR統合は重なるか端点が接する区間を連鎖的にまとめ、減算
 - Domain: 15分境界（秒を含む）、最短15分、日付またぎ、14日境界、半開区間のORと差、属性、タイムゾーン変更。
 - Application: Repository 成功・競合・再送。
 - Presentation: タップで15分、上下ドラッグの正規化、日境界、ハンドル調整、長押し閾値、保存直前の再検証、直接登録、詳細への同一範囲引継ぎ、失敗時の選択保持、日／週の移動範囲、公開説明、削除と Hosting 導線。
-- Integration: Home の直接選択からOR登録、区間削除、友達招待への引継ぎ、保存後の該当日と募集中部分の表示（AppFeature TestStore）。実ドラッグ、スクロール競合、VoiceOver は Simulator 手動確認の対象とする。
+- Integration: ホームからカレンダー画面を開いてOR登録、区間削除、お誘い作成への範囲引継ぎ、保存後の該当日とお誘い中部分を表示する（AppFeature TestStore）。友達プロフィールは友達選択済みの composer へ直接進む。実ドラッグ、スクロール競合、VoiceOver は Simulator 手動確認の対象とする。
+
+## はじめての予定動線による変更
+リストとカレンダー（`HomeTimelineView` と選択バー）はホームの主表示から、ホームの「カレンダー」・暇の追加・主操作「暇を登録」で開く `AvailabilityCalendarView` へ移した。`HomeTimelineFeature` の操作仕様と表示形式の保持は変えていない。ホームの暇の区分は友達0人でも表示する。表示名「募集中」は「お誘い中」に変えた。詳細は [ios-first-match-flow の設計](../ios-first-match-flow/design.md)。

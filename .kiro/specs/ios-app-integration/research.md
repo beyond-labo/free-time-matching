@@ -77,3 +77,7 @@ Root Composition と友達状態の統合を iPhone 17 Pro Max Simulator でビ�
 
 ユーザーの自動提案・双方OKによる確定への変更に基づき、AutomaticSchedulingの実Clientを共通認証へ注入し、起動/foreground/受信箱で再取得する。旧session・旧revisionの応答を捨てる。Home/Inbox/友達/設定へ提案・確定予定・許可を投影し、新機能の業務状態を所有元Reducerへ集約する。
 新機能と関連受け入れ条件は [自動予定成立仕様](../automatic-friend-scheduling/requirements.md) を参照する。既存完了を新機能の証拠に流用せず、実装・検証証拠は同仕様のresearchへまとめる。
+
+## はじめての予定動線への同期（2026-11-08）
+- 2026-11-08: 意味照合で設計本文の旧 `demoClient` の Root への注入表現を、現行の `@Dependency(\.demoScenarioClient)` と所有者 `"demo"` だけを Prototype へ送る `AutomaticSchedulingEffects.routingDemo` に置換した。通常 Debug/Release、実アカウント、Siri の実 Backend 契約は不変。
+- 2026-11-08: [ios-first-match-flow](../ios-first-match-flow/requirements.md) の要件改訂（自動提案を主軸、手動のお誘いを副経路）に伴い、ホームの区分順・お知らせ件数・デモの主要経路の受け入れ条件と設計の補足を更新した。根拠は同日のユーザー決定と独立レビュー。AppFeature・AppView・Composition の変更は既存の認証・session世代・Adapter 注入の契約を変えず、DEBUG デモの所有者 `demo` だけを Prototype の自動提案へ振り分ける。要件の意味が変わったため要件以降の承認を外し、再承認を待つ。

@@ -60,16 +60,17 @@ graph LR
     AppRuntime --> SystemActionService
     SystemActionService --> ProtectedJournal
     AppView --> RootStore
-    AppCompositionRoot --> FeatureAdapters
+    HomeView --> HomeDashboard
+    HomeDashboard --> RootStore
+    UnifiedInbox --> RootStore
+    FriendProfile --> RootStore
     AppCompositionRoot --> ProductionAccountAdapters
     AppCompositionRoot --> BackendFriendshipAdapter
     AppCompositionRoot --> BackendAvailabilityAdapter
     AppCompositionRoot --> BackendHostingAdapter
-    FeatureAdapters --> PrototypeScenario
-    ProjectionRepository --> PrototypeScenario
-    Home --> ProjectionRepository
-    UnifiedInbox --> ProjectionRepository
-    FriendProfile --> ProjectionRepository
+    AppCompositionRoot --> AutomaticSchedulingEffects
+    DemoScenarioClient --> PrototypeScenario
+    RootStore -->|DEBUG explicit demo| DemoScenarioClient
 ```
 
 ## File Structure Plan
@@ -79,20 +80,21 @@ apps/ios/Himatch/App/Composition/AppCompositionRoot.swift
 apps/ios/Himatch/App/Composition/AppRuntime.swift
 apps/ios/Himatch/App/Presentation/SystemActionHandoff.swift
 apps/ios/Himatch/App/Presentation/SystemActionReviewView.swift
-apps/ios/Himatch/App/Composition/AppProjectionRepository.swift
 apps/ios/Himatch/App/Infrastructure/Prototype/HimatchPrototypeScenario.swift
+apps/ios/Himatch/App/Infrastructure/Prototype/DemoScenarioClient.swift
 apps/ios/Himatch/App/Presentation/AppFeature.swift
 apps/ios/Himatch/App/Presentation/AppView.swift
+apps/ios/Himatch/App/Presentation/Home/HomeDashboard.swift
 apps/ios/HimatchTests/AppIntegration/
 ```
 
 ## Contracts
 
-`AppProjectionRepository` は `home()`、`inbox()`、`friendPlans(friendID)` の read-only async 操作だけを持つ。DTO は ownerFeature と entityID を持ち、変更操作は Root delegate が所有機能へ route する。旧Hostingの確定予定と `friendPlans` fixtureはDEBUG専用とする。新しいAutomaticSchedulingのsnapshotは実Backendの提案・確定予定を持ち、所有機能のReducerをHome/Inboxから参照する。
+`AppFeature` は各所有機能の取得結果を Root State に合成し、`HomeDashboard` はその状態から区分順・主操作・お知らせ件数だけを同期的に投影する。Home / Inbox / FriendProfile の変更操作は Store の Action を所有機能へ route し、横断投影専用 Repository や変更 API を設けない。旧Hostingの確定予定と `friendPlans` fixtureはDEBUG専用とする。新しいAutomaticSchedulingのsnapshotは実Backendの提案・確定予定を持ち、Home / Inbox は `AutomaticSchedulingFeature` の State と Action を参照する。
 
 `HimatchPrototypeScenario` は actor 内で全 fixture を保持し、feature adapter factory と reset(seed) を提供する。block/delete は actor メソッド一回で関連状態と revision を更新する。各 Adapter は自機能 Port だけを実装する facade である。
 
-DEBUG の明示デモでは Composition が `demoClient` を Root へ注入し、`isDemo` のときだけ選択する。デモのプロフィール保存も Prototype を利用する。通常 Debug/Release と Siri の実Backend Client は維持する。
+DEBUG の明示デモでは Root が `@Dependency(\.demoScenarioClient)` の `business` を `isDemo` のときだけ選択し、デモのプロフィール保存と手動のお誘いを Prototype で処理する。自動提案は Composition が `AutomaticSchedulingEffects.routingDemo` を注入し、所有者 `"demo"` だけを `DemoScenarioClient.scheduling` へ振り分ける。通常 Debug/Release、実アカウントの AutomaticScheduling、Siri の実Backend Client は維持する。`DemoScenarioClient`、`HimatchPrototypeScenario`、routing の注入は `#if DEBUG` で Release から除外する。
 
 ## Siri 操作との統合契約
 
@@ -106,7 +108,7 @@ DEBUG の明示デモでは Composition が `demoClient` を Root へ注入し�
 
 | Requirement | Components | Validation |
 |---|---|---|
-| 1.1-1.4 | AppProjectionRepository, Root route | projection / navigation tests |
+| 1.1-1.4 | HomeDashboard, AppFeature, Root route | projection / navigation tests |
 | 2.1-2.5 | HimatchPrototypeScenario, facets | actor / reset / cross-effect tests |
 | 3.1-3.5 | AppCompositionRoot, integration tests | build / Swift Testing / Simulator smoke |
 | 3.6-3.12 | ProductionAccountAdapters, BackendFriendshipAdapter, BackendAvailabilityAdapter, BackendHostingAdapter, AppFeature | composition / staging config / restore / invite response tests |
@@ -118,3 +120,6 @@ DEBUG の明示デモでは Composition が `demoClient` を Root へ注入し�
 - projection: owner ID、privacy-safe DTO、順序と区分。
 - Root: delegate action が所有機能へ遷移する。
 - Simulator: デモの主要経路。Backend安全性は MANUAL/BACKEND_REQUIRED として別判定する。
+
+## はじめての予定動線による変更
+ホームの投影は `HomeDashboard`（区分順・主操作・お知らせ件数）に置き換え、AutomaticScheduling の提案と確定予定を「遊ぶ時間の提案」「決まった予定」区分として最上位側に並べた。時間軸はホームから開くカレンダー画面へ移し、確定提案も同じ投影で表示する。DEBUG デモは `DemoScenarioClient` 経由で Prototype シナリオを使い、`HimatchPrototypeScenario` と共に `#if DEBUG` で Release から除外した（この設計の 3.6 の意図どおりに修正）。デモの自動提案は所有者 `demo` だけを `AutomaticSchedulingEffects.routingDemo` で Prototype へ振り分け、実アカウントの Adapter は変えない。アカウント境界ではお誘いの画面状態も破棄し、作成・返事・取消の結果を開始時の所有者で照合する。詳細は [ios-first-match-flow の設計](../ios-first-match-flow/design.md)。
