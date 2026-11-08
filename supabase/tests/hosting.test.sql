@@ -1,5 +1,5 @@
 begin;
-select plan(42);
+select plan(46);
 
 select has_table('public','hostings','hosting aggregate exists');
 select has_table('public','hosting_invitations','invitation records exist separately');
@@ -66,6 +66,14 @@ select is(public.hosting_respond(current_setting('test.hosting_id')::uuid,'accep
  jsonb_build_array(jsonb_build_object('start',date_trunc('hour',now())+interval '2 hours 15 minutes','end',date_trunc('hour',now())+interval '2 hours 30 minutes')),
  '60000000-0000-4000-8000-000000000041',1)->'myInvitation'->>'status','accepted','response operation replay is idempotent');
 select throws_ok($$select public.hosting_respond(current_setting('test.hosting_id')::uuid,'accepted','[]'::jsonb,'60000000-0000-4000-8000-000000000042',1)$$,'40001','hosting_conflict','stale invitation version is rejected');
+select is(public.hosting_respond(current_setting('test.hosting_id')::uuid,'accepted',
+ jsonb_build_array(jsonb_build_object('start',date_trunc('hour',now())+interval '2 hours','end',date_trunc('hour',now())+interval '2 hours 45 minutes')),
+ '60000000-0000-4000-8000-000000000045',2)->'myInvitation'->'intervals'->0->>'end' is not null,true,'invitee can change the accepted time with the current version');
+select is((public.hosting_get(current_setting('test.hosting_id')::uuid)->'myInvitation'->>'version')::int,3,'changing a response advances the invitation version');
+select is(public.hosting_respond(current_setting('test.hosting_id')::uuid,'declined','[]'::jsonb,'60000000-0000-4000-8000-000000000046',3)->'myInvitation'->>'status','declined','invitee can withdraw an accepted response');
+select is(public.hosting_respond(current_setting('test.hosting_id')::uuid,'accepted',
+ jsonb_build_array(jsonb_build_object('start',date_trunc('hour',now())+interval '2 hours 15 minutes','end',date_trunc('hour',now())+interval '2 hours 30 minutes')),
+ '60000000-0000-4000-8000-000000000047',4)->'myInvitation'->>'status','accepted','invitee can accept again after withdrawing');
 set local request.jwt.claim.sub='60000000-0000-4000-8000-000000000003';
 select is(public.hosting_respond(current_setting('test.hosting_id')::uuid,'declined','[]'::jsonb,'60000000-0000-4000-8000-000000000043',1)->'myInvitation'->>'status','declined','invitee can decline');
 

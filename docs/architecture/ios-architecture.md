@@ -8,6 +8,8 @@ TCA 1.26.1による初版UIが存在し、認証・プロフィール・友達�
 
 起動時は削除受付状態・セッション・プロフィールの順に遷移先を確定する。メイン画面へ進んだ後、友達情報と本人の暇時間は並行取得し、それぞれの画面内に読み込み状態と再試行を表示する。読み取り中に共通の全面オーバーレイは出さない。
 
+ホームは状態を持たない投影 `HomeDashboard` が区分（友達申請、届いたお誘い、はじめてのお誘いの案内、自分のお誘い、時間候補、自分の暇）と順序、お知らせ件数を決める。お誘いの作成と返事は子 Reducer（`InvitationComposerFeature`、`InvitationReplyFeature`）に分け、入力と検証だけを持たせる。API 呼び出し、operationID、競合時の再取得は Root の `AppFeature` が既存のまま担う。参加OKの新着は既存の募集取得結果と端末内の既読キーを比べて検出し、案内の完了・会い方の前回値・既読キーはアカウント別に UserDefaults へ保存する（`FirstMatchLocalStore`。表示名や時刻は保存しない）。DEBUG デモは `DemoScenarioClient` 経由で Prototype シナリオを使い、シナリオとデモ client は `#if DEBUG` で Release から除外する。詳細は [はじめてのお誘い動線の設計](../../.kiro/specs/ios-first-match-flow/design.md)。
+
 TCA は State、Action、Reducer、Effect、Store によって状態変化と副作用を扱います。
 Store は状態と Action の処理を駆動し、Reducer が遷移と実行する Effect を定義します。
 [公式 README](https://github.com/pointfreeco/swift-composable-architecture)

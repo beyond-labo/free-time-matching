@@ -14,7 +14,7 @@ enum AvailabilityVisibility: String, CaseIterable, Codable, Equatable, Sendable 
     var title: String {
         switch self {
         case .privateUntilAccepted: "参加OKするまで非公開"
-        case .shareOnHosting: "募集時に主催者へ共有"
+        case .shareOnHosting: "お誘い時に主催者へ共有"
         }
     }
 }

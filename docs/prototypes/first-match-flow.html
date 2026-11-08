@@ -1,0 +1,750 @@
+<title>アイマノ はじめてのお誘い</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: 2台の端末（あなた／田中さん）を並べ、右に「この画面で変えたこと」を同期表示。狭い画面では端末を切替。 */
+:root {
+  --page: #F1F1F6; --ink: #1C1C24; --muted: #686878; --line: rgba(60,60,80,.16);
+  --os-bg: #F2F2F7; --surface: #FFFFFF; --fill: rgba(118,118,128,.12);
+  --accent: #5856D6; --accent-tint: rgba(88,86,214,.12); --on-accent: #FFFFFF;
+  --orange: #E08600; --orange-tint: rgba(255,149,0,.14);
+  --green: #248A3D; --green-tint: rgba(52,199,89,.16);
+  --danger: #D70015; --frame: #1C1C22; --shadow: 0 18px 50px rgba(30,30,60,.18);
+  --font: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #0D0D12; --ink: #ECECF2; --muted: #9A9AAA; --line: rgba(200,200,230,.14);
+  --os-bg: #000000; --surface: #1C1C1E; --fill: rgba(118,118,128,.24);
+  --accent: #7D7AFF; --accent-tint: rgba(125,122,255,.18); --on-accent: #FFFFFF;
+  --orange: #FFB340; --orange-tint: rgba(255,159,10,.18);
+  --green: #4CD964; --green-tint: rgba(48,209,88,.18);
+  --danger: #FF6961; --frame: #2C2C34; --shadow: 0 18px 50px rgba(0,0,0,.5); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --page: #0D0D12; --ink: #ECECF2; --muted: #9A9AAA; --line: rgba(200,200,230,.14);
+  --os-bg: #000000; --surface: #1C1C1E; --fill: rgba(118,118,128,.24);
+  --accent: #7D7AFF; --accent-tint: rgba(125,122,255,.18); --on-accent: #FFFFFF;
+  --orange: #FFB340; --orange-tint: rgba(255,159,10,.18);
+  --green: #4CD964; --green-tint: rgba(48,209,88,.18);
+  --danger: #FF6961; --frame: #2C2C34; --shadow: 0 18px 50px rgba(0,0,0,.5); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.6; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; }
+h1 { font-size: 26px; line-height: 1.3; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+h2 { font-size: 18px; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 68ch; margin: 6px 0 0; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; color: var(--accent); font-weight: 700; }
+
+.scen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.scen span { color: var(--muted); font-size: 12px; margin-right: 4px; }
+.btn-ghost { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn-ghost[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-tint); font-weight: 600; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.stage { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 28px; align-items: start; }
+.switch { display: none; }
+.dev { display: grid; gap: 10px; justify-items: center; }
+.dev-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .04em; }
+.dev-label b { color: var(--ink); }
+
+/* ---------- Phone ---------- */
+.phone { width: 344px; height: 720px; border-radius: 48px; background: var(--frame); padding: 10px; box-shadow: var(--shadow); max-width: 100%; }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 39px; overflow: hidden; background: var(--os-bg); display: flex; flex-direction: column; }
+.status { height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 6px 26px 0; font-size: 14px; font-weight: 600; }
+.island { width: 96px; height: 28px; border-radius: 20px; background: #000; }
+.scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 2px 16px 6px; flex: none; }
+.nav h3 { font-size: 30px; margin: 0; line-height: 1.2; letter-spacing: .01em; }
+.icon-btn { width: 40px; height: 40px; border-radius: 20px; border: none; background: var(--surface); color: var(--ink); display: grid; place-items: center; position: relative; cursor: pointer; }
+.badge { position: absolute; top: 2px; right: 2px; min-width: 17px; height: 17px; border-radius: 9px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+.tabbar { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); padding: 6px 8px 22px; border-top: 1px solid var(--line); background: var(--surface); }
+.tab { border: none; background: none; font: inherit; font-size: 10px; color: var(--muted); display: grid; justify-items: center; gap: 2px; cursor: pointer; padding: 4px 0; }
+.tab[aria-current="true"] { color: var(--accent); font-weight: 600; }
+.tab svg { width: 24px; height: 24px; }
+.dock { flex: none; padding: 10px 16px; background: color-mix(in srgb, var(--os-bg) 86%, transparent); border-top: 1px solid var(--line); display: grid; gap: 6px; }
+
+.card { background: var(--surface); border-radius: 16px; padding: 14px; display: grid; gap: 10px; }
+.card.hl-orange { box-shadow: inset 0 0 0 1.5px var(--orange); }
+.card.hl-green { box-shadow: inset 0 0 0 1.5px var(--green); }
+.sec-h { font-size: 13px; font-weight: 600; color: var(--muted); margin: 4px 4px -6px; display: flex; justify-content: space-between; }
+.sec-h a, .link { color: var(--accent); font-weight: 600; cursor: pointer; background: none; border: none; font: inherit; font-size: 13px; padding: 0; }
+.t-title { font-size: 16px; font-weight: 700; line-height: 1.35; }
+.t-sub { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.t-big { font-size: 22px; font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.row > .grow { flex: 1; min-width: 0; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.pill.o { background: var(--orange-tint); color: var(--orange); }
+.pill.g { background: var(--green-tint); color: var(--green); }
+.pill.a { background: var(--accent-tint); color: var(--accent); }
+.pill.m { background: var(--fill); color: var(--muted); }
+.av { width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center; font-weight: 700; font-size: 14px; flex: none; background: var(--accent-tint); color: var(--accent); }
+.av.sm { width: 28px; height: 28px; font-size: 12px; }
+
+.btn { font: inherit; border: none; border-radius: 12px; min-height: 48px; padding: 0 16px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:disabled { background: var(--fill); color: var(--muted); cursor: not-allowed; }
+.btn.tonal { background: var(--accent-tint); color: var(--accent); }
+.btn.green { background: var(--green); color: #fff; }
+.btn.black { background: var(--ink); color: var(--page); }
+.btn.small { min-height: 36px; font-size: 14px; border-radius: 10px; width: auto; padding: 0 14px; }
+.btn.text { background: none; color: var(--muted); min-height: 40px; font-weight: 600; font-size: 14px; }
+.btn.danger-text { background: none; color: var(--danger); min-height: 40px; font-weight: 600; font-size: 14px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 8px 12px; min-height: 44px; cursor: pointer; text-align: left; line-height: 1.3; }
+.chip small { display: block; color: var(--muted); font-size: 11px; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 600; }
+.chip[aria-pressed="true"] small { color: var(--accent); }
+.daystrip { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.daystrip::-webkit-scrollbar { display: none; }
+.day { flex: none; width: 48px; min-height: 56px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font: inherit; font-size: 11px; color: var(--ink); cursor: pointer; display: grid; place-items: center; line-height: 1.2; padding: 4px 0; }
+.day b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.day[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.selects { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+select { font: inherit; font-size: 17px; font-weight: 600; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 0 10px; font-variant-numeric: tabular-nums; width: 100%; }
+input[type="text"] { font: inherit; font-size: 17px; min-height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 0 14px; width: 100%; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.friendpick { display: flex; gap: 14px; flex-wrap: wrap; }
+.fp { border: none; background: none; font: inherit; font-size: 12px; color: var(--ink); display: grid; justify-items: center; gap: 4px; cursor: pointer; position: relative; padding: 0; min-width: 52px; }
+.fp .av { width: 50px; height: 50px; border-radius: 25px; font-size: 17px; box-shadow: inset 0 0 0 2px transparent; }
+.fp[aria-pressed="true"] .av { background: var(--accent); color: var(--on-accent); }
+.fp .tick { position: absolute; top: 34px; right: 2px; width: 18px; height: 18px; border-radius: 9px; background: var(--surface); color: var(--accent); display: none; place-items: center; font-size: 12px; font-weight: 800; }
+.fp[aria-pressed="true"] .tick { display: grid; }
+
+.steps { display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 8px 0; align-items: start; }
+.step + .step { border-top: 1px solid var(--line); }
+.dot { width: 26px; height: 26px; border-radius: 13px; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--fill); color: var(--muted); }
+.step.done .dot { background: var(--green); color: #fff; }
+.step.now .dot { background: var(--accent); color: var(--on-accent); }
+.step.later { opacity: .55; }
+.step .t-title { font-size: 15px; }
+.progress { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+
+.bar { position: relative; height: 34px; border-radius: 8px; background: var(--fill); overflow: hidden; }
+.bar .seg-host { position: absolute; top: 0; bottom: 0; background: var(--orange-tint); }
+.bar .seg-ok { position: absolute; top: 6px; bottom: 6px; background: var(--green); border-radius: 5px; opacity: .9; }
+.bar .lbl { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-weight: 600; }
+.note { font-size: 12px; color: var(--muted); line-height: 1.55; display: flex; gap: 6px; }
+.note svg { flex: none; width: 14px; height: 14px; margin-top: 2px; }
+.radio { display: grid; gap: 8px; }
+.radio .chip { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+.radio .chip .r { width: 20px; height: 20px; border-radius: 10px; border: 2px solid var(--line); flex: none; }
+.radio .chip[aria-pressed="true"] .r { border: 6px solid var(--accent); }
+
+.sheet-back { position: absolute; inset: 0; background: rgba(0,0,0,.28); display: flex; align-items: flex-end; z-index: 5; }
+.sheet { width: 100%; max-height: 94%; background: var(--os-bg); border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden; }
+.sheet.full { height: 94%; }
+.sheet-h { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 6px; }
+.sheet-h b { font-size: 17px; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--fill); margin: 8px auto 0; flex: none; }
+.toast { position: absolute; left: 12px; right: 12px; top: 50px; z-index: 9; background: var(--surface); border-radius: 16px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.18); display: flex; gap: 10px; align-items: center; animation: drop .35s ease-out; }
+@keyframes drop { from { transform: translateY(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+.center { text-align: center; justify-items: center; }
+.hero-ic { width: 72px; height: 72px; border-radius: 36px; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent); }
+.hero-ic svg { width: 36px; height: 36px; }
+.ob-step { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; }
+.ob-step .num { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-tint); color: var(--accent); display: grid; place-items: center; font-weight: 800; font-size: 17px; }
+.ob-step:nth-child(2) .num { background: var(--orange-tint); color: var(--orange); }
+.ob-step:nth-child(3) .num { background: var(--green-tint); color: var(--green); }
+.code { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: .14em; text-align: center; padding: 10px; border-radius: 12px; background: var(--fill); }
+.empty { text-align: center; color: var(--muted); padding: 22px 8px; font-size: 13px; }
+
+/* ---------- Notes panel ---------- */
+.notes { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.npanel { background: var(--surface); border-radius: 18px; padding: 18px; display: grid; gap: 12px; border: 1px solid var(--line); }
+.npanel h2 { font-size: 15px; display: flex; gap: 8px; align-items: center; }
+.npanel .who { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--accent-tint); color: var(--accent); }
+.npanel .who.fr { background: var(--orange-tint); color: var(--orange); }
+.ba { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ba li { display: grid; grid-template-columns: 52px 1fr; gap: 8px; font-size: 13px; line-height: 1.6; }
+.ba .k { font-size: 11px; font-weight: 700; color: var(--muted); padding-top: 2px; letter-spacing: .04em; }
+.ba .k.after { color: var(--accent); }
+.ba .k.spec { color: var(--orange); }
+.hint { font-size: 13px; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); color: var(--ink); }
+.hint b { color: var(--accent); }
+
+.doc { display: grid; gap: 14px; }
+.doc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.doc .npanel ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 13px; }
+.doc code { font-family: var(--mono); font-size: 12px; background: var(--fill); padding: 1px 5px; border-radius: 4px; }
+
+@media (max-width: 1120px) {
+  .stage { grid-template-columns: auto auto; justify-content: center; }
+  .notes { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  .doc-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--fill); padding: 4px; border-radius: 12px; }
+  .switch button { font: inherit; font-size: 13px; font-weight: 600; border: none; border-radius: 9px; min-height: 36px; background: none; color: var(--muted); cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+  .dev[data-hidden-narrow="true"] { display: none; }
+  .notes { grid-template-columns: minmax(0, 1fr); }
+  .doc-grid { grid-template-columns: minmax(0, 1fr); }
+  .phone { width: 100%; max-width: 360px; height: 700px; border-radius: 40px; }
+  .screen { border-radius: 31px; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">動線プロトタイプ · iOS 初版</div>
+    <h1>アイマノ はじめてのお誘い</h1>
+    <p class="lede">起動してから「友達が参加OKする」までを、あなたと友達（田中さん）の2台で操作できます。暇は非公開のまま、選んだ友達にお誘いを送り、相手が参加できる時間を返す、という現行仕様の契約は変えていません。</p>
+  </header>
+
+  <div class="scen" role="group" aria-label="開始する場面">
+    <span>開始する場面</span>
+    <button class="btn-ghost" data-a="sc:fresh">はじめて起動</button>
+    <button class="btn-ghost" data-a="sc:friends">友達3人とつながった後</button>
+    <button class="btn-ghost" data-a="sc:invited">お誘いを送った直後</button>
+  </div>
+
+  <div class="switch" role="group" aria-label="表示する端末">
+    <button data-a="view:me">あなた</button>
+    <button data-a="view:fr">田中さん</button>
+  </div>
+
+  <div class="stage">
+    <div class="dev" id="dev-me"><div class="dev-label"><b>あなた</b>（ひいらぎ）</div><div class="phone"><div class="screen" id="me"></div></div></div>
+    <div class="dev" id="dev-fr"><div class="dev-label"><b>田中さん</b>（友達）</div><div class="phone"><div class="screen" id="fr"></div></div></div>
+    <aside class="notes" id="notes" aria-live="polite"></aside>
+  </div>
+
+  <section class="doc">
+    <h2>現行アプリとの差分</h2>
+    <div class="doc-grid">
+      <div class="npanel">
+        <h2>いまの分かりにくさ</h2>
+        <ul>
+          <li>ホームの主役が日/週の15分グリッドで、何をすれば友達と遊べるのかが書かれていない。</li>
+          <li>友達0人でも「友達を誘う」が押せて、時間選択モードに入ってから招待先がいないことに気づく。</li>
+          <li>誘う画面に開催形態・エリア・カテゴリ・暇のカテゴリ・暇の公開設定・統合確認が並び、内部の概念がそのまま見えている。</li>
+          <li>受け取った側はベルからシートを開き、±ボタンで開始と終了を15分ずつ動かし、「この範囲で回答」→「参加OK」の2段階で送る。ベルに未読バッジがない。</li>
+          <li>参加OKが届いても、ホームの「募集中 1件」バナーの奥にしか出ない。</li>
+          <li>「デモデータで試す」がプロフィール保存で失敗し、体験に入れない（Prototype シナリオが未接続）。</li>
+        </ul>
+      </div>
+      <div class="npanel">
+        <h2>このプロトでの方針</h2>
+        <ul>
+          <li>最初の目標を「はじめてのお誘い」の3ステップとしてホーム上部に出し、次にやることを1つに絞る。</li>
+          <li>時間はよく使う候補（今夜・明日の夜・週末・自分の暇）をワンタップで選び、細かい調整は日付と時刻の選択で行う。</li>
+          <li>入力は「いつ・だれと・会い方」の3つだけにし、内容は任意、暇の公開設定は安全な既定値（非公開）にして画面から外す。</li>
+          <li>届いたお誘いはホーム最上部に出し、「全部・前半・後半・時間を指定」から選んで1回で返事を送る。初期選択はしない。</li>
+          <li>参加OKはホームのお誘いカードに時間の帯で表示し、複数人なら全員そろう時間を示す。</li>
+          <li>カレンダー表示は残し、「カレンダーで見る」から開く二次画面にする。</li>
+        </ul>
+      </div>
+      <div class="npanel">
+        <h2>仕様への影響と未決事項</h2>
+        <ul>
+          <li><code>ios-hosting</code> 1.1：時間軸のタップ・ドラッグに加え、時間候補からの開始を追加する。</li>
+          <li><code>ios-hosting</code> 2.2：表示文言を「お誘い」に統一するなら要件の文言を変える。現行は「募集を開始しました…」。</li>
+          <li><code>ios-hosting</code> / <code>ios-availability</code>：募集時の暇の属性と公開設定を既定値にし、重なる暇の属性が違うときだけ確認を出す。</li>
+          <li><code>ios-app-integration</code>：ホーム投影の構成（はじめての手順、届いたお誘い、あなたのお誘い、暇）と、DEBUG デモでの Prototype シナリオ接続。</li>
+          <li>未決：会い方（オンライン/会う）を毎回必須にするか、前回値を既定にするか。プロトでは必須にしている。</li>
+          <li>未決：「前半・後半」の分け方。プロトでは2時間以上の候補を15分単位で半分に分けている。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const DAY = 86400000, Q = 15 * 60000;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const NOW = new Date(today.getTime() + 16 * 3600000);
+  const WD = '日月火水木金土';
+  const at = (d, h, m = 0) => new Date(today.getTime() + d * DAY + (h * 60 + m) * 60000);
+  const sod = (dt) => { const x = new Date(dt); x.setHours(0, 0, 0, 0); return x; };
+  const offOf = (dt) => Math.round((sod(dt) - today) / DAY);
+  const dayLabel = (dt) => { const o = offOf(dt); if (o === 0) return '今日'; if (o === 1) return '明日'; return `${dt.getMonth() + 1}/${dt.getDate()}(${WD[dt.getDay()]})`; };
+  const hm = (dt) => { if (dt.getHours() === 0 && dt.getMinutes() === 0) return '24:00'; return `${dt.getHours()}:${String(dt.getMinutes()).padStart(2, '0')}`; };
+  const range = (s, e) => `${dayLabel(s)} ${hm(s)}〜${hm(e)}`;
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const satOff = ((6 - today.getDay() + 7) % 7) || 7;
+
+  const PEOPLE = { tanaka: { name: '田中', i: '田' }, sato: { name: '佐藤', i: '佐' }, suzuki: { name: '鈴木', i: '鈴' } };
+  const CATS = ['ゲーム', 'ご飯', '通話', '作業'];
+  const AREAS = ['新宿', '渋谷', 'あとで相談'];
+  const PRESETS = () => [
+    { k: 'tonight', label: '今夜', s: at(0, 19), e: at(0, 22) },
+    { k: 'tmrw', label: '明日の夜', s: at(1, 19), e: at(1, 22) },
+    { k: 'sat', label: satOff === 1 ? '明日の午後' : '土曜の午後', s: at(satOff, 13), e: at(satOff, 17) },
+  ];
+
+  let W, view = 'me', scen = 'fresh', uid = 1;
+
+  function seed(kind) {
+    scen = kind;
+    W = {
+      me: { stage: 'onboarding', name: 'ひいらぎ', tab: 'home', sheet: null, toast: null, firstMatchDone: false, unread: 0 },
+      fr: { sheet: null, toast: null },
+      friends: [], requests: [], codeShared: false,
+      slots: [], hostings: [], compose: null, respond: null, notices: [],
+    };
+    if (kind !== 'fresh') {
+      W.me.stage = 'main';
+      W.friends = ['tanaka', 'sato', 'suzuki'];
+      W.slots = [{ id: uid++, s: at(1, 20), e: at(1, 23) }];
+    }
+    if (kind === 'invited') {
+      addHosting({ s: at(0, 19), e: at(0, 22), friends: ['tanaka', 'sato', 'suzuki'], mode: '会う', area: '渋谷', cat: 'ご飯' });
+      view = 'fr';
+    } else view = 'me';
+    render();
+  }
+
+  function addHosting(c) {
+    const h = { id: uid++, s: c.s, e: c.e, friends: c.friends.slice(), mode: c.mode, area: c.area, cat: c.cat, status: 'open', res: {}, confirmCancel: false };
+    W.hostings.unshift(h);
+    // 候補区間のうち暇でない部分は本人の暇へOR登録（非公開の既定値）
+    mergeSlot(c.s, c.e);
+    return h;
+  }
+  function mergeSlot(s, e) {
+    let lo = s, hi = e;
+    const keep = [];
+    for (const x of W.slots) { if (x.s <= hi && lo <= x.e) { lo = new Date(Math.min(lo, x.s)); hi = new Date(Math.max(hi, x.e)); } else keep.push(x); }
+    keep.push({ id: uid++, s: lo, e: hi });
+    keep.sort((a, b) => a.s - b.s);
+    W.slots = keep;
+  }
+  const accepted = (h) => Object.entries(h.res).filter(([, r]) => r.status === 'ok');
+  const overlapAll = (h) => {
+    const acc = accepted(h); if (acc.length < 2) return null;
+    let s = h.s, e = h.e;
+    for (const [, r] of acc) { s = new Date(Math.max(s, r.s)); e = new Date(Math.min(e, r.e)); }
+    return e > s ? { s, e } : null;
+  };
+  const anyAccepted = () => W.hostings.some((h) => accepted(h).length > 0);
+
+  /* ---------- icons ---------- */
+  const I = {
+    bell: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+    friends: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.3c2.6.2 4.4 1.9 5 4.7"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+    send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></svg>',
+    cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  };
+
+  /* ---------- shared pieces ---------- */
+  const statusBar = () => `<div class="status"><span>16:00</span><span class="island" aria-hidden="true"></span><span>100%</span></div>`;
+  const tabbar = (p, cur) => `<nav class="tabbar">${[['home', 'ホーム', I.home], ['friends', '友達', I.friends], ['settings', '設定', I.gear]].map(([k, l, ic]) => `<button class="tab" data-a="${p}-tab:${k}" aria-current="${cur === k}">${ic}${l}</button>`).join('')}</nav>`;
+  const sheet = (p, title, body, footer = '', full = false) => `<div class="sheet-back"><div class="sheet ${full ? 'full' : ''}" role="dialog" aria-label="${esc(title)}"><div class="grabber"></div><div class="sheet-h"><b>${title}</b><button class="icon-btn" data-a="${p}-close" aria-label="閉じる">${I.x}</button></div><div class="scroll">${body}</div>${footer ? `<div class="dock">${footer}</div>` : ''}</div></div>`;
+  const toast = (t) => t ? `<div class="toast" role="status"><span class="av sm" style="background:var(--green-tint);color:var(--green)">${I.check}</span><div class="grow" style="min-width:0"><div style="font-weight:700;font-size:14px">${t.title}</div><div class="t-sub">${t.body}</div></div></div>` : '';
+  const note = (txt) => `<div class="note">${I.info}<span>${txt}</span></div>`;
+  const what = (h) => [h.cat, h.mode === '会う' ? `会う（${h.area}）` : h.mode].filter(Boolean).join(' ・ ');
+
+  function timeBar(h, rs, opts = {}) {
+    const span = h.e - h.s, pct = (t) => ((t - h.s) / span) * 100;
+    const segs = rs.map((r) => `<span class="seg-ok" style="left:${pct(r.s)}%;width:${pct(r.e) - pct(r.s)}%"></span>`).join('');
+    return `<div class="bar" aria-hidden="true"><span class="seg-host" style="left:0;width:100%"></span>${segs}<span class="lbl" style="left:6px">${hm(h.s)}</span><span class="lbl" style="right:6px">${hm(h.e)}</span></div>`;
+  }
+
+  /* ---------- あなた ---------- */
+  function renderMe() {
+    const m = W.me;
+    if (m.stage === 'onboarding') return statusBar() + `<div class="scroll" style="padding-top:18px">
+      <div class="hero-ic">${I.cal}</div>
+      <div><div style="font-size:28px;font-weight:800;color:var(--accent)">アイマノ</div><div class="t-big" style="margin-top:4px">空いてる時間に、<br>友達を誘って遊ぼう。</div></div>
+      <div class="card" style="gap:14px">
+        <div class="ob-step"><div class="num">1</div><div><div class="t-title">いつ空いてるか選ぶ</div><div class="t-sub">今夜・明日の夜など、候補からすぐ選べます。</div></div></div>
+        <div class="ob-step"><div class="num">2</div><div><div class="t-title">友達を誘う</div><div class="t-sub">選んだ友達にだけお誘いが届きます。</div></div></div>
+        <div class="ob-step"><div class="num">3</div><div><div class="t-title">参加OKで集まる</div><div class="t-sub">友達が来られる時間を返してくれます。</div></div></div>
+      </div>
+      <div class="note">${I.lock}<span>あなたの暇は友達に公開されません。友達に伝わるのは、お誘いの内容と参加OKした時間だけです。</span></div>
+      <button class="btn black" data-a="me-signin"> Appleでサインイン</button>
+      <button class="btn tonal" data-a="me-signin">デモデータで試す</button>
+    </div>`;
+
+    if (m.stage === 'profile') return statusBar() + `<div class="nav"><h3>はじめまして</h3></div><div class="scroll">
+      <div class="t-sub">友達に表示される名前を決めてください。あとで設定から変えられます。</div>
+      <label class="sec-h" for="me-name" style="margin-bottom:-8px">表示名</label>
+      <input type="text" id="me-name" value="${esc(m.name)}" maxlength="20" data-a="me-name" autocomplete="off">
+      <div class="t-sub" style="margin-top:-6px">${m.name.length}/20文字 ・ 本名でなくて大丈夫です</div>
+    </div><div class="dock"><button class="btn primary" data-a="me-save" ${m.name.trim() ? '' : 'disabled'}>はじめる</button></div>`;
+
+    let body = '';
+    if (m.tab === 'home') body = homeMe();
+    else if (m.tab === 'friends') body = friendsMe();
+    else body = `<div class="nav"><h3>設定</h3></div><div class="scroll"><div class="card"><div class="t-sub">設定は現行の構成のままです（プロフィール、通知、ブロック、サポート、アカウント削除）。</div></div></div>`;
+
+    let sh = '';
+    if (m.sheet === 'addfriend') sh = sheetAddFriend();
+    else if (m.sheet === 'compose') sh = sheetCompose();
+    else if (m.sheet === 'sent') sh = sheetSent();
+    else if (m.sheet === 'inbox') sh = sheetInbox();
+    else if (m.sheet === 'calendar') sh = sheet('me', 'カレンダー', `<div class="card"><div class="t-sub">現行の日/週タイムラインをここに移します。ドラッグで範囲を選んで誘う、暇を登録する、区間を削除する、の操作は今と同じです。</div></div>`);
+    return statusBar() + body + (m.sheet ? '' : dockMe()) + tabbar('me', m.tab) + sh + toast(m.toast);
+  }
+
+  function dockMe() {
+    if (W.me.tab !== 'home') return '';
+    if (!W.friends.length) return `<div class="dock"><button class="btn primary" data-a="me-addfriend">友達を招待する</button></div>`;
+    return `<div class="dock"><button class="btn primary" data-a="me-compose">${I.send.replace('<svg', '<svg width="18" height="18"')}友達を誘う</button></div>`;
+  }
+
+  function homeMe() {
+    const m = W.me, F = W.friends.length, open = W.hostings.filter((h) => h.status === 'open');
+    const unread = m.unread + W.requests.length;
+    let s = `<div class="nav"><h3>ホーム</h3><button class="icon-btn" data-a="me-inbox" aria-label="お知らせ${unread ? ` ${unread}件` : ''}">${I.bell}${unread ? `<span class="badge">${unread}</span>` : ''}</button></div><div class="scroll">`;
+
+    for (const id of W.requests) s += `<div class="card hl-orange"><div class="row"><div class="av">${PEOPLE[id].i}</div><div class="grow"><div class="t-title">${PEOPLE[id].name}さんから友達申請</div><div class="t-sub">あなたの招待コードで申請しました</div></div><button class="btn small primary" data-a="me-accept:${id}">承認</button></div></div>`;
+
+    if (!m.firstMatchDone) {
+      const st = !F ? 1 : !open.length ? 2 : 3;
+      const stepCls = (n) => (n < st ? 'done' : n === st ? 'now' : 'later');
+      s += `<div class="card"><div class="row"><div class="grow"><div class="t-title">はじめてのお誘い</div><div class="t-sub">3ステップで友達と遊ぶ予定が立ちます</div></div><span class="pill a">${st - 1}/3</span></div><div class="progress"><i style="width:${((st - 1) / 3) * 100}%"></i></div>
+      <div class="steps">
+        <div class="step ${stepCls(1)}"><span class="dot">${st > 1 ? I.check.replace('<svg', '<svg width="14" height="14"') : 1}</span><div><div class="t-title">友達とつながる</div>${st === 1 ? `<div class="t-sub">招待コードを送り、相手の申請を承認すると友達になります。</div>${W.codeShared ? `<div class="t-sub" style="color:var(--orange);font-weight:600;margin-top:4px">コードを送りました。相手の申請を待っています。</div>` : ''}` : `<div class="t-sub">${F}人とつながっています</div>`}</div></div>
+        <div class="step ${stepCls(2)}"><span class="dot">${st > 2 ? I.check.replace('<svg', '<svg width="14" height="14"') : 2}</span><div><div class="t-title">いつ遊ぶか決めて誘う</div>${st === 2 ? `<div class="t-sub" style="margin-bottom:8px">候補を選ぶと、誘う画面がその時間で開きます。</div>${presetChips()}` : ''}</div></div>
+        <div class="step ${stepCls(3)}"><span class="dot">3</span><div><div class="t-title">参加OKを受け取る</div>${st === 3 ? `<div class="t-sub">友達が来られる時間を返すと、ここに表示されます。</div>` : ''}</div></div>
+      </div></div>`;
+    }
+
+    if (open.length) {
+      s += `<div class="sec-h">あなたのお誘い</div>`;
+      for (const h of open) s += hostingCard(h);
+    }
+
+    if (F && m.firstMatchDone) s += `<div class="sec-h">次はいつ遊ぶ？</div><div class="card">${presetChips()}</div>`;
+
+    if (W.slots.length) {
+      s += `<div class="sec-h"><span>あなたの暇（非公開）</span><button class="link" data-a="me-calendar">カレンダーで見る</button></div><div class="card" style="gap:0;padding:4px 14px">`;
+      W.slots.forEach((x, i) => {
+        const busy = W.hostings.some((h) => h.status === 'open' && h.s < x.e && x.s < h.e);
+        s += `<div class="row" style="min-height:52px;${i ? 'border-top:1px solid var(--line)' : ''}"><div class="grow"><div style="font-weight:600;font-variant-numeric:tabular-nums">${range(x.s, x.e)}</div>${busy ? '<div class="t-sub">お誘い中の時間を含みます</div>' : ''}</div>${F && !busy ? `<button class="btn small tonal" data-a="me-compose:slot${x.id}">この時間で誘う</button>` : ''}</div>`;
+      });
+      s += `</div>`;
+    } else if (F) {
+      s += `<div class="sec-h"><span>あなたの暇（非公開）</span><button class="link" data-a="me-calendar">カレンダーで見る</button></div><div class="card"><div class="t-sub">予定を入れたい時間をメモしておくと、誘うときの候補に出ます。お誘いを送ると、その時間も自動で入ります。</div></div>`;
+    }
+    return s + `</div>`;
+  }
+
+  function presetChips() {
+    const items = PRESETS().map((p) => `<button class="chip" data-a="me-compose:${p.k}">${p.label}<small>${range(p.s, p.e)}</small></button>`);
+    W.slots.filter((x) => !W.hostings.some((h) => h.status === 'open' && h.s < x.e && x.s < h.e)).slice(0, 2).forEach((x) => items.push(`<button class="chip" data-a="me-compose:slot${x.id}">あなたの暇<small>${range(x.s, x.e)}</small></button>`));
+    items.push(`<button class="chip" data-a="me-compose:custom">日時を選ぶ<small>14日先まで</small></button>`);
+    return `<div class="chips">${items.join('')}</div>`;
+  }
+
+  function hostingCard(h) {
+    const acc = accepted(h), ov = overlapAll(h);
+    const confirm = h.confirmCancel;
+    let s = `<div class="card ${acc.length ? 'hl-green' : 'hl-orange'}">
+      <div class="row"><div class="grow"><div class="t-title" style="font-variant-numeric:tabular-nums">${range(h.s, h.e)}</div><div class="t-sub">${what(h)}</div></div>${acc.length ? `<span class="pill g">参加OK ${acc.length}人</span>` : `<span class="pill o">返事待ち</span>`}</div>
+      ${timeBar(h, acc.map(([, r]) => r))}`;
+    if (!acc.length) s += `<div class="t-sub">参加OKの返事が届くと、ここに名前と時間が出ます。返事がない人や見送った人は表示されません。</div>`;
+    for (const [id, r] of acc) s += `<div class="row"><div class="av sm">${PEOPLE[id].i}</div><div class="grow"><b>${PEOPLE[id].name}さん</b> <span class="t-sub" style="font-variant-numeric:tabular-nums">${hm(r.s)}〜${hm(r.e)} 参加OK</span></div></div>`;
+    if (ov) s += `<div class="pill g" style="justify-self:start">全員そろう時間 ${hm(ov.s)}〜${hm(ov.e)}</div>`;
+    if (acc.length) s += note('場所や集合のことは、LINE などいつもの連絡手段で相談してください。');
+    s += confirm
+      ? `<div class="card" style="background:var(--fill);gap:8px"><div class="t-sub">お誘いを取り消すと、友達の返事も無効になります。あなたの暇は残ります。</div><div class="row"><button class="btn small" style="background:var(--danger);color:#fff" data-a="me-cancel-ok:${h.id}">取り消す</button><button class="btn small tonal" data-a="me-cancel-no:${h.id}">やめる</button></div></div>`
+      : `<button class="btn danger-text" style="justify-self:start;padding:0" data-a="me-cancel:${h.id}">お誘いを取り消す</button>`;
+    return s + `</div>`;
+  }
+
+  function friendsMe() {
+    let s = `<div class="nav"><h3>友達</h3><button class="icon-btn" data-a="me-addfriend" aria-label="友達を追加">${I.friends}</button></div><div class="scroll">`;
+    if (!W.friends.length) s += `<div class="card center"><div class="t-sub">まだ友達がいません。招待コードを送って、相手に申請してもらいましょう。</div><button class="btn primary" data-a="me-addfriend">友達を招待する</button></div>`;
+    else s += `<div class="card" style="gap:0;padding:4px 14px">${W.friends.map((id, i) => `<div class="row" style="min-height:52px;${i ? 'border-top:1px solid var(--line)' : ''}"><div class="av sm">${PEOPLE[id].i}</div><div class="grow" style="font-weight:600">${PEOPLE[id].name}</div><button class="btn small tonal" data-a="me-compose:with-${id}">誘う</button></div>`).join('')}</div>`;
+    return s + `</div>`;
+  }
+
+  function sheetAddFriend() {
+    return sheet('me', '友達を招待', `
+      <div class="t-sub">このコードを LINE などで送り、相手のアプリで入力してもらいます。相手から申請が届いたら、承認すると友達になります。</div>
+      <div class="code">HM7K-2QPA</div>
+      <div class="t-sub" style="text-align:center;margin-top:-6px">7日間有効</div>
+      <button class="btn primary" data-a="me-share">コードを送る</button>
+      <div class="sec-h">相手からコードをもらった場合</div>
+      <button class="btn tonal" data-a="me-noop">コードを入力する</button>
+      ${note('知らない人を名前で検索する機能はありません。')}
+      <button class="link" style="justify-self:center" data-a="me-connect-all">（デモ）3人とつながった状態にする</button>`);
+  }
+
+  function sheetCompose() {
+    const c = W.compose;
+    const pres = PRESETS();
+    const slotChips = W.slots.slice(0, 2).map((x) => ({ k: `slot${x.id}`, label: 'あなたの暇', s: x.s, e: x.e }));
+    const chips = [...pres, ...slotChips].map((p) => `<button class="chip" data-a="cmp-preset:${p.k}" aria-pressed="${c.preset === p.k}">${p.label}<small>${range(p.s, p.e)}</small></button>`).join('')
+      + `<button class="chip" data-a="cmp-custom" aria-pressed="${c.preset === 'custom'}">日時を選ぶ<small>14日先まで</small></button>`;
+    let custom = '';
+    if (c.preset === 'custom') {
+      const days = Array.from({ length: 14 }, (_, i) => { const d = at(i, 0); return `<button class="day" data-a="cmp-day:${i}" aria-pressed="${offOf(c.s) === i}">${i === 0 ? '今日' : WD[d.getDay()]}<b>${d.getDate()}</b></button>`; }).join('');
+      custom = `<div class="daystrip" role="group" aria-label="日付">${days}</div>
+        <div class="selects"><select id="cmp-start" data-a="cmp-start" aria-label="開始">${timeOpts(c, 'start')}</select><span class="t-sub">〜</span><select id="cmp-end" data-a="cmp-end" aria-label="終了">${timeOpts(c, 'end')}</select></div>`;
+    }
+    const fps = W.friends.map((id) => `<button class="fp" data-a="cmp-friend:${id}" aria-pressed="${c.friends.includes(id)}"><span class="av">${PEOPLE[id].i}</span><span class="tick">✓</span>${PEOPLE[id].name}</button>`).join('');
+    const allOn = c.friends.length === W.friends.length;
+    const ready = c.s && c.friends.length && c.mode && (c.mode !== '会う' || c.area);
+    const missing = !c.s ? 'いつにするか選んでください' : !c.friends.length ? '誘う友達を選んでください' : !c.mode ? 'オンラインか会うかを選んでください' : (c.mode === '会う' && !c.area) ? 'エリアを選んでください' : '';
+    const body = `
+      <div class="sec-h">いつ</div>
+      <div class="card"><div class="chips">${chips}</div>${custom}${c.s ? `<div class="t-big" style="font-size:18px">${range(c.s, c.e)}</div>` : ''}</div>
+      <div class="sec-h"><span>だれと</span><button class="link" data-a="cmp-all">${allOn ? '選択を解除' : '全員を選ぶ'}</button></div>
+      <div class="card"><div class="friendpick">${fps}</div></div>
+      <div class="sec-h">会い方</div>
+      <div class="card"><div class="seg">${['オンライン', '会う'].map((x) => `<button class="chip" style="text-align:center" data-a="cmp-mode:${x}" aria-pressed="${c.mode === x}">${x}</button>`).join('')}</div>
+        ${c.mode === '会う' ? `<div class="chips">${AREAS.map((a) => `<button class="chip" data-a="cmp-area:${a}" aria-pressed="${c.area === a}">${a}</button>`).join('')}</div>` : ''}</div>
+      <div class="sec-h">なにする <span style="font-weight:400">任意</span></div>
+      <div class="card"><div class="chips">${CATS.map((x) => `<button class="chip" data-a="cmp-cat:${x}" aria-pressed="${c.cat === x}">${x}</button>`).join('')}</div></div>
+      ${note('選んだ友達全員に届きます。友達の暇の有無は使いません。この時間はあなたの暇（非公開）にも入ります。')}`;
+    const footer = `${ready ? `<div class="t-sub" style="text-align:center"><b style="color:var(--ink)">${c.friends.map((id) => PEOPLE[id].name + 'さん').join('・')}</b> に送ります</div>` : `<div class="t-sub" style="text-align:center">${missing}</div>`}<button class="btn primary" data-a="cmp-send" ${ready ? '' : 'disabled'}>お誘いを送る</button>`;
+    return sheet('me', '友達を誘う', body, footer, true);
+  }
+  function timeOpts(c, which) {
+    const d = sod(c.s), out = [];
+    if (which === 'start') {
+      for (let t = 0; t < 24 * 60; t += 15) { const x = new Date(d.getTime() + t * 60000); if (x < NOW) continue; out.push(`<option value="${x.getTime()}" ${+x === +c.s ? 'selected' : ''}>${hm(x)}</option>`); }
+    } else {
+      for (let t = c.s.getTime() + Q; t <= d.getTime() + DAY; t += Q) { const x = new Date(t); out.push(`<option value="${t}" ${+x === +c.e ? 'selected' : ''}>${hm(x)}</option>`); }
+    }
+    return out.join('');
+  }
+
+  function sheetSent() {
+    const h = W.hostings[0];
+    return sheet('me', '送信しました', `
+      <div class="center" style="display:grid;gap:10px;padding:12px 0"><div class="hero-ic" style="background:var(--green-tint);color:var(--green)">${I.check}</div><div class="t-big">お誘いを送りました</div><div class="t-sub">参加OKの返事が届くと、ホームに名前と時間が表示されます。</div></div>
+      <div class="card"><dl class="kv"><dt>いつ</dt><dd>${range(h.s, h.e)}</dd><dt>内容</dt><dd>${what(h)}</dd></dl></div>
+      ${note('送り先の人数や、まだ返事がない人は表示しません。')}
+      <div class="hint"><b>次の操作：</b>田中さんの画面でお誘いを開き、返事をしてみてください。</div>`,
+      `<button class="btn primary" data-a="me-close">ホームへ</button>`);
+  }
+
+  function sheetInbox() {
+    let b = '';
+    for (const id of W.requests) b += `<div class="card"><div class="row"><div class="av sm">${PEOPLE[id].i}</div><div class="grow"><b>${PEOPLE[id].name}さん</b>から友達申請</div><button class="btn small primary" data-a="me-accept:${id}">承認</button></div></div>`;
+    for (const n of W.notices) b += `<div class="card"><div class="row"><div class="av sm" style="background:var(--green-tint);color:var(--green)">${I.check.replace('<svg', '<svg width="14" height="14"')}</div><div class="grow">${n}</div></div></div>`;
+    if (!b) b = `<div class="empty">新しいお知らせはありません</div>`;
+    return sheet('me', 'お知らせ', b + note('通知をオフにしていても、ここで確認できます。'));
+  }
+
+  /* ---------- 田中さん ---------- */
+  function renderFr() {
+    const f = W.fr, isFriend = W.friends.includes('tanaka'), pending = W.requests.includes('tanaka');
+    const inv = W.hostings.filter((h) => h.friends.includes('tanaka') && h.status !== 'draft');
+    const todo = inv.filter((h) => h.status === 'open' && !h.res.tanaka);
+    let s = `<div class="nav"><h3>ホーム</h3><button class="icon-btn" aria-label="お知らせ${todo.length ? ` ${todo.length}件` : ''}">${I.bell}${todo.length ? `<span class="badge">${todo.length}</span>` : ''}</button></div><div class="scroll">`;
+
+    if (!isFriend) {
+      if (pending) s += `<div class="card"><div class="t-title">ひいらぎさんに申請しました</div><div class="t-sub">承認されると友達になり、お誘いが届くようになります。</div></div>`;
+      else if (W.codeShared) s += `<div class="card hl-orange"><div class="t-sub">LINE でこんなメッセージが届いた想定です</div><div class="card" style="background:var(--fill)"><div style="font-size:13px">アイマノで友達になろう！ コード：<b style="font-family:var(--mono)">HM7K-2QPA</b></div></div><button class="btn primary" data-a="fr-enter">コードを入力して申請</button></div>`;
+      else s += `<div class="empty">ひいらぎさんとはまだ友達ではありません。<br>あなたの画面で招待コードを送ると、ここに届きます。</div>`;
+      return statusBar() + s + `</div>` + tabbar('fr', 'home') + toast(f.toast);
+    }
+
+    if (inv.length) {
+      s += `<div class="sec-h">届いたお誘い</div>`;
+      for (const h of inv) {
+        const r = h.res.tanaka;
+        const closed = h.status !== 'open';
+        s += `<div class="card ${!r && !closed ? 'hl-orange' : r && r.status === 'ok' ? 'hl-green' : ''}">
+          <div class="row"><div class="av">ひ</div><div class="grow"><div class="t-title">ひいらぎさんから</div><div class="t-sub">${what(h)}</div></div>${closed ? '<span class="pill m">取り消されました</span>' : !r ? '<span class="pill o">返事する</span>' : r.status === 'ok' ? '<span class="pill g">参加OK済み</span>' : '<span class="pill m">見送り</span>'}</div>
+          <div class="t-big" style="font-size:19px">${range(h.s, h.e)}</div>
+          ${timeBar(h, r && r.status === 'ok' ? [r] : [])}
+          ${r && r.status === 'ok' ? `<div class="t-sub">あなたの参加OK：<b style="color:var(--ink)">${hm(r.s)}〜${hm(r.e)}</b></div>` : ''}
+          ${closed ? '' : `<div class="t-sub">返事の期限：${dayLabel(h.s)} ${hm(h.s)}まで</div><button class="btn ${r ? 'tonal' : 'primary'}" data-a="fr-open:${h.id}">${r ? '返事を変える' : '返事をする'}</button>`}
+        </div>`;
+      }
+    } else s += `<div class="card"><div class="t-title">お誘いはまだありません</div><div class="t-sub">友達から届くと、ここに一番に表示されます。</div></div>`;
+
+    s += `</div>`;
+    return statusBar() + s + tabbar('fr', 'home') + (f.sheet === 'respond' ? sheetRespond() : '') + toast(f.toast);
+  }
+
+  function sheetRespond() {
+    const R = W.respond, h = W.hostings.find((x) => x.id === R.hid), cur = h.res.tanaka;
+    const span = h.e - h.s, opts = [{ k: 'all', label: '全部', s: h.s, e: h.e }];
+    if (span >= 2 * 3600000) { const mid = new Date(h.s.getTime() + Math.round(span / 2 / Q) * Q); opts.push({ k: 'first', label: '前半', s: h.s, e: mid }, { k: 'second', label: '後半', s: mid, e: h.e }); }
+    const sel = R.choice === 'custom' ? { s: R.cs, e: R.ce } : opts.find((o) => o.k === R.choice);
+    const radio = opts.map((o) => `<button class="chip" data-a="rsp:${o.k}" aria-pressed="${R.choice === o.k}"><span><b>${o.label}</b> <span style="font-variant-numeric:tabular-nums">${hm(o.s)}〜${hm(o.e)}</span></span><span class="r"></span></button>`).join('')
+      + `<button class="chip" data-a="rsp:custom" aria-pressed="${R.choice === 'custom'}"><b>時間を指定</b><span class="r"></span></button>`;
+    let custom = '';
+    if (R.choice === 'custom') {
+      const so = [], eo = [];
+      for (let t = +h.s; t < +h.e; t += Q) so.push(`<option value="${t}" ${t === +R.cs ? 'selected' : ''}>${hm(new Date(t))}</option>`);
+      for (let t = +R.cs + Q; t <= +h.e; t += Q) eo.push(`<option value="${t}" ${t === +R.ce ? 'selected' : ''}>${hm(new Date(t))}</option>`);
+      custom = `<div class="selects"><select id="rsp-start" data-a="rsp-start" aria-label="参加できる開始">${so.join('')}</select><span class="t-sub">〜</span><select id="rsp-end" data-a="rsp-end" aria-label="参加できる終了">${eo.join('')}</select></div>`;
+    }
+    const body = `
+      <div class="card"><div class="row"><div class="av">ひ</div><div class="grow"><div class="t-title">ひいらぎさんから</div><div class="t-sub">${what(h)}</div></div></div>
+        <dl class="kv"><dt>候補</dt><dd>${range(h.s, h.e)}</dd><dt>期限</dt><dd>${dayLabel(h.s)} ${hm(h.s)}まで</dd></dl></div>
+      <div class="sec-h">参加できる時間</div>
+      <div class="radio">${radio}</div>${custom}
+      ${sel ? timeBar(h, [sel]) : ''}
+      ${note(`参加OKすると、選んだ時間と表示名「田中」がひいらぎさんに伝わります。期限までは変更・取り消しができます。`)}`;
+    const footer = `<button class="btn green" data-a="rsp-ok" ${sel ? '' : 'disabled'} style="${sel ? '' : 'background:var(--fill);color:var(--muted)'}">${sel ? `${hm(sel.s)}〜${hm(sel.e)} で参加OK` : '参加できる時間を選んでください'}</button>
+      ${cur && cur.status === 'ok' ? `<button class="btn danger-text" data-a="rsp-withdraw">参加OKを取り消す</button>` : `<button class="btn text" data-a="rsp-decline">今回は見送る（相手には通知されません）</button>`}`;
+    return sheet('fr', 'お誘いに返事', body, footer, true);
+  }
+
+  /* ---------- notes ---------- */
+  function keyMe() {
+    const m = W.me;
+    if (m.stage !== 'main') return m.stage;
+    if (m.sheet) return m.sheet;
+    if (m.tab !== 'home') return 'tab';
+    if (!W.friends.length) return 'home0';
+    if (anyAccepted()) return 'matched';
+    if (W.hostings.some((h) => h.status === 'open')) return 'waiting';
+    return 'ready';
+  }
+  function keyFr() {
+    if (!W.friends.includes('tanaka')) return W.codeShared ? 'code' : 'stranger';
+    if (W.fr.sheet === 'respond') return 'respond';
+    return W.hostings.some((h) => h.friends.includes('tanaka') && h.status === 'open') ? 'invited' : 'idle';
+  }
+  const NOTES = {
+    me: {
+      onboarding: { t: '起動直後', b: '「暇は非公開」「参加OKした時間だけ共有」など注意書きが中心で、何をすると遊べるのかが伝わらない。', a: 'やることを3ステップで先に示し、プライバシーの説明は1行の補足に下げる。', next: '「デモデータで試す」で進めます。' },
+      profile: { t: 'プロフィール', b: 'フォーム形式で表示名とアイコンを並べ、保存ボタンが下にある。', a: '最初は表示名だけにする。アイコンは既定のまま進め、設定で変えられる。', next: '「はじめる」でホームへ。' },
+      home0: { t: 'ホーム（友達0人）', b: '友達がいなくても15分グリッドが主役。「友達を誘う」を押してから招待先がいないと分かる。', a: '「はじめてのお誘い」の進捗を出し、今やるべき「友達を招待する」だけを主ボタンにする。', next: '「友達を招待する」→「コードを送る」。続けて田中さんの画面で申請します。' },
+      addfriend: { t: '友達を招待', b: '友達タブの右上アイコンからしか入れない。コードは一覧の下にある。', a: 'ホームの主ボタンから直接開き、コード・送る・入力の順で並べる。', next: '「コードを送る」を押すと、田中さんの画面にコードが届いた想定になります。' },
+      ready: { t: 'ホーム（誘う準備ができた）', b: '「友達を誘う」は時間選択モードに切り替えるだけで、次に何をするか画面から読み取れない。', a: '今夜・明日の夜・週末・自分の暇を候補として出し、押すとその時間で誘う画面が開く。', next: '候補のどれかを押してください。' },
+      compose: { t: '友達を誘う', b: '開催形態・エリア・カテゴリ・暇のカテゴリ・暇の公開設定・統合確認・友達の7項目。「募集を開始」は右上の小さな文字。', a: 'いつ・だれと・会い方の3つ。内容は任意。暇の公開設定は非公開の既定値にして出さない。送信ボタンは下に固定し、足りない項目を文で示す。', spec: 'ios-hosting 1.1／1.2 と ios-availability の公開設定の扱いを更新する。', next: '友達と会い方を選んで「お誘いを送る」。' },
+      sent: { t: '送信完了', b: 'アラートで「募集を開始しました」と出て、ホームのバナーに「募集中 1件」が増えるだけ。', a: '何が送られたかと、次に何が起きるかを1画面で示す。送り先の人数は出さない（要件2.1）。', spec: '要件2.2の文言を「お誘い」表現にそろえるかを決める。', next: '「ホームへ」で戻り、田中さんの画面に切り替えます。' },
+      waiting: { t: 'ホーム（返事待ち）', b: '「募集中」バナーを開いたシートに、取消ボタンと説明文だけがある。', a: '候補の時間を帯で出し、返事が来るとそこに緑で重なる。見送った人や未回答の人は出さない。', next: '田中さんの画面で返事を送ってください。' },
+      matched: { t: 'ホーム（参加OKが届いた）', b: '参加OKはベルの「進行中」か「募集中」シートの奥にしか出ず、気づきにくい。', a: 'お知らせのバッジと上部のバナーで知らせ、ホームのお誘いカードに名前・時間・全員そろう時間を出す。', spec: '予定の確定は後続工程のまま。ここでは「あとはいつもの連絡手段で」と案内する。', next: '右の「佐藤さんも参加OK」で複数人の表示を確認できます。' },
+      inbox: { t: 'お知らせ', b: 'ベルに未読数がなく、要対応があるかどうか開くまで分からない。', a: 'ベルに件数を出し、友達申請と参加OKの通知をここにまとめる。', next: '閉じてホームに戻ります。' },
+      calendar: { t: 'カレンダー', b: 'ホームを開くと最初にこの画面が出る。', a: 'ホームから開く二次画面に移す。操作は今のまま。', next: '閉じてホームに戻ります。' },
+      tab: { t: '友達・設定', b: '友達タブは申請・一覧・コードが縦に並び、ここから誘うには詳細画面まで進む。', a: '一覧の各行に「誘う」を置き、その友達を選んだ状態で誘う画面を開く（要件1.7）。', next: 'ホームタブに戻ります。' },
+    },
+    fr: {
+      stranger: { t: 'まだ友達ではない', b: '—', a: 'あなたの画面でコードを送ると、ここに届いた想定になります。', next: 'あなたの画面で「友達を招待する」→「コードを送る」。' },
+      code: { t: 'コードを受け取った', b: '友達タブ右上→コード入力→プロフィール確認→申請の4段階。', a: 'コードを入力して申請するまでを1画面にする（プロトでは入力を省略）。', next: '「コードを入力して申請」→ あなたの画面で承認します。' },
+      idle: { t: 'お誘いなし', b: '—', a: 'お誘いが届くと、ホームの一番上に出る。', next: 'あなたの画面で田中さんを誘ってください。' },
+      invited: { t: 'お誘いが届いた', b: 'ベルを開くまでお誘いがあるか分からない。ベルにも件数が出ない。', a: 'ホームの最上部にカードで出し、ベルにも件数を出す。期限も具体的な日時で示す。', next: '「返事をする」を押してください。' },
+      respond: { t: 'お誘いに返事', b: '±ボタンで開始と終了を15分ずつ動かし、「この範囲で回答」で確定してから「参加OK」を押す。', a: '全部・前半・後半・時間を指定から選び、1回で送る。初期選択なし（要件3.2）。見送りは目立たせず、相手に通知しないことを書く。', spec: '要件3.7の「15分単位で一部を選ぶ」は「時間を指定」で満たす。', next: '時間を選んで「参加OK」を押してください。' },
+    },
+  };
+  function renderNotes() {
+    const nm = NOTES.me[keyMe()], nf = NOTES.fr[keyFr()];
+    const block = (n, who, cls) => `<div class="npanel"><h2><span class="who ${cls}">${who}</span>${n.t}</h2><ul class="ba">
+      ${n.b !== '—' ? `<li><span class="k">いま</span><span>${n.b}</span></li>` : ''}
+      <li><span class="k after">変更後</span><span>${n.a}</span></li>
+      ${n.spec ? `<li><span class="k spec">仕様</span><span>${n.spec}</span></li>` : ''}
+      </ul>${n.next ? `<div class="hint"><b>次の操作：</b>${n.next}</div>` : ''}</div>`;
+    const sato = W.hostings.find((h) => h.status === 'open' && h.friends.includes('sato') && !h.res.sato);
+    return block(nm, 'あなた', '') + block(nf, '田中さん', 'fr') + (sato ? `<div class="npanel"><h2>ほかの友達の返事</h2><div class="t-sub">佐藤さんの端末は省略しています。押すと佐藤さんの参加OKが届きます。</div><button class="btn tonal" data-a="sato-ok">佐藤さんも参加OK（${hm(sato.s)}〜${hm(new Date(+sato.s + 2 * 3600000) > sato.e ? sato.e : new Date(+sato.s + 2 * 3600000))}）</button></div>` : '');
+  }
+
+  /* ---------- render & actions ---------- */
+  function render() {
+    document.getElementById('me').innerHTML = renderMe();
+    document.getElementById('fr').innerHTML = renderFr();
+    document.getElementById('notes').innerHTML = renderNotes();
+    document.querySelectorAll('[data-a^="sc:"]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.a === `sc:${scen}`));
+    document.querySelectorAll('[data-a^="view:"]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.a === `view:${view}`));
+    document.getElementById('dev-me').dataset.hiddenNarrow = view !== 'me';
+    document.getElementById('dev-fr').dataset.hiddenNarrow = view !== 'fr';
+  }
+  let toastTimer = {};
+  function flash(p, title, body) {
+    W[p].toast = { title, body };
+    clearTimeout(toastTimer[p]);
+    toastTimer[p] = setTimeout(() => { W[p].toast = null; render(); }, 3200);
+  }
+  function openCompose(arg) {
+    const c = { preset: null, s: null, e: null, friends: [], mode: null, area: null, cat: null };
+    if (arg && arg.startsWith('with-')) c.friends = [arg.slice(5)];
+    else if (arg) applyPreset(c, arg);
+    W.compose = c; W.me.sheet = 'compose'; W.me.tab = 'home';
+  }
+  function applyPreset(c, k) {
+    if (k === 'custom') { c.preset = 'custom'; const s = c.s && c.s >= NOW ? c.s : at(0, 19); c.s = s; c.e = c.e && c.e > s ? c.e : new Date(+s + 2 * 3600000); return; }
+    const p = PRESETS().find((x) => x.k === k);
+    if (p) { c.preset = k; c.s = p.s; c.e = p.e; return; }
+    const sl = W.slots.find((x) => `slot${x.id}` === k);
+    if (sl) { c.preset = k; c.s = sl.s; c.e = sl.e; }
+  }
+
+  function act(a, el) {
+    const [cmd, arg] = a.split(/:(.*)/s);
+    const m = W.me;
+    switch (cmd) {
+      case 'sc': seed(arg); return;
+      case 'view': view = arg; break;
+      case 'me-signin': m.stage = 'profile'; break;
+      case 'me-name': m.name = el.value; { const pos = el.selectionStart; render(); const n = document.getElementById('me-name'); n.focus(); n.setSelectionRange(pos, pos); } return;
+      case 'me-save': if (m.name.trim()) { m.stage = 'main'; } break;
+      case 'me-tab': m.tab = arg; m.sheet = null; break;
+      case 'me-addfriend': m.sheet = 'addfriend'; break;
+      case 'me-close': m.sheet = null; break;
+      case 'me-share': W.codeShared = true; m.sheet = null; flash('me', 'コードを送る準備ができました', '共有シートは省略。田中さんに届いた想定です。'); view = 'fr'; break;
+      case 'me-connect-all': W.friends = ['tanaka', 'sato', 'suzuki']; W.requests = []; m.sheet = null; break;
+      case 'me-accept': W.requests = W.requests.filter((x) => x !== arg); if (!W.friends.includes(arg)) W.friends.push(arg); ['sato', 'suzuki'].forEach((x) => { if (!W.friends.includes(x)) W.friends.push(x); }); m.sheet = null; flash('me', `${PEOPLE[arg].name}さんと友達になりました`, '（デモ）佐藤さん・鈴木さんも追加しています'); break;
+      case 'me-inbox': m.sheet = 'inbox'; m.unread = 0; break;
+      case 'me-calendar': m.sheet = 'calendar'; break;
+      case 'me-compose': openCompose(arg); break;
+      case 'me-cancel': W.hostings.find((h) => h.id == arg).confirmCancel = true; break;
+      case 'me-cancel-no': W.hostings.find((h) => h.id == arg).confirmCancel = false; break;
+      case 'me-cancel-ok': { const h = W.hostings.find((x) => x.id == arg); h.status = 'cancelled'; h.confirmCancel = false; } break;
+      case 'me-noop': break;
+      case 'cmp-preset': applyPreset(W.compose, arg); break;
+      case 'cmp-custom': applyPreset(W.compose, 'custom'); break;
+      case 'cmp-day': { const c = W.compose, dur = c.e - c.s; let s = new Date(+at(+arg, 0) + (c.s - sod(c.s))); if (s < NOW) s = new Date(Math.ceil(NOW / Q) * Q); c.s = s; c.e = new Date(Math.min(+s + dur, +sod(s) + DAY)); } break;
+      case 'cmp-start': { const c = W.compose, dur = c.e - c.s; c.s = new Date(+el.value); c.e = new Date(Math.min(+c.s + dur, +sod(c.s) + DAY)); if (c.e <= c.s) c.e = new Date(+c.s + Q); } break;
+      case 'cmp-end': W.compose.e = new Date(+el.value); break;
+      case 'cmp-friend': { const f = W.compose.friends; const i = f.indexOf(arg); i < 0 ? f.push(arg) : f.splice(i, 1); } break;
+      case 'cmp-all': W.compose.friends = W.compose.friends.length === W.friends.length ? [] : W.friends.slice(); break;
+      case 'cmp-mode': W.compose.mode = arg; if (arg !== '会う') W.compose.area = null; break;
+      case 'cmp-area': W.compose.area = arg; break;
+      case 'cmp-cat': W.compose.cat = W.compose.cat === arg ? null : arg; break;
+      case 'cmp-send': addHosting(W.compose); W.compose = null; m.sheet = 'sent'; break;
+      case 'fr-enter': W.requests.push('tanaka'); flash('fr', '申請を送りました', 'ひいらぎさんの承認を待っています'); view = 'me'; break;
+      case 'fr-open': { const h = W.hostings.find((x) => x.id == arg), r = h.res.tanaka; W.respond = { hid: h.id, choice: null, cs: h.s, ce: new Date(Math.min(+h.e, +h.s + 3600000)) }; if (r && r.status === 'ok') { W.respond.choice = 'custom'; W.respond.cs = r.s; W.respond.ce = r.e; } W.fr.sheet = 'respond'; } break;
+      case 'fr-close': W.fr.sheet = null; break;
+      case 'rsp': W.respond.choice = arg; break;
+      case 'rsp-start': { const R = W.respond, h = W.hostings.find((x) => x.id === R.hid); R.cs = new Date(+el.value); if (R.ce <= R.cs) R.ce = new Date(Math.min(+R.cs + 3600000, +h.e)); } break;
+      case 'rsp-end': W.respond.ce = new Date(+el.value); break;
+      case 'rsp-ok': {
+        const R = W.respond, h = W.hostings.find((x) => x.id === R.hid);
+        const span = h.e - h.s, mid = new Date(h.s.getTime() + Math.round(span / 2 / Q) * Q);
+        const sel = R.choice === 'custom' ? { s: R.cs, e: R.ce } : R.choice === 'all' ? { s: h.s, e: h.e } : R.choice === 'first' ? { s: h.s, e: mid } : { s: mid, e: h.e };
+        const had = h.res.tanaka;
+        h.res.tanaka = { status: 'ok', s: sel.s, e: sel.e };
+        W.fr.sheet = null;
+        flash('fr', '参加OKを送りました', `${hm(sel.s)}〜${hm(sel.e)} ・ 期限まで変更できます`);
+        W.notices.unshift(`<b>田中さん</b>が参加OK（${hm(sel.s)}〜${hm(sel.e)}）`);
+        W.me.unread += 1;
+        flash('me', had ? '田中さんが時間を変更しました' : '田中さんが参加OK', `${range(sel.s, sel.e)}`);
+        if (!had) setTimeout(() => { W.me.firstMatchDone = true; render(); }, 2600);
+        view = 'me';
+      } break;
+      case 'rsp-decline': W.hostings.find((x) => x.id === W.respond.hid).res.tanaka = { status: 'no' }; W.fr.sheet = null; flash('fr', '見送りました', 'ひいらぎさんには通知されません'); break;
+      case 'rsp-withdraw': delete W.hostings.find((x) => x.id === W.respond.hid).res.tanaka; W.fr.sheet = null; flash('fr', '参加OKを取り消しました', '期限まではもう一度返事できます'); break;
+      case 'sato-ok': { const h = W.hostings.find((x) => x.status === 'open' && x.friends.includes('sato') && !x.res.sato); const e = new Date(Math.min(+h.e, +h.s + 2 * 3600000)); h.res.sato = { status: 'ok', s: h.s, e }; W.notices.unshift(`<b>佐藤さん</b>が参加OK（${hm(h.s)}〜${hm(e)}）`); W.me.unread += 1; flash('me', '佐藤さんが参加OK', range(h.s, e)); W.me.firstMatchDone = true; view = 'me'; } break;
+    }
+    render();
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-a]');
+    if (!el || el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
+    act(el.dataset.a, el);
+  });
+  document.addEventListener('change', (e) => { const el = e.target; if (el.tagName === 'SELECT' && el.dataset.a) act(el.dataset.a, el); });
+  document.addEventListener('input', (e) => { const el = e.target; if (el.tagName === 'INPUT' && el.dataset.a) act(el.dataset.a, el); });
+
+  seed('fresh');
+})();
+</script>

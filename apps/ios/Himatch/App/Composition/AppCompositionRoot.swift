@@ -8,13 +8,8 @@ enum AppCompositionRoot {
     }
 
     static func makeStore(runtime: AppRuntime) -> StoreOf<AppFeature> {
-#if DEBUG
-        let demoClient = HimatchPrototypeScenario().client()
-#else
-        let demoClient: HimatchClient? = nil
-#endif
-        return Store(initialState: AppFeature.State()) {
-            AppFeature(demoClient: demoClient)
+        Store(initialState: AppFeature.State()) {
+            AppFeature()
         } withDependencies: {
             $0.authenticationClient = runtime.authentication
             $0.profileClient = runtime.profile
@@ -23,6 +18,10 @@ enum AppCompositionRoot {
             $0.deletionStatusTokenStore = runtime.deletionStore
             $0.himatchClient = runtime.business
             $0.automaticSchedulingEffects = runtime.schedulingEffects
+#if DEBUG
+            // The explicit demo owner is served by the prototype scenario; real accounts use the live effects.
+            $0.automaticSchedulingEffects = .routingDemo(live: runtime.schedulingEffects, demo: $0.demoScenarioClient.scheduling)
+#endif
             let service = runtime.systemActions
             $0.systemActionHandoffClient = SystemActionHandoffClient(
                 pendingOperationID: { try? await service.pendingHandoff()?.operationID },

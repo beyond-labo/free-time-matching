@@ -39,10 +39,10 @@ struct SystemActionReviewView: View {
                             .environment(\.timeZone, TimeZone(identifier: input.timeZoneIdentifier) ?? .current)
                         }
                         if input.kind == .createHosting {
-                            Section("開催条件") {
-                                Picker("開催形態", selection: modeBinding) {
+                            Section("お誘いの条件") {
+                                Picker("会い方", selection: modeBinding) {
                                     Text("選んでください").tag(Optional<HostingMode>.none)
-                                    ForEach(HostingMode.allCases, id: \.self) { Text($0.rawValue).tag(Optional($0)) }
+                                    ForEach(HostingMode.allCases, id: \.self) { Text($0.displayName).tag(Optional($0)) }
                                 }
                                 if input.mode == .offline {
                                     Picker("エリア", selection: areaBinding) {
@@ -69,7 +69,7 @@ struct SystemActionReviewView: View {
                             }
                         }
                         if input.kind == .cancelHosting {
-                            Section("取り消す募集") {
+                            Section("取り消すお誘い") {
                                 ForEach(hostings) { hosting in
                                     Button {
                                         self.input?.hostingID = hosting.id
@@ -118,7 +118,7 @@ struct SystemActionReviewView: View {
             .toolbar { Button("閉じる") { dismiss() } }
             .task { await load() }
             .confirmationDialog("操作を確認", isPresented: $confirmationPresented, titleVisibility: .visible) {
-                Button(record?.input.kind == .cancelHosting ? "募集を取り消す" : "選んだ友達全員へ招待する", role: record?.input.kind == .cancelHosting ? .destructive : nil) {
+                Button(record?.input.kind == .cancelHosting ? "お誘いを取り消す" : "選んだ友達全員を誘う", role: record?.input.kind == .cancelHosting ? .destructive : nil) {
                     Task { await executePrepared() }
                 }
             } message: {
@@ -161,7 +161,7 @@ struct SystemActionReviewView: View {
             case .needsAuthentication:
                 message = "サインインとプロフィール設定を完了してください。"
             case .needsDisambiguation:
-                message = "対象と開催形態を選んでください。"
+                message = "誘う友達と会い方を選んでください。"
             case let .invalidInput(reason): message = reason
             }
         } catch { message = "操作を完了できませんでした。入力は保持しています。" }
@@ -185,7 +185,7 @@ struct SystemActionReviewView: View {
         case .conflict:
             record = try? await service.record(operationID: currentID ?? operationID)
             message = "状態が変わりました。内容を確認してから続けてください。"
-        case .blockedByHosting: message = "募集中の時間は削除できません。先に募集を取り消してください。"
+        case .blockedByHosting: message = "お誘い中の時間は削除できません。先にお誘いを取り消してください。"
         case .needsForeground: message = "内容をもう一度確認してください。"
         case let .failed(reason): message = reason
         }
@@ -209,7 +209,7 @@ struct SystemActionReviewView: View {
         case .addAvailability: "暇を登録"
         case .subtractAvailability: "暇を削除"
         case .createHosting: "友達を誘う"
-        case .cancelHosting: "募集を取り消す"
+        case .cancelHosting: "お誘いを取り消す"
         }
     }
     private func dateBinding(_ path: WritableKeyPath<SystemActionInput, Date?>) -> Binding<Date> {

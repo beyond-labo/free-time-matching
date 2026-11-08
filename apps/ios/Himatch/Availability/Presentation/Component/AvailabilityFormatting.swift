@@ -116,9 +116,9 @@ extension AvailabilityVisibility {
     var explanation: String {
         switch self {
         case .privateUntilAccepted:
-            "システムが重なりを確認して招待を届けます。参加OKするまでは主催者に暇時間を表示しません。"
+            "友達には表示されません。お誘いに参加OKするまでは、主催者にも暇時間を表示しません。"
         case .shareOnHosting:
-            "友達が募集を始めたとき、募集と重なる暇時間を主催者に表示します。自動で参加OKにはなりません。"
+            "友達からお誘いが届いたとき、お誘いと重なる暇時間を主催者に表示します。自動で参加OKにはなりません。"
         }
     }
 }

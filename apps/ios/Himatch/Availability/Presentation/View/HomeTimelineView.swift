@@ -347,7 +347,7 @@ private struct ScheduleItemDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                     case .hosting:
-                        StatusBadge(title: "募集中", systemImage: "megaphone.fill", tint: HimatchColor.hosting)
+                        StatusBadge(title: "お誘い中", systemImage: "megaphone.fill", tint: HimatchColor.hosting)
                         ForEach(item.notes, id: \.self) { note in
                             Text(note).font(HimatchFont.supporting).foregroundStyle(.secondary)
                         }
@@ -372,7 +372,7 @@ private struct ScheduleItemDetailView: View {
     private var inviteRangeControls: some View {
         if case .availability = item.kind, let inviteSelection {
             VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
-                Text("招待する時間（15分単位）").font(HimatchFont.supporting)
+                Text("誘う時間（15分単位）").font(HimatchFont.supporting)
                 HStack {
                     Text("開始 \(AvailabilityFormatting.time(inviteSelection.range.start, calendar: calendar))")
                     Spacer()
@@ -380,12 +380,12 @@ private struct ScheduleItemDetailView: View {
                         self.inviteSelection?.stepStart(by: -1)
                     }
                     .disabled(!inviteSelection.canStepStart(by: -1))
-                    .accessibilityLabel("招待時間の開始を15分早める")
+                    .accessibilityLabel("誘う時間の開始を15分早める")
                     Button("＋") {
                         self.inviteSelection?.stepStart(by: 1)
                     }
                     .disabled(!inviteSelection.canStepStart(by: 1))
-                    .accessibilityLabel("招待時間の開始を15分遅らせる")
+                    .accessibilityLabel("誘う時間の開始を15分遅らせる")
                 }
                 HStack {
                     Text("終了 \(AvailabilityFormatting.time(inviteSelection.range.end, calendar: calendar))")
@@ -394,12 +394,12 @@ private struct ScheduleItemDetailView: View {
                         self.inviteSelection?.stepEnd(by: -1)
                     }
                     .disabled(!inviteSelection.canStepEnd(by: -1))
-                    .accessibilityLabel("招待時間の終了を15分早める")
+                    .accessibilityLabel("誘う時間の終了を15分早める")
                     Button("＋") {
                         self.inviteSelection?.stepEnd(by: 1)
                     }
                     .disabled(!inviteSelection.canStepEnd(by: 1))
-                    .accessibilityLabel("招待時間の終了を15分遅らせる")
+                    .accessibilityLabel("誘う時間の終了を15分遅らせる")
                 }
             }
             .font(HimatchFont.supporting)
@@ -413,7 +413,7 @@ private struct ScheduleItemDetailView: View {
     }
 
     private var detailTitle: String {
-        switch item.kind { case .availability: "暇の詳細"; case .hosting: "募集中の時間"; case .plan: "予定の詳細" }
+        switch item.kind { case .availability: "暇の詳細"; case .hosting: "お誘い中の時間"; case .plan: "予定の詳細" }
     }
 
     private var tint: Color {
