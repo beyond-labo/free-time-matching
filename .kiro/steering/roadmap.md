@@ -55,7 +55,7 @@ kiro:
 ## Specs (dependency order)
 
 - [x] automatic-friend-scheduling -- ホストなしの2人提案・合意・確定・取消・頻度・通知・安全。Dependencies: backend-user-account-management, backend-friendship, backend-availability
-- [x] ios-first-match-flow -- 自動提案を主軸にした初回の予定までの案内とホーム構成、手動のお誘いの作成・返事の簡略化、アカウント境界、DEBUGデモ、返事変更の409修正。実装・Simulator検証済み、要件改訂の再承認待ち、実機・STG未確認。Dependencies: ios-app-foundation, ios-availability, ios-friendship, ios-hosting, ios-app-integration, automatic-friend-scheduling
+- [x] ios-first-match-flow -- 自動提案を主軸にした初回の予定までの案内とホーム構成、手動のお誘いの作成・返事の簡略化、アカウント境界、DEBUGデモ、返事変更の409修正。実装・Simulator検証済み、改訂後の要件・設計・タスクは2026-11-10に承認済み、実機・STG未確認。工程承認の正本は spec.json。Dependencies: ios-app-foundation, ios-availability, ios-friendship, ios-hosting, ios-app-integration, automatic-friend-scheduling
 
 このチェックは仕様生成の完了を示し、実装完了を意味しない。工程承認と実装準備状態の正本は各 `spec.json`。
 

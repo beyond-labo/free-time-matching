@@ -29,7 +29,7 @@
       ".kiro/specs/automatic-friend-scheduling/research.md": "7993b06a5efa76d03ea7634f267f65cf3ac6c25fc959e47102311feac64704c4",
       ".kiro/specs/automatic-friend-scheduling/tasks.md": "0b4742eef293f709bb75bddfd73edbeecbd9423ca4beab17077fa2623ae5dca0",
       ".kiro/steering/product.md": "31de2652a88437981922574de16f1e4bf87a277af2fafb75f5f5f73f166952eb",
-      ".kiro/steering/roadmap.md": "e614aaa1b8735e6c3249e7184f61138aa58c475383b22ec883b693fa9157af85",
+      ".kiro/steering/roadmap.md": "6f4cb20dea4f0872bf0a84ca238a2b6bae7ed9f67bf96d4f923abd03b6e46d7c",
       "apps/backend/src/AutomaticScheduling/Application/Port/AutomaticSchedulingRepository.ts": "37a3568b43759bb81eb70c00dc2187eb3a7ec091422c13cb70e4d74f38357b2c",
       "apps/backend/src/AutomaticScheduling/Domain/Model/AutomaticScheduling.ts": "a650f5b704c36f763a22823aeffade69b538cabf8f0957d98e7702a309ce920e",
       "apps/backend/src/AutomaticScheduling/Infrastructure/Adapter/SupabaseSchedulingTickAdapter.ts": "01d4daf8ebff3fccebb57a7ec333e36bb7a40c1118ce8c61f028105b32e838f4",

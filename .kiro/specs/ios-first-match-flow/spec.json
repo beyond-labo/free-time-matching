@@ -1,24 +1,24 @@
 {
   "feature_name": "ios-first-match-flow",
   "created_at": "2026-11-08T16:26:00+09:00",
-  "updated_at": "2026-11-08T21:00:00+09:00",
+  "updated_at": "2026-11-10T09:00:00+09:00",
   "language": "ja",
   "phase": "tasks-generated",
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": false
+      "approved": true
     },
     "design": {
       "generated": true,
-      "approved": false
+      "approved": true
     },
     "tasks": {
       "generated": true,
-      "approved": false
+      "approved": true
     }
   },
-  "ready_for_implementation": false,
+  "ready_for_implementation": true,
   "freshness": {
     "status": "current",
     "pending": [],
@@ -39,7 +39,7 @@
       ".kiro/specs/ios-availability/research.md": "07cec0d56db3ae082f9fccb01cd061f64a44c24779d67af28a843606da94a4a3",
       ".kiro/specs/ios-first-match-flow/design.md": "8e91e1f0ad4239ab1c223c08bbde9f6f3a9e7e2edeac814afbcc86757c2525fc",
       ".kiro/specs/ios-first-match-flow/requirements.md": "1be4760460223435485c0404fe052565c402b5e56e71345b9fbcda7eeab19828",
-      ".kiro/specs/ios-first-match-flow/research.md": "8f471f490c0a02f1635c379569bb1f514476d6f6a80c6d7a7f2620b0bc00aa34",
+      ".kiro/specs/ios-first-match-flow/research.md": "4f041b356982fb8c1c662de56431f2bc30421163000736190fe0200f7bfe4a5a",
       ".kiro/specs/ios-first-match-flow/tasks.md": "b6e5682acf09deeec1e69c3b91089778b4eedba6af685746d69f697dc169eecb",
       ".kiro/specs/ios-friendship/brief.md": "65c2454ae3510370e38938122e7ce54d016f012f4770e3ff096788c61553ec8e",
       ".kiro/specs/ios-friendship/design.md": "5e84633a41cd2402ce8fcb0d83341de2240e7a5eb55e05c0ec41984a06119d69",
@@ -54,7 +54,7 @@
       ".kiro/specs/ios-safety-settings/requirements.md": "6b3d13e997858af431b33f6f1f4af6b0b3f6d8e8168cd8a5eadc941848ed67c8",
       ".kiro/specs/ios-safety-settings/research.md": "7a7833e456f3baffffc6a0eff4d2cdbbf950ec1ccc198caec9a1e8780632c034",
       ".kiro/steering/product.md": "31de2652a88437981922574de16f1e4bf87a277af2fafb75f5f5f73f166952eb",
-      ".kiro/steering/roadmap.md": "e614aaa1b8735e6c3249e7184f61138aa58c475383b22ec883b693fa9157af85",
+      ".kiro/steering/roadmap.md": "6f4cb20dea4f0872bf0a84ca238a2b6bae7ed9f67bf96d4f923abd03b6e46d7c",
       "apps/backend/src/AutomaticScheduling/Application/Port/AutomaticSchedulingRepository.ts": "37a3568b43759bb81eb70c00dc2187eb3a7ec091422c13cb70e4d74f38357b2c",
       "apps/backend/src/AutomaticScheduling/Domain/Model/AutomaticScheduling.ts": "a650f5b704c36f763a22823aeffade69b538cabf8f0957d98e7702a309ce920e",
       "apps/backend/src/AutomaticScheduling/Infrastructure/Adapter/SupabaseSchedulingTickAdapter.ts": "01d4daf8ebff3fccebb57a7ec333e36bb7a40c1118ce8c61f028105b32e838f4",
