@@ -45,21 +45,15 @@ struct AppFeature {
         var homeTimeline = HomeTimelineFeature.State()
         var automaticScheduling = AutomaticSchedulingFeature.State()
         @Presents var availabilityEditor: AvailabilityEditorFeature.State?
-        var hostingListPresented = false
+        var calendarPresented = false
+        var hostingLoadError = false
 
-        var hostingEditorPresented = false
-        var hostingMode: HostingMode = .online
-        var hostingArea: HostingArea = .discussLater
-        var hostingCategory: ActivityCategory?
-        var hostingAvailabilityCategory: ActivityCategory?
-        var hostingAvailabilityVisibility: AvailabilityVisibility = .privateUntilAccepted
-        var hostingAvailabilityConflict = false
-        var hostingAvailabilityMetadataConfirmed = false
-        var hostingStart = AvailabilityPolicy.nextQuarterHour(after: Date()).addingTimeInterval(24 * 60 * 60)
-        var hostingEnd = AvailabilityPolicy.nextQuarterHour(after: Date()).addingTimeInterval(25 * 60 * 60)
-        var hostingDurationHours = 1
-        var selectedFriendIDs: Set<UUID> = []
-        var hostingOperationID: UUID?
+        @Presents var composer: InvitationComposerFeature.State?
+        @Presents var reply: InvitationReplyFeature.State?
+        var sentInvitation: Hosting?
+        var firstMatchRecord = FirstMatchRecord()
+        var participationBanner: ParticipationBanner?
+        var shownParticipationKeys: Set<String> = []
         var hostingResponseOperationIDs: [String: UUID] = [:]
         var hostingCancelOperationIDs: [String: UUID] = [:]
 
@@ -83,6 +77,12 @@ struct AppFeature {
         var responseNotifications = true
         var planNotifications = true
         var reminderEnabled = false
+
+        /// Device-local record key: the internal user ID, or `demo` for the DEBUG demo. Never a display name.
+        var accountKey: String? {
+            if isDemo { return FirstMatchLocalStore.demoAccountKey }
+            return authenticationSession?.userID
+        }
 
         mutating func operationID(forFriendshipKey key: String) -> UUID {
             if friendshipOperationKey == key, let friendshipOperationID {
@@ -125,7 +125,14 @@ struct AppFeature {
         case availabilityLoaded([AvailabilitySlot], revision: Int, userID: String)
         case availabilityLoadFailed(String, revision: Int, userID: String)
         case profileLoadFailed(String)
-        case startDemo
+#if DEBUG
+        case startDemo(DemoSeed)
+        case demoSnapshotLoaded(AppSnapshot)
+        case demoFriendRequestTapped
+        case demoAcceptanceTapped(UUID)
+        case demoProposalTapped
+        case demoPeerAcceptanceTapped(UUID)
+#endif
         case profileNameChanged(String)
         case profileIconChanged(String)
         case saveProfileTapped
@@ -145,24 +152,27 @@ struct AppFeature {
         case availabilityDeletionBlocked
         case hostingLoadCompleted([Hosting], [Hosting], revision: Int, userID: String)
         case hostingLoadFailed(String, revision: Int, userID: String)
-        case showHostingList(Bool)
+        case showCalendar(Bool)
+        case homeAppeared
+        case homeRefreshed
+        case registerAvailabilityTapped
+        case primaryActionTapped
+        case dismissGuide
+        case inviteCodeShared
+        case participationBannerDismissed
 
-        case showHostingEditor(Bool)
-        case hostingModeChanged(HostingMode)
-        case hostingAreaChanged(HostingArea)
-        case hostingCategoryChanged(ActivityCategory?)
-        case hostingAvailabilityCategoryChanged(ActivityCategory?)
-        case hostingAvailabilityVisibilityChanged(AvailabilityVisibility)
-        case confirmHostingAvailabilityMetadata
-        case hostingStartChanged(Date)
-        case hostingDurationChanged(Int)
-        case toggleFriend(UUID)
+        case startInvitation(InvitationStart)
+        case composer(PresentationAction<InvitationComposerFeature.Action>)
         case inviteFriendFromProfile(UUID)
-        case createHostingTapped
-        case hostingCreated(AppSnapshot)
-        case hostingCreationFailed(String)
+        case hostingCreated(AppSnapshot, owner: String?)
+        case hostingCreationFailed(String, owner: String?)
+        case sentInvitationDismissed
+        case inboxReplyTapped(UUID)
+        case openReply(UUID)
+        case reply(PresentationAction<InvitationReplyFeature.Action>)
+        case responseFailed(String, owner: String?)
         case respondToInvitation(UUID, HostingInvitation.Status, [TimeIntervalRange])
-        case hostingMutationCompleted(UUID, Bool, AppSnapshot)
+        case hostingMutationCompleted(UUID, Bool, AppSnapshot, owner: String?)
         case cancelHosting(UUID)
 
         case showInbox(Bool)
@@ -201,9 +211,11 @@ struct AppFeature {
         case deletionSubmissionFailed(String)
     }
 
-    var demoClient: HimatchClient? = nil
-
-    @Dependency(\.himatchClient) var client
+    @Dependency(\.himatchClient) var liveClient
+#if DEBUG
+    @Dependency(\.demoScenarioClient) var demoScenarioClient
+#endif
+    @Dependency(\.firstMatchLocalStore) var firstMatchLocalStore
     @Dependency(\.authenticationClient) var authenticationClient
     @Dependency(\.friendshipClient) var friendshipClient
     @Dependency(\.profileClient) var profileClient
@@ -212,6 +224,7 @@ struct AppFeature {
     @Dependency(\.date.now) var now
     @Dependency(\.calendar) var calendar
     @Dependency(\.uuid) var uuid
+    @Dependency(\.continuousClock) var clock
     @Dependency(\.systemActionHandoffClient) var systemActionHandoffClient
     @Dependency(\.automaticSchedulingEffects) var schedulingEffects
 
@@ -222,8 +235,19 @@ struct AppFeature {
         Scope(state: \.automaticScheduling, action: \.automaticScheduling) {
             AutomaticSchedulingFeature()
         }
+        firstMatchCore
+            .ifLet(\.$composer, action: \.composer) { InvitationComposerFeature() }
+            .ifLet(\.$reply, action: \.reply) { InvitationReplyFeature() }
+        Reduce<State, Action> { state, _ in
+            guard state.route == .main else { return .none }
+            evaluateFirstMatch(&state)
+            return .none
+        }
+    }
+
+    private var firstMatchCore: some ReducerOf<Self> {
         Reduce { state, action in
-            let client = state.isDemo ? (demoClient ?? self.client) : self.client
+            let client = business(for: state)
             switch action {
             case .automaticScheduling(.delegate(.authenticationInvalidated)):
                 return .send(.authenticationInvalidated("サインインし直してください。"))
@@ -372,6 +396,7 @@ struct AppFeature {
                     let previousOwner = state.authenticationSession?.userID
                     let ownerChanged = previousOwner != nil && previousOwner != session.userID
                     if ownerChanged {
+                        resetAccountScopedState(&state)
                         state.systemActionOperationID = nil
                         let revision = state.automaticScheduling.revision + 1
                         state.automaticScheduling = .init()
@@ -390,6 +415,7 @@ struct AppFeature {
                 case .signedOut:
                     guard state.route != .launching else { return .none }
                     let previousOwner = state.authenticationSession?.userID
+                    resetAccountScopedState(&state)
                     state.systemActionOperationID = nil
                     state.authenticationSession = nil
                     let revision = state.automaticScheduling.revision + 1
@@ -408,6 +434,7 @@ struct AppFeature {
 
             case let .authenticationInvalidated(message):
                 let previousOwner = state.authenticationSession?.userID
+                resetAccountScopedState(&state)
                 state.systemActionOperationID = nil
                 state.authenticationSession = nil
                 let revision = state.automaticScheduling.revision + 1
@@ -516,11 +543,52 @@ struct AppFeature {
                 state.route = .profile
                 return .none
 
-            case .startDemo:
+#if DEBUG
+            case let .startDemo(seed):
                 state.isDemo = true
+                // Each demo starts fresh, including the device-local guide record.
+                firstMatchLocalStore.remove(FirstMatchLocalStore.demoAccountKey)
+                resetAccountScopedState(&state)
                 state.route = .profile
+                state.isLoading = true
+                state.profileValidationMessage = nil
+                return .run { [demoScenarioClient] send in
+                    await send(.demoSnapshotLoaded(await demoScenarioClient.reset(seed)))
+                }
+
+            case let .demoSnapshotLoaded(snapshot):
                 state.isLoading = false
+                state.snapshot = snapshot
+                state.profileName = snapshot.profileName
+                state.profileIcon = snapshot.profileIcon
                 return .none
+
+            case .demoFriendRequestTapped:
+                guard state.isDemo else { return .none }
+                return .run { [demoScenarioClient] send in
+                    await send(.snapshotMutationCompleted(await demoScenarioClient.simulateFriendRequest()))
+                }
+
+            case let .demoAcceptanceTapped(hostingID):
+                guard state.isDemo else { return .none }
+                return .run { [demoScenarioClient] send in
+                    await send(.snapshotMutationCompleted(await demoScenarioClient.simulateAcceptance(hostingID)))
+                }
+
+            case .demoProposalTapped:
+                guard state.isDemo else { return .none }
+                return .run { [demoScenarioClient] send in
+                    _ = await demoScenarioClient.simulateProposal()
+                    await send(.automaticScheduling(.refresh))
+                }
+
+            case let .demoPeerAcceptanceTapped(proposalID):
+                guard state.isDemo else { return .none }
+                return .run { [demoScenarioClient] send in
+                    _ = await demoScenarioClient.simulatePeerAcceptance(proposalID)
+                    await send(.automaticScheduling(.refresh))
+                }
+#endif
 
             case let .profileNameChanged(value):
                 state.profileName = value
@@ -581,9 +649,11 @@ struct AppFeature {
                 state.profileValidationMessage = nil
                 state.isLoading = false
                 state.route = .main
-                return state.isDemo || state.authenticationSession == nil
-                    ? .none
-                    : .send(.reloadFriendships)
+                if state.isDemo {
+                    // The demo owner is routed to the prototype's automatic proposals by composition.
+                    return .send(.automaticScheduling(.activate(FirstMatchLocalStore.demoAccountKey)))
+                }
+                return state.authenticationSession == nil ? .none : .send(.reloadFriendships)
 
             case let .profileSaveFailed(message):
                 state.isLoading = false
@@ -645,21 +715,12 @@ struct AppFeature {
                 return .send(.removeAvailability(id))
 
             case let .homeTimeline(.delegate(.startHosting(range))):
-                state.hostingStart = range.start
-                state.hostingEnd = range.end
-                let existing = availabilityClosure(range, existing: state.snapshot?.availability ?? [])
-                state.hostingAvailabilityCategory = existing.first?.category
-                state.hostingAvailabilityVisibility = existing.first?.visibility ?? .privateUntilAccepted
-                state.hostingAvailabilityMetadataConfirmed = false
-                updateHostingAvailabilityConflict(&state)
-                state.hostingEditorPresented = true
-                state.hostingOperationID = uuid()
-                return .none
+                return .send(.startInvitation(.range(range)))
 
             case let .homeTimeline(.delegate(.subtractAvailability(range, operationID))):
                 let interval = TimeIntervalRange(start: range.start, end: range.end)
                 if hasActiveHosting(overlapping: interval, in: state.snapshot?.hostings ?? []) {
-                    state.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+                    state.alertMessage = "お誘い中の時間は削除できません。ホームでお誘いを取り消してから、もう一度削除してください。"
                     return .send(.showInbox(true))
                 }
                 state.homeTimeline.selection?.isSaving = true
@@ -682,7 +743,7 @@ struct AppFeature {
                     return .none
                 }
                 let slotID = operationID
-                let overlapping = availabilityClosure(range, existing: state.snapshot?.availability ?? [])
+                let overlapping = InvitationComposerFeature.State.connectedAvailability(range, existing: state.snapshot?.availability ?? [])
                 if let first = overlapping.first,
                    overlapping.contains(where: { $0.category != first.category || $0.visibility != first.visibility }) {
                     state.availabilityEditor = AvailabilityEditorFeature.State(
@@ -754,7 +815,7 @@ struct AppFeature {
             case .availabilityDeletionBlocked:
                 state.isLoading = false
                 state.homeTimeline.selection?.isSaving = false
-                state.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+                state.alertMessage = "お誘い中の時間は削除できません。ホームでお誘いを取り消してから、もう一度削除してください。"
                 return .send(.showInbox(true))
 
             case let .availabilityEditor(.presented(.delegate(.saved(snapshot)))):
@@ -784,14 +845,50 @@ struct AppFeature {
             case .availabilityEditor:
                 return .none
 
-            case let .showHostingList(presented):
-                state.hostingListPresented = presented
+            case let .showCalendar(presented):
+                state.calendarPresented = presented
+                return .none
+
+            case .homeAppeared:
+                loadFirstMatchRecord(&state)
+                return state.isDemo || state.authenticationSession == nil ? .none : .send(.reloadHostings)
+
+            case .homeRefreshed:
+                if state.isDemo {
+                    return .merge(
+                        .run { [client] send in await send(.snapshotMutationCompleted(client.load())) },
+                        refreshScheduling(state)
+                    )
+                }
+                guard state.authenticationSession != nil else { return .none }
+                return .merge(.send(.reloadFriendships), .send(.reloadAvailability), .send(.reloadHostings), refreshScheduling(state))
+
+            case .registerAvailabilityTapped:
+                state.calendarPresented = true
+                return .send(.homeTimeline(.newAvailabilityTapped))
+
+            case .primaryActionTapped:
+                if state.snapshot?.friends.isEmpty ?? true { return .send(.showAddFriend(true)) }
+                return .send(.registerAvailabilityTapped)
+
+            case .dismissGuide:
+                state.firstMatchRecord.guide = .dismissed
+                saveFirstMatchRecord(state)
+                return .none
+
+            case .inviteCodeShared:
+                state.firstMatchRecord.inviteCodeShared = true
+                saveFirstMatchRecord(state)
+                return .none
+
+            case .participationBannerDismissed:
+                state.participationBanner = nil
                 return .none
 
             case let .removeAvailability(id):
                 if let slot = state.snapshot?.availability.first(where: { $0.id == id }),
                    hasActiveHosting(overlapping: slot.interval, in: state.snapshot?.hostings ?? []) {
-                    state.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+                    state.alertMessage = "お誘い中の時間は削除できません。ホームでお誘いを取り消してから、もう一度削除してください。"
                     return .send(.showInbox(true))
                 }
                 state.isLoading = true
@@ -806,132 +903,105 @@ struct AppFeature {
                     }
                 }
 
-            case let .showHostingEditor(presented):
-                state.hostingEditorPresented = presented
-                if presented {
-                    state.hostingMode = .online
-                    state.hostingArea = .discussLater
-                    state.hostingCategory = nil
-                    state.hostingAvailabilityCategory = nil
-                    state.hostingAvailabilityVisibility = .privateUntilAccepted
-                    state.hostingAvailabilityConflict = false
-                    state.hostingAvailabilityMetadataConfirmed = false
-                    state.hostingDurationHours = 1
-                    state.selectedFriendIDs = []
-                    state.hostingEnd = state.hostingStart.addingTimeInterval(3600)
-                    state.hostingOperationID = uuid()
-                } else {
-                    state.hostingOperationID = nil
-                }
-                return .none
-
-            case let .hostingModeChanged(mode):
-                state.hostingMode = mode
-                state.hostingOperationID = uuid()
-                return .none
-
-            case let .hostingAreaChanged(area):
-                state.hostingArea = area
-                state.hostingOperationID = uuid()
-                return .none
-
-            case let .hostingCategoryChanged(category):
-                state.hostingCategory = category
-                state.hostingOperationID = uuid()
-                return .none
-
-            case let .hostingAvailabilityCategoryChanged(category):
-                state.hostingAvailabilityCategory = category
-                state.hostingOperationID = uuid()
-                state.hostingAvailabilityMetadataConfirmed = false
-                updateHostingAvailabilityConflict(&state)
-                return .none
-
-            case let .hostingAvailabilityVisibilityChanged(visibility):
-                state.hostingAvailabilityVisibility = visibility
-                state.hostingOperationID = uuid()
-                state.hostingAvailabilityMetadataConfirmed = false
-                updateHostingAvailabilityConflict(&state)
-                return .none
-
-            case .confirmHostingAvailabilityMetadata:
-                state.hostingAvailabilityMetadataConfirmed = true
-                return .none
-
-            case let .hostingStartChanged(date):
-                let duration = max(state.hostingEnd.timeIntervalSince(state.hostingStart), AvailabilityPolicy.quarterHour)
-                state.hostingStart = date
-                state.hostingEnd = date.addingTimeInterval(duration)
-                state.hostingOperationID = uuid()
-                state.hostingAvailabilityMetadataConfirmed = false
-                updateHostingAvailabilityConflict(&state)
-                return .none
-
-            case let .hostingDurationChanged(hours):
-                let duration = max(hours, 1)
-                state.hostingDurationHours = duration
-                state.hostingEnd = state.hostingStart.addingTimeInterval(TimeInterval(duration * 3600))
-                state.hostingOperationID = uuid()
-                state.hostingAvailabilityMetadataConfirmed = false
-                updateHostingAvailabilityConflict(&state)
-                return .none
-
-            case let .toggleFriend(id):
-                if state.selectedFriendIDs.contains(id) { state.selectedFriendIDs.remove(id) }
-                else { state.selectedFriendIDs.insert(id) }
-                state.hostingOperationID = uuid()
+            case let .startInvitation(start):
+                guard let snapshot = state.snapshot else { return .none }
+                if snapshot.friends.isEmpty { return .send(.showAddFriend(true)) }
+                loadFirstMatchRecord(&state)
+                let openRanges = snapshot.hostings.filter { $0.isHostedByMe && $0.status == .recruiting }.map(\.candidateRange)
+                state.composer = InvitationComposerFeature.State(
+                    start: start,
+                    friends: snapshot.friends,
+                    availability: snapshot.availability,
+                    candidates: TimeCandidatePolicy.candidates(
+                        now: now, calendar: calendar, availability: snapshot.availability, activeHostingRanges: openRanges
+                    ),
+                    lastMeeting: state.firstMatchRecord.lastMeeting,
+                    now: now,
+                    operationID: uuid()
+                )
+                state.selectedTab = .home
                 return .none
 
             case let .inviteFriendFromProfile(id):
-                state.selectedTab = .home
-                state.homeTimeline.presentation = .calendar
-                state.homeTimeline.selectionMode = .hosting
-                state.homeTimeline.selection = nil
-                state.selectedFriendIDs = [id]
-                return .none
+                return .send(.startInvitation(.friend(id)))
 
-            case .createHostingTapped:
-                guard !state.isLoading, !state.selectedFriendIDs.isEmpty, let snapshot = state.snapshot,
-                      !state.hostingAvailabilityConflict || state.hostingAvailabilityMetadataConfirmed
-                else { return .none }
-                let draft = HostingDraft(
-                    mode: state.hostingMode,
-                    area: state.hostingMode == .offline ? state.hostingArea : nil,
-                    category: state.hostingCategory,
-                    start: state.hostingStart,
-                    duration: state.hostingEnd.timeIntervalSince(state.hostingStart),
-                    friends: snapshot.friends.filter { state.selectedFriendIDs.contains($0.id) },
-                    availabilityMetadata: HostingAvailabilityMetadata(category: state.hostingAvailabilityCategory, visibility: state.hostingAvailabilityVisibility),
-                    availabilityCategory: state.hostingAvailabilityCategory,
-                    availabilityVisibility: state.hostingAvailabilityVisibility,
-                    operationID: state.hostingOperationID ?? uuid()
-                )
-                state.hostingOperationID = draft.operationID
-                state.isLoading = true
-                return .run { send in
-                    do { await send(.hostingCreated(try await client.createHosting(draft))) }
-                    catch { await send(.hostingCreationFailed(error.localizedDescription)) }
+            case let .composer(.presented(.delegate(.submit(draft)))):
+                return .run { [owner = state.accountKey] send in
+                    do { await send(.hostingCreated(try await client.createHosting(draft), owner: owner)) }
+                    catch { await send(.hostingCreationFailed(error.localizedDescription, owner: owner)) }
                 }
 
-            case let .hostingCreated(snapshot):
+            case .composer(.presented(.delegate(.close))):
+                guard state.composer?.isSubmitting != true else { return .none }
+                state.composer = nil
+                return .none
+
+            case .composer:
+                return .none
+
+            case let .hostingCreated(snapshot, owner):
+                // A result that arrives after an account switch belongs to the previous account.
+                guard owner == state.accountKey else { return .none }
                 state.hostingRevision += 1
                 applyBusinessSnapshot(snapshot, to: &state)
                 if let created = snapshot.hostings.first {
                     state.snapshot?.hostings.removeAll { $0.id == created.id }
                     state.snapshot?.hostings.append(created)
+                    state.sentInvitation = created
                 }
-                state.hostingEditorPresented = false
-                state.hostingOperationID = nil
-                state.selectedFriendIDs = []
+                if let composer = state.composer, let mode = composer.mode {
+                    state.firstMatchRecord.lastMeeting = LastMeeting(mode: mode, area: mode == .offline ? composer.area : nil)
+                    saveFirstMatchRecord(state)
+                }
+                state.composer = nil
                 state.homeTimeline.selection = nil
-                state.isLoading = false
-                state.alertMessage = "募集を開始しました。参加OKの回答があると、ここに表示されます。"
+                state.calendarPresented = false
                 return .none
 
-            case let .hostingCreationFailed(message):
-                state.isLoading = false
-                state.alertMessage = "募集を送信できませんでした。入力内容は保持しています。\n\(message)"
+            case let .hostingCreationFailed(message, owner):
+                guard owner == state.accountKey else { return .none }
+                guard state.composer != nil else {
+                    state.alertMessage = "お誘いを送れませんでした。\n\(message)"
+                    return .none
+                }
+                return .send(.composer(.presented(.submissionFailed("お誘いを送れませんでした。入力内容はそのままです。\n\(message)"))))
+
+            case .sentInvitationDismissed:
+                state.sentInvitation = nil
                 return .none
+
+            case let .inboxReplyTapped(id):
+                // Close お知らせ first; the reply sheet is presented from Home.
+                state.inboxPresented = false
+                return .run { [clock] send in
+                    try await clock.sleep(for: .milliseconds(450))
+                    await send(.openReply(id))
+                }
+
+            case let .openReply(id):
+                guard let invitation = state.snapshot?.invitations.first(where: { $0.id == id }) else { return .none }
+                state.reply = InvitationReplyFeature.State(invitation: invitation, now: now)
+                return .none
+
+            case let .reply(.presented(.delegate(.respond(status, intervals)))):
+                guard let id = state.reply?.id else { return .none }
+                return .send(.respondToInvitation(id, status, intervals))
+
+            case .reply(.presented(.delegate(.close))):
+                state.reply = nil
+                return .none
+
+            case .reply:
+                return .none
+
+            case let .responseFailed(message, owner):
+                guard owner == state.accountKey else { return .none }
+                state.isLoading = false
+                guard state.reply != nil else {
+                    state.alertMessage = message
+                    return .none
+                }
+                return .send(.reply(.presented(.submissionFailed("返事を送れませんでした。選んだ時間はそのままです。\n\(message)"))))
 
             case let .respondToInvitation(id, status, intervals):
                 guard let invitation = state.snapshot?.invitations.first(where: { $0.id == id }),
@@ -940,9 +1010,9 @@ struct AppFeature {
                 let operationID = state.hostingResponseOperationIDs[responseKey] ?? uuid()
                 state.hostingResponseOperationIDs[responseKey] = operationID
                 state.isLoading = true
-                return .run { send in
-                    do { await send(.hostingMutationCompleted(id, true, try await client.respondInvitation(id, status, intervals, operationID, version))) }
-                    catch { await send(.operationFailed(error.localizedDescription)) }
+                return .run { [owner = state.accountKey] send in
+                    do { await send(.hostingMutationCompleted(id, true, try await client.respondInvitation(id, status, intervals, operationID, version), owner: owner)) }
+                    catch { await send(.responseFailed(error.localizedDescription, owner: owner)) }
                 }
 
             case let .cancelHosting(id):
@@ -951,15 +1021,19 @@ struct AppFeature {
                 let operationID = state.hostingCancelOperationIDs[cancelKey] ?? uuid()
                 state.hostingCancelOperationIDs[cancelKey] = operationID
                 state.isLoading = true
-                return .run { send in
-                    do { await send(.hostingMutationCompleted(id, false, try await client.cancelHosting(id, operationID, hosting.version))) }
+                return .run { [owner = state.accountKey] send in
+                    do { await send(.hostingMutationCompleted(id, false, try await client.cancelHosting(id, operationID, hosting.version), owner: owner)) }
                     catch { await send(.operationFailed(error.localizedDescription)) }
                 }
 
-            case let .hostingMutationCompleted(id, isResponse, snapshot):
+            case let .hostingMutationCompleted(id, isResponse, snapshot, owner):
+                guard owner == state.accountKey else { return .none }
                 state.isLoading = false
                 state.hostingRevision += 1
-                if let updated = snapshot.hostings.first ?? snapshot.invitations.first {
+                if state.isDemo {
+                    // The prototype returns the whole projection rather than the single updated item.
+                    state.snapshot = snapshot
+                } else if let updated = snapshot.hostings.first ?? snapshot.invitations.first {
                     if updated.isHostedByMe {
                         state.snapshot?.hostings.removeAll { $0.id == id }
                         state.snapshot?.hostings.append(updated)
@@ -973,10 +1047,16 @@ struct AppFeature {
                 } else {
                     state.hostingCancelOperationIDs = state.hostingCancelOperationIDs.filter { !$0.key.hasPrefix("\(id.uuidString)|") }
                 }
-                return .send(.showInbox(true))
+                if isResponse { state.reply = nil }
+                return .none
 
             case let .showInbox(presented):
                 state.inboxPresented = presented
+                if presented, let hostings = state.snapshot?.hostings {
+                    // Opening お知らせ marks the current 参加OK as seen (8.1).
+                    state.firstMatchRecord.seenParticipationKeys = ParticipationNoticeDetector.activeKeys(hostings: hostings)
+                    saveFirstMatchRecord(state)
+                }
                 guard presented, !state.isDemo, let session = state.authenticationSession else { return .none }
                 let revision = state.hostingRevision
                 let userID = session.userID
@@ -991,11 +1071,12 @@ struct AppFeature {
                 guard revision == state.hostingRevision, state.authenticationSession?.userID == userID else { return .none }
                 state.snapshot?.hostings = hostings
                 state.snapshot?.invitations = invitations
+                state.hostingLoadError = false
                 return .none
 
-            case let .hostingLoadFailed(message, revision, userID):
+            case let .hostingLoadFailed(_, revision, userID):
                 guard revision == state.hostingRevision, state.authenticationSession?.userID == userID else { return .none }
-                state.alertMessage = message
+                state.hostingLoadError = true
                 return .none
 
             case let .showAddFriend(presented):
@@ -1396,6 +1477,8 @@ struct AppFeature {
                 }
 
             case let .deletionSubmitted(receipt):
+                if let key = state.accountKey { firstMatchLocalStore.remove(key) }
+                resetAccountScopedState(&state)
                 state.accountDeletionReceipt = receipt
                 let schedulingRevision = state.automaticScheduling.revision + 1
                 state.automaticScheduling = .init()
@@ -1462,32 +1545,62 @@ struct AppFeature {
         }
     }
 
-    private func availabilityClosure(_ range: QuarterRange, existing: [AvailabilitySlot]) -> [AvailabilitySlot] {
-        var lower = range.start
-        var upper = range.end
-        var included = Set<UUID>()
-        var changed = true
-        while changed {
-            changed = false
-            for slot in existing where !included.contains(slot.id) {
-                if slot.interval.start <= upper && lower <= slot.interval.end {
-                    included.insert(slot.id)
-                    lower = min(lower, slot.interval.start)
-                    upper = max(upper, slot.interval.end)
-                    changed = true
-                }
-            }
-        }
-        return existing.filter { included.contains($0.id) }
+    /// Every change is saved immediately, so the stored record is the source of truth for the current account.
+    private func loadFirstMatchRecord(_ state: inout State) {
+        guard let key = state.accountKey else { return }
+        let record = firstMatchLocalStore.load(key)
+        if record != state.firstMatchRecord { state.firstMatchRecord = record }
     }
 
-    private func updateHostingAvailabilityConflict(_ state: inout State) {
-        let interval = QuarterRange(start: state.hostingStart, end: state.hostingEnd)
-        let connected = availabilityClosure(interval, existing: state.snapshot?.availability ?? [])
-        state.hostingAvailabilityConflict = connected.contains {
-            $0.category != state.hostingAvailabilityCategory
-                || $0.visibility != state.hostingAvailabilityVisibility
+    private func saveFirstMatchRecord(_ state: State) {
+        guard let key = state.accountKey else { return }
+        firstMatchLocalStore.save(key, state.firstMatchRecord)
+    }
+
+    /// Runs after every main-route action: completes the guide once a 参加OK exists (3.4)
+    /// and shows each new 参加OK once as an in-app banner (8.1).
+    private func evaluateFirstMatch(_ state: inout State) {
+        guard let snapshot = state.snapshot, state.accountKey != nil else { return }
+        loadFirstMatchRecord(&state)
+        if state.firstMatchRecord.guide == .active,
+           FirstMatchProgress.isCompleted(snapshot: snapshot, scheduling: state.automaticScheduling.snapshot) {
+            state.firstMatchRecord.guide = .completed
+            saveFirstMatchRecord(state)
         }
+        let known = state.firstMatchRecord.seenParticipationKeys.union(state.shownParticipationKeys)
+        let notices = ParticipationNoticeDetector.newNotices(hostings: snapshot.hostings, seenKeys: known)
+        guard let latest = notices.last else { return }
+        state.shownParticipationKeys.formUnion(ParticipationNoticeDetector.activeKeys(hostings: snapshot.hostings))
+        let others = notices.count - 1
+        state.participationBanner = ParticipationBanner(
+            title: latest.isChange ? "\(latest.friend.displayName)さんが時間を変えました" : "\(latest.friend.displayName)さんが参加OK",
+            detail: AvailabilityFormatting.friendlyRange(latest.interval, calendar: calendar, now: now) + (others > 0 ? "　ほか\(others)件" : "")
+        )
+    }
+
+    /// Clears everything that belongs to the signed-in account (or the demo) at an account boundary,
+    /// and invalidates in-flight results by advancing the revisions (requirement 11).
+    private func resetAccountScopedState(_ state: inout State) {
+        state.composer = nil
+        state.reply = nil
+        state.availabilityEditor = nil
+        state.sentInvitation = nil
+        state.participationBanner = nil
+        state.shownParticipationKeys = []
+        state.firstMatchRecord = FirstMatchRecord()
+        state.hostingResponseOperationIDs = [:]
+        state.hostingCancelOperationIDs = [:]
+        state.calendarPresented = false
+        state.inboxPresented = false
+        state.addFriendPresented = false
+        state.friendCandidate = nil
+        state.inviteCodeInput = ""
+        state.blockTarget = nil
+        state.homeTimeline.selection = nil
+        state.hostingLoadError = false
+        state.hostingRevision += 1
+        state.availabilityRevision += 1
+        state.selectedTab = .home
     }
 
     private func hasActiveHosting(overlapping interval: TimeIntervalRange, in hostings: [Hosting]) -> Bool {
@@ -1516,8 +1629,16 @@ struct AppFeature {
     }
 
     private func refreshScheduling(_ state: State) -> Effect<Action> {
-        guard !state.isDemo, let owner = state.authenticationSession?.userID, state.automaticScheduling.ownerID == owner else { return .none }
+        guard let owner = state.accountKey, state.automaticScheduling.ownerID == owner else { return .none }
         return .send(.automaticScheduling(.refresh))
+    }
+
+    /// The explicit DEBUG demo uses the prototype scenario; every other path uses the injected business client.
+    private func business(for state: State) -> HimatchClient {
+#if DEBUG
+        if state.isDemo { return demoScenarioClient.business }
+#endif
+        return liveClient
     }
 
     private func applyBusinessSnapshot(_ snapshot: AppSnapshot, to state: inout State) {
@@ -1580,4 +1701,10 @@ private func authenticationRejectionMessage(_ error: Error) -> String? {
 private func isFriendshipConflict(_ error: BackendClientError) -> Bool {
     guard case .response(409, _) = error else { return false }
     return true
+}
+
+/// Transient in-app notice for a new 参加OK (8.1).
+struct ParticipationBanner: Equatable, Sendable {
+    var title: String
+    var detail: String
 }

@@ -1,7 +1,7 @@
 ---
 type: Brief
 title: "iOS アプリ統合"
-description: "横断読み取り投影、共有プロトタイプ状態、Root Composition を所有する"
+description: "Root State の横断投影、共有プロトタイプ状態、Composition を所有する"
 status: stable
 sources:
   - id: ios-spec-cross-review
@@ -37,18 +37,18 @@ Home は Availability と Hosting、統合受信箱は Friendship と Hosting、
 
 ## Desired Outcome
 
-機能間の静的依存や業務データの重複を増やさず、Composition が各 Adapter を共通 scenario へ接続し、Home・Inbox・プロフィールへ read-only 投影を供給する。ブロック・削除後は影響投影を原子的に更新して再取得できる。
+機能間の静的依存や業務データの重複を増やさず、Composition が実 Adapter と DEBUG の共通 scenario を注入し、Root State から Home・Inbox・プロフィールへ読み取り投影を供給する。ブロック・削除後は影響投影を更新して再取得できる。
 
 ## Approach
 
-Composition 配下の `HimatchPrototypeScenario` actor を未接続業務機能のデモ境界とし、各機能 Adapter へ facet を注入する。認証・プロフィール・削除・Friendship・本人の暇時間・Hosting・AutomaticSchedulingは実Backend Adapterを標準とする。UI集約は読み取り投影を使い、変更は所有機能に委譲する。
+`HimatchPrototypeScenario` actor と `DemoScenarioClient` を DEBUG の明示デモ境界とし、Root は `isDemo` のときだけ Prototype の business client を選ぶ。AutomaticScheduling は owner `"demo"` だけを `routingDemo` で Prototype へ送り、認証・プロフィール・削除・Friendship・本人の暇時間・Hosting・実アカウントの AutomaticScheduling は実Backend Adapterを標準とする。UI集約は `AppFeature` の State から `HomeDashboard` 等へ投影し、変更は所有機能に委譲する。
 
 ## Scope
 
 ### In
 
 - 共有 Prototype scenario、fixture seed/reset、機能 Adapter facet。
-- Home、統合 Inbox、友達プロフィールの読み取り投影。
+- Root State から HomeDashboard、統合 Inbox、友達プロフィールへの読み取り投影。
 - Root Store と全機能 Navigation 合成。
 - ブロック・削除後の横断 fixture 更新と統合テスト。
 
@@ -58,7 +58,7 @@ Composition 配下の `HimatchPrototypeScenario` actor を未接続業務機能�
 
 ## Boundary Candidates
 
-- HimatchPrototypeScenario、AppProjectionRepository、AppCompositionRoot、MainTab integration tests。
+- HimatchPrototypeScenario、DemoScenarioClient、HomeDashboard、AppFeature、AppCompositionRoot、MainTab integration tests。
 
 ## Out of Boundary
 

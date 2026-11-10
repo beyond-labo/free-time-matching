@@ -17,6 +17,8 @@ struct SystemActionHandoffTests {
             $0.systemActionHandoffClient = .init(pendingOperationID: { nil }, invalidate: { await invalidated.record($0) })
         }
         await store.send(.authenticationInvalidated("再認証してください。")) {
+            $0.availabilityRevision += 1
+            $0.hostingRevision += 1
             $0.systemActionOperationID = nil
             $0.automaticScheduling.revision += 1
             $0.authenticationSession = nil

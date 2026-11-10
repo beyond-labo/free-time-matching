@@ -8,6 +8,8 @@ TCA 1.26.1による初版UIが存在し、認証・プロフィール・友達�
 
 起動時は削除受付状態・セッション・プロフィールの順に遷移先を確定する。メイン画面へ進んだ後、友達情報と本人の暇時間は並行取得し、それぞれの画面内に読み込み状態と再試行を表示する。読み取り中に共通の全面オーバーレイは出さない。
 
+ホームは状態を持たない投影 `HomeDashboard` が、友達申請、遊ぶ時間の提案、届いたお誘い、はじめての予定の案内、決まった予定、自分のお誘い、自分の暇（常時表示）、自分で誘うの順に区分とお知らせ件数を決める。主操作は友達0人のときは「友達を招待する」、それ以外は「暇を登録」とする。遊ぶ時間の提案と確定予定は `AutomaticSchedulingFeature` の状態と Action、`SchedulingProposalCard` の表示を再利用する。お誘いの作成と返事は子 Reducer（`InvitationComposerFeature`、`InvitationReplyFeature`）に入力と検証を分け、API 呼び出し、operationID、競合時の再取得は Root の `AppFeature` が担う。アカウントが切り替わると `resetAccountScopedState` で画面・操作中・端末内の投影状態を破棄し、お誘いの書き込み結果 Action は開始時の `owner` と現在の owner が一致する場合だけ反映する。ホームの引き下げ更新 `homeRefreshed` は友達・暇・お誘い・自動提案をまとめて再取得する。DEBUG デモは `DemoScenarioClient` と `AutomaticSchedulingEffects.routingDemo` を使い、所有者 `"demo"` だけを Prototype の手動のお誘いと自動提案へ経路選択する。シナリオとデモ client は `#if DEBUG` で Release から除外する。詳細は [はじめての予定動線の設計](../../.kiro/specs/ios-first-match-flow/design.md)。
+
 TCA は State、Action、Reducer、Effect、Store によって状態変化と副作用を扱います。
 Store は状態と Action の処理を駆動し、Reducer が遷移と実行する Effect を定義します。
 [公式 README](https://github.com/pointfreeco/swift-composable-architecture)

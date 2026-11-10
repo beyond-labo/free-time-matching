@@ -6,6 +6,14 @@ enum ReportReason: String, CaseIterable, Codable, Equatable, Sendable {
     case impersonation = "なりすまし"
     case harassment = "嫌がらせ"
     case other = "その他"
+
+    /// User-facing label. The raw value stays stable for persistence.
+    var title: String {
+        switch self {
+        case .nuisanceInvitation: "迷惑なお誘い"
+        default: rawValue
+        }
+    }
 }
 
 struct ReportReceipt: Equatable, Codable, Sendable {

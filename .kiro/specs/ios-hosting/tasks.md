@@ -1,7 +1,7 @@
 ---
 type: Implementation Plan
 title: "iOS 募集・招待実装計画"
-description: "時間軸からの実招待、部分回答、取消と受信箱"
+description: "手動のお誘い作成、選択肢からの返事、取消と受信箱"
 status: stable
 sources:
   - id: ios-hosting-design
@@ -24,16 +24,16 @@ kiro:
   - _Boundary: HostingDomain, BackendHostingAdapter_
   - _Depends: backend-hosting_
 
-- [x] 2. 暇登録と共通の時間軸から募集を作る
-  - 新規選択、既存暇の詳細、友達プロフィールから開き、選択範囲と友達・開催条件を保持して実Backendへ送る。未登録範囲は募集と原子的に暇へ登録する。
+- [x] 2. ホームの各入口から手動のお誘いを作る
+  - 「自分で誘う」、時間候補、既存暇の詳細、カレンダーの選択範囲、友達プロフィールから `InvitationComposerFeature` を開き、引き継いだ範囲または友達と会い方を保持して実Backendへ送る。未登録範囲はお誘い作成と原子的に暇へ登録する。
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 7.2_
-  - _Boundary: HostingCreationFeature, TimelineSelection_
+  - _Boundary: InvitationComposerFeature, InvitationComposerView, InvitationStart, AppFeature_
   - _Depends: 1, ios-availability_
 
-- [x] 3. 招待受信・部分回答・辞退・取消を実装する
-  - 受信箱で最新状態を取得し、15分単位の一部を参加OKまたは辞退する。ホストは参加OKだけを確認でき、募集中部分を一般の暇と区別する。
+- [x] 3. お誘い受信・選択肢からの返事・見送り・取消を実装する
+  - Home / Inbox で最新状態を取得し、候補全体・前半・後半・15分単位の時間指定から1つを選んで参加OKまたは見送りを送る。ホストは参加OKだけを確認でき、お誘い中の部分を一般の暇と区別する。
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 5.1, 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4_
-  - _Boundary: HostingDetailFeature, InboxFeature, HomeProjection_
+  - _Boundary: InvitationReplyFeature, InvitationReplyView, ReplyChoicePolicy, HomeDashboard, AppFeature_
   - _Depends: 1, 2_
 
 - [ ] 4. 実Backend経路を検証する

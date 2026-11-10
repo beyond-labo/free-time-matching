@@ -56,22 +56,22 @@ struct HostingPolicyTests {
         #expect(hosting.answerDeadline == start)
     }
 
-    @Test("招待回答は候補全体を初期選択せず、15分枠の明示確認を求める")
+    @Test("招待回答は候補を初期選択せず、選んだ範囲だけを送る")
     func invitationResponseRequiresExplicitRangeChoice() {
         let start = Date(timeIntervalSince1970: 2_000_000_000)
         let candidate = TimeIntervalRange(start: start, end: start.addingTimeInterval(3600))
-        var selection = InvitationResponseSelection(candidateRange: candidate)
+        let invitation = Hosting(
+            id: UUID(), mode: .online, area: nil, category: nil, candidateRange: candidate,
+            requiredDuration: 3600, friends: [], participants: [], status: .recruiting,
+            myInvitation: HostingInvitation(status: .pending, version: 1, intervals: nil), isHostedByMe: false
+        )
+        var state = InvitationReplyFeature.State(invitation: invitation, now: start.addingTimeInterval(-3600))
 
-        #expect(selection.range.duration == 900)
-        #expect(!selection.isConfirmed)
-        selection.stepEnd(by: 2)
-        #expect(selection.range.end == start.addingTimeInterval(2700))
-        #expect(!selection.isConfirmed)
-        selection.confirm()
-        #expect(selection.isConfirmed)
-        selection.stepStart(by: 1)
-        #expect(!selection.isConfirmed)
-        #expect(selection.range.start >= candidate.start)
-        #expect(selection.range.end <= candidate.end)
+        #expect(state.choice == nil)
+        #expect(state.selectedRange == nil)
+        state.choice = .custom
+        state.customRange = TimeIntervalRange(start: start.addingTimeInterval(900), end: start.addingTimeInterval(2700))
+        #expect(state.selectedRange?.start == start.addingTimeInterval(900))
+        #expect(state.selectedRange?.end == start.addingTimeInterval(2700))
     }
 }

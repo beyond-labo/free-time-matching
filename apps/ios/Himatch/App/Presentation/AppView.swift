@@ -81,18 +81,22 @@ private struct OnboardingView: View {
                     Text(HimatchApp.displayName)
                         .font(HimatchFont.screenTitle)
                         .foregroundStyle(HimatchColor.accent)
-                    Text("暇な時間を預けて、友達と遊ぶ予定を決めよう。")
+                    Text("空いてる時間に、友達を誘って遊ぼう。")
                         .font(HimatchFont.hero)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 VStack(alignment: .leading, spacing: HimatchSpacing.m) {
-                    InfoRow(icon: "lock.fill", title: "暇時間は非公開", detail: "登録は誘いを受け取ってよいという意思です。参加OKではありません。")
-                    InfoRow(icon: "sparkles", title: "自動提案は初期オフ", detail: "双方が許可した友達とのみ、共通の暇からオンラインの遊びを提案します。双方OKで予定が確定します。")
-                    InfoRow(icon: "person.crop.circle.badge.checkmark", title: "相手名は双方OKで表示", detail: "OK共有を選んだ人だけ先に名前とOKを共有します。提案日時から共通の暇の存在を推測される可能性があります。")
-                    InfoRow(icon: "bubble.left.and.bubble.right", title: "場所や接続先は普段の連絡手段で", detail: "アプリでは時間と参加者を決めるところまで。")
+                    OnboardingStep(number: 1, title: "空いている時間を登録", detail: "予定を入れたい時間を15分単位で置いておきます。友達には公開されません。", tint: HimatchColor.accent)
+                    OnboardingStep(number: 2, title: "自動提案を許可", detail: "許可し合った友達とだけ、共通の暇からオンラインの遊びが提案されます。初期はオフです。", tint: HimatchColor.hosting)
+                    OnboardingStep(number: 3, title: "参加OKで予定が決まる", detail: "双方が参加OKすると、日程調整なしで予定が確定します。自分で友達を誘うこともできます。", tint: HimatchColor.plan)
                 }
                 .himatchCard()
+
+                Label("暇の登録は誘いを受け取ってよいという意思で、参加OKではありません。相手の名前は双方OKで表示され、提案日時から共通の暇を推測される可能性があります。", systemImage: "lock.fill")
+                    .font(HimatchFont.supporting)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 SignInWithAppleButton(.signIn) { request in
                     request.requestedScopes = []
@@ -127,9 +131,15 @@ private struct OnboardingView: View {
 #if DEBUG
                 VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
                     Button {
-                        store.send(.startDemo)
+                        store.send(.startDemo(.noFriends))
                     } label: {
-                        Label("デモデータで試す", systemImage: "hammer.fill")
+                        Label("デモではじめから試す", systemImage: "hammer.fill")
+                    }
+                    .buttonStyle(.himatchSecondary)
+                    Button {
+                        store.send(.startDemo(.withFriends))
+                    } label: {
+                        Label("デモで友達がいる状態から試す", systemImage: "person.2.fill")
                     }
                     .buttonStyle(.himatchSecondary)
                     Text("デモは実際のApple認証・通知・データ削除を行いません。")
@@ -147,7 +157,7 @@ private struct OnboardingView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .accessibilityElement(children: .combine)
-                    Text("日本向け・18歳以上の招待利用を想定した初版です。")
+                    Text("日本向け・18歳以上の、知り合い同士での利用を想定した初版です。")
                         .font(HimatchFont.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -155,6 +165,31 @@ private struct OnboardingView: View {
             .padding(HimatchSpacing.l)
         }
         .background(HimatchColor.background)
+    }
+}
+
+private struct OnboardingStep: View {
+    let number: Int
+    let title: String
+    let detail: String
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: HimatchSpacing.s) {
+            Text("\(number)")
+                .font(.headline.weight(.heavy))
+                .foregroundStyle(tint)
+                .frame(width: 40, height: 40)
+                .background(RoundedRectangle(cornerRadius: HimatchRadius.control, style: .continuous).fill(HimatchColor.tint(tint)))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: HimatchSpacing.xxs) {
+                Text(title).font(HimatchFont.cardTitle)
+                Text(detail).font(HimatchFont.supporting).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("ステップ\(number)、\(title)。\(detail)")
     }
 }
 
@@ -253,6 +288,9 @@ private struct MainTabView: View {
                 .tabItem { Label("設定", systemImage: "gearshape") }
                 .tag(AppFeature.State.Tab.settings)
         }
+        .sheet(isPresented: Binding(get: { store.addFriendPresented }, set: { store.send(.showAddFriend($0)) })) {
+            AddFriendView(store: store)
+        }
     }
 }
 
@@ -302,10 +340,15 @@ private struct FriendsView: View {
                 Section("友達") {
                     if let friends = store.snapshot?.friends, !friends.isEmpty {
                         ForEach(friends) { friend in
-                            NavigationLink {
-                                FriendDetailView(store: store, friend: friend)
-                            } label: {
-                                FriendLabel(friend: friend)
+                            HStack {
+                                NavigationLink {
+                                    FriendDetailView(store: store, friend: friend)
+                                } label: {
+                                    FriendLabel(friend: friend)
+                                }
+                                Button("誘う") { store.send(.inviteFriendFromProfile(friend.id)) }
+                                    .buttonStyle(.bordered)
+                                    .accessibilityLabel("\(friend.displayName)さんを誘う")
                             }
                         }
                     } else {
@@ -330,6 +373,7 @@ private struct FriendsView: View {
                         ShareLink(item: code.value) {
                             Label("コードを共有", systemImage: "square.and.arrow.up")
                         }
+                        .simultaneousGesture(TapGesture().onEnded { store.send(.inviteCodeShared) })
                         Button("コードを再発行", role: .destructive) {
                             store.send(.rotateInviteCode)
                         }
@@ -356,9 +400,6 @@ private struct FriendsView: View {
                     .disabled(store.isLoading || store.isFriendshipLoading || store.isDemo)
                 Button { store.send(.showAddFriend(true)) } label: { Image(systemName: "person.badge.plus") }
                     .accessibilityLabel("友達を追加")
-            }
-            .sheet(isPresented: Binding(get: { store.addFriendPresented }, set: { store.send(.showAddFriend($0)) })) {
-                AddFriendView(store: store)
             }
         }
     }
@@ -420,90 +461,16 @@ private struct SettingsView: View {
     }
 }
 
-struct HostingEditorView: View {
+struct InboxView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.calendar) private var calendar
     let store: StoreOf<AppFeature>
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("① 内容と時間") {
-                    Picker("開催形態", selection: Binding(get: { store.hostingMode }, set: { store.send(.hostingModeChanged($0)) })) {
-                        ForEach(HostingMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }
-                    if store.hostingMode == .offline {
-                        Picker("エリア", selection: Binding(get: { store.hostingArea }, set: { store.send(.hostingAreaChanged($0)) })) {
-                            ForEach(HostingArea.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                        }
-                    }
-                    Picker("カテゴリ", selection: Binding(get: { store.hostingCategory }, set: { store.send(.hostingCategoryChanged($0)) })) {
-                        Text("未選択").tag(ActivityCategory?.none)
-                        ForEach(ActivityCategory.allCases, id: \.self) { Text($0.rawValue).tag(Optional($0)) }
-                    }
-                    if store.hostingAvailabilityConflict {
-                        Label("重なる暇の属性が異なります。以下の選択を統合後の暇全体に適用します。", systemImage: "exclamationmark.triangle")
-                            .font(.footnote).foregroundStyle(HimatchColor.danger)
-                        Button(store.hostingAvailabilityMetadataConfirmed ? "この設定で統合を確認済み" : "選択した設定で統合する") {
-                            store.send(.confirmHostingAvailabilityMetadata)
-                        }
-                        .disabled(store.hostingAvailabilityMetadataConfirmed || store.isLoading)
-                    }
-                    Picker("暇のカテゴリ", selection: Binding(get: { store.hostingAvailabilityCategory }, set: { store.send(.hostingAvailabilityCategoryChanged($0)) })) {
-                        Text("未選択").tag(ActivityCategory?.none)
-                        ForEach(ActivityCategory.allCases, id: \.self) { Text($0.rawValue).tag(Optional($0)) }
-                    }
-                    Picker("暇の公開設定", selection: Binding(get: { store.hostingAvailabilityVisibility }, set: { store.send(.hostingAvailabilityVisibilityChanged($0)) })) {
-                        ForEach(AvailabilityVisibility.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }
-                    LabeledContent("招待する時間", value: AvailabilityFormatting.range(
-                        TimeIntervalRange(start: store.hostingStart, end: store.hostingEnd), calendar: calendar
-                    ))
-                }
-                Section("② 招待する友達") {
-                    ForEach(store.snapshot?.friends ?? []) { friend in
-                        let isSelected = store.selectedFriendIDs.contains(friend.id)
-                        Button { store.send(.toggleFriend(friend.id)) } label: {
-                            HStack {
-                                FriendLabel(friend: friend)
-                                Spacer()
-                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(isSelected ? HimatchColor.accent : HimatchColor.secondaryText)
-                                    .accessibilityHidden(true)
-                            }
-                            .frame(minHeight: HimatchMetrics.minTapTarget)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(store.isLoading)
-                        .accessibilityAddTraits(isSelected ? .isSelected : [])
-                    }
-                }
-                Section("③ 確認") {
-                    Text("選んだ友達全員に招待します。友達の暇登録状況は表示せず、参加OKした人と選んだ時間だけが主催者に伝わります。")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
-            .navigationTitle("友達を誘う")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("閉じる") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("募集を開始") { store.send(.createHostingTapped) }
-                        .disabled(
-                            store.selectedFriendIDs.isEmpty || store.isLoading
-                                || (store.hostingAvailabilityConflict && !store.hostingAvailabilityMetadataConfirmed)
-                        )
-                }
-            }
-        }
-    }
-}
-
-struct InboxView: View {
-    @Environment(\.dismiss) private var dismiss
-    let store: StoreOf<AppFeature>
-
-    var body: some View {
+        let now = Date()
+        let requests = (store.snapshot?.requests ?? []).filter { $0.direction == .incoming }
+        let invitations = (store.snapshot?.invitations ?? []).filter { !$0.isHostedByMe && HomeDashboard.needsAnswer($0, now: now) }
+        let mine = (store.snapshot?.hostings ?? []).filter { $0.isHostedByMe && $0.status == .recruiting }
         NavigationStack {
             List {
                 Section("自動提案と予定") {
@@ -522,17 +489,7 @@ struct InboxView: View {
                     }
                 }
                 Section("要対応") {
-                    ForEach(store.snapshot?.invitations ?? []) { invitation in
-                        InvitationResponseCard(
-                            invitation: invitation,
-                            profileName: store.profileName,
-                            isLoading: store.isLoading
-                        ) { status, interval in
-                            store.send(.respondToInvitation(invitation.id, status, interval.map { [$0] } ?? []))
-                        }
-                        .padding(.vertical, HimatchSpacing.xxs)
-                    }
-                    ForEach(store.snapshot?.requests ?? []) { request in
+                    ForEach(requests) { request in
                         HStack {
                             Label("\(request.person.displayName)さんから友達申請", systemImage: "person.badge.plus")
                             Spacer()
@@ -541,139 +498,48 @@ struct InboxView: View {
                         }
                         .frame(minHeight: HimatchMetrics.minTapTarget)
                     }
-                    if (store.snapshot?.invitations.isEmpty ?? true) && (store.snapshot?.requests.isEmpty ?? true) {
+                    ForEach(invitations) { invitation in
+                        Button { store.send(.inboxReplyTapped(invitation.id)) } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Label("\(invitation.host?.displayName ?? "友達")さんからのお誘い", systemImage: "envelope.badge")
+                                Text(AvailabilityFormatting.friendlyRange(invitation.candidateRange, calendar: calendar, now: now))
+                                    .font(HimatchFont.supporting).foregroundStyle(.secondary)
+                            }
+                            .frame(minHeight: HimatchMetrics.minTapTarget, alignment: .leading)
+                        }
+                    }
+                    if requests.isEmpty && invitations.isEmpty {
                         EmptyRowText("対応が必要なお知らせはありません")
                     }
                 }
-                Section("進行中") {
-                    ForEach((store.snapshot?.hostings ?? []).filter { $0.status == .recruiting }) { hosting in
-                        HostingInboxCard(hosting: hosting) { store.send(.cancelHosting(hosting.id)) }
+                Section("あなたのお誘い") {
+                    ForEach(mine) { hosting in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(AvailabilityFormatting.friendlyRange(hosting.candidateRange, calendar: calendar, now: now))
+                            if hosting.participants.isEmpty {
+                                Text("返事待ち").font(HimatchFont.supporting).foregroundStyle(.secondary)
+                            }
+                            ForEach(hosting.participants) { participant in
+                                Label(
+                                    "\(participant.friend.displayName)さんが参加OK \(participant.approvedIntervals.map { AvailabilityFormatting.timeSpan($0, calendar: calendar) }.joined(separator: "、"))",
+                                    systemImage: "checkmark.circle.fill"
+                                )
+                                .font(HimatchFont.supporting)
+                                .foregroundStyle(HimatchColor.plan)
+                            }
+                        }
                     }
+                    if mine.isEmpty { EmptyRowText("送ったお誘いはありません") }
                 }
             }
             .navigationTitle("お知らせ")
             .toolbar { Button("閉じる") { dismiss() } }
         }
-    }
-}
-
-private struct InvitationResponseCard: View {
-    let invitation: Hosting
-    let profileName: String
-    let isLoading: Bool
-    let onRespond: (HostingInvitation.Status, TimeIntervalRange?) -> Void
-    @State private var selection: InvitationResponseSelection
-    @State private var deadlinePassed: Bool
-
-    init(invitation: Hosting, profileName: String, isLoading: Bool, onRespond: @escaping (HostingInvitation.Status, TimeIntervalRange?) -> Void) {
-        self.invitation = invitation
-        self.profileName = profileName
-        self.isLoading = isLoading
-        self.onRespond = onRespond
-        _selection = State(initialValue: InvitationResponseSelection(candidateRange: invitation.candidateRange))
-        _deadlinePassed = State(initialValue: Date() >= invitation.answerDeadline)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
-            Label(invitation.category?.rawValue ?? "遊びの招待", systemImage: "envelope.open")
-                .font(HimatchFont.cardTitle)
-            Text(invitation.mode == .online ? "オンライン開催" : "対面・\(invitation.area?.rawValue ?? "場所未定")")
-                .font(HimatchFont.supporting)
-            if let host = invitation.host {
-                FriendLabel(friend: host)
-            }
-            Text("回答期限 \(invitation.answerDeadline.formatted(date: .abbreviated, time: .shortened))")
-                .font(HimatchFont.supporting)
-                .foregroundStyle(HimatchColor.hosting)
-            Text("招待された範囲から、参加できる時間を15分単位で選べます。")
+        .safeAreaInset(edge: .bottom) {
+            Text("通知をオフにしていても、ここで確認できます。")
                 .font(HimatchFont.caption).foregroundStyle(.secondary)
-            Text("参加OKすると、選んだ時間とプロフィール名「\(profileName)」が主催者に表示されます。")
-                .font(HimatchFont.caption).foregroundStyle(.secondary)
-            HStack {
-                Text("開始 \(selection.range.start.formatted(date: .omitted, time: .shortened))")
-                Spacer()
-                Button { selection.stepStart(by: -1) } label: {
-                    Image(systemName: "minus.circle")
-                }.disabled(!selection.canStepStart(by: -1))
-                Button { selection.stepStart(by: 1) } label: {
-                    Image(systemName: "plus.circle")
-                }.disabled(!selection.canStepStart(by: 1))
-            }
-            HStack {
-                Text("終了 \(selection.range.end.formatted(date: .omitted, time: .shortened))")
-                Spacer()
-                Button { selection.stepEnd(by: -1) } label: {
-                    Image(systemName: "minus.circle")
-                }.disabled(!selection.canStepEnd(by: -1))
-                Button { selection.stepEnd(by: 1) } label: {
-                    Image(systemName: "plus.circle")
-                }.disabled(!selection.canStepEnd(by: 1))
-            }
-            if invitation.myInvitation?.status != .pending {
-                Text(invitation.myInvitation?.status == .accepted ? "参加OKを送信済み" : "辞退を送信済み")
-                    .font(HimatchFont.supporting).foregroundStyle(.secondary)
-            } else if invitation.status != .recruiting {
-                Text("この募集は終了しました").font(HimatchFont.supporting).foregroundStyle(.secondary)
-            } else if deadlinePassed {
-                Text("回答期限を過ぎました").font(HimatchFont.supporting).foregroundStyle(.secondary)
-            } else {
-                if selection.isConfirmed {
-                    Label("回答範囲を確認しました", systemImage: "checkmark.circle.fill")
-                        .font(HimatchFont.caption).foregroundStyle(HimatchColor.hosting)
-                } else {
-                    Button("この範囲で回答") { selection.confirm() }
-                        .buttonStyle(.bordered)
-                        .disabled(isLoading)
-                }
-                HStack {
-                    Button("辞退") { onRespond(.declined, nil) }
-                        .buttonStyle(.bordered)
-                        .disabled(isLoading)
-                    Button("この時間で参加OK") {
-                        onRespond(.accepted, selection.range)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isLoading || !selection.isConfirmed)
-                }
-                .frame(minHeight: HimatchMetrics.minTapTarget)
-            }
+                .padding(.bottom, HimatchSpacing.s)
         }
-        .task(id: invitation.answerDeadline) {
-            while !Task.isCancelled && !deadlinePassed && Date() < invitation.answerDeadline {
-                do { try await Task.sleep(for: .seconds(30)) }
-                catch { return }
-            }
-            deadlinePassed = Date() >= invitation.answerDeadline
-        }
-    }
-}
-
-private struct HostingInboxCard: View {
-    let hosting: Hosting
-    let onCancel: () -> Void
-    @State private var confirmCancel = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: HimatchSpacing.xs) {
-            Label("募集中・\(hosting.category?.rawValue ?? "遊び")", systemImage: "megaphone")
-            Text("\(hosting.candidateRange.start.formatted(date: .abbreviated, time: .shortened))〜\(hosting.candidateRange.end.formatted(date: .omitted, time: .shortened))")
-                .font(HimatchFont.supporting)
-            ForEach(hosting.participants) { participant in
-                Label("\(participant.friend.displayName)さんが参加OK", systemImage: "person.crop.circle.badge.checkmark")
-                ForEach(participant.approvedIntervals) { interval in
-                    Text("  \(interval.start.formatted(date: .omitted, time: .shortened))〜\(interval.end.formatted(date: .omitted, time: .shortened))")
-                        .font(HimatchFont.caption).foregroundStyle(.secondary)
-                }
-            }
-            if hosting.status == .recruiting {
-                Button("募集を取り消す", role: .destructive) { confirmCancel = true }
-                    .confirmationDialog("この募集を取り消しますか？暇時間は残ります。", isPresented: $confirmCancel) {
-                        Button("募集を取り消す", role: .destructive, action: onCancel)
-                    }
-            }
-        }
-        .padding(.vertical, HimatchSpacing.xs)
     }
 }
 
@@ -684,15 +550,33 @@ private struct AddFriendView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if let code = store.snapshot?.inviteCode, !code.value.isEmpty {
+                    Section {
+                        Text(code.value)
+                            .font(.title3.monospaced().weight(.semibold))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, HimatchSpacing.xs)
+                        ShareLink(item: "\(HimatchApp.displayName)で友達になろう！ 招待コード：\(code.value)") {
+                            Label("コードを送る", systemImage: "square.and.arrow.up")
+                        }
+                        .simultaneousGesture(TapGesture().onEnded { store.send(.inviteCodeShared) })
+                        .frame(minHeight: HimatchMetrics.minTapTarget)
+                    } header: {
+                        Text("あなたの招待コード")
+                    } footer: {
+                        Text("LINE などで送り、相手のアプリで入力してもらいます。相手から申請が届いたら、承認すると友達になります。有効期限: \(code.expiresAt.formatted(date: .abbreviated, time: .omitted))")
+                    }
+                }
                 Section {
                     TextField("HIMA-ABCD-EFGH-JKMP-QRST", text: Binding(get: { store.inviteCodeInput }, set: { store.send(.inviteCodeChanged($0.uppercased())) }))
                         .textInputAutocapitalization(.characters)
                         .font(.body.monospaced())
                         .frame(minHeight: HimatchMetrics.minTapTarget)
                 } header: {
-                    Text("招待コードを入力")
+                    Text("相手からコードをもらった場合")
                 } footer: {
-                    Text("無効・期限切れ・ブロックなどの違いは表示しません。")
+                    Text("無効・期限切れ・ブロックなどの違いは表示しません。知らない人を名前で検索する機能はありません。")
                 }
                 Section {
                     Button("プロフィールを確認") {
@@ -713,7 +597,7 @@ private struct AddFriendView: View {
                     }
                 }
             }
-            .navigationTitle("友達を追加")
+            .navigationTitle("友達を招待")
             .toolbar { Button("閉じる") { dismiss() } }
         }
     }
@@ -739,6 +623,9 @@ private struct FriendDetailView: View {
             Section {
                 SchedulingPermissionView(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling), friendID: friend.id)
                 SchedulingStatusView(store: store.scope(state: \.automaticScheduling, action: \.automaticScheduling))
+                Button { store.send(.inviteFriendFromProfile(friend.id)) } label: {
+                    Label("自分で誘う", systemImage: "paperplane")
+                }
                 Button { reportConfirmationPresented = true } label: {
                     Label("通報", systemImage: "exclamationmark.bubble")
                 }.disabled(!store.automaticScheduling.canMutate)
@@ -779,7 +666,7 @@ private struct FriendDetailView: View {
         ) {
             Button("ブロック", role: .destructive) { store.send(.confirmBlock(friend.id)) }
         } message: {
-            Text("友達関係を解除し、新しい申請・手動招待・自動提案を止め、未確定提案と今後の確定予定を取り消します。解除しても以前の友達関係や許可は復活しません。")
+            Text("友達関係を解除し、新しい申請・お誘い・自動提案を止め、未確定提案と今後の確定予定を取り消します。解除しても以前の友達関係や許可は復活しません。")
         }
         .confirmationDialog(
             "\(friend.displayName)さんとの友達関係を解除しますか？",
@@ -789,7 +676,7 @@ private struct FriendDetailView: View {
             Button("友達を解除", role: .destructive) { store.send(.removeFriend(friend.id)) }
                 .disabled(store.isLoading)
         } message: {
-            Text("新しい自動提案と手動招待を止め、未確定提案を取り下げます。確定済みの予定は残り、別に取り消せます。")
+            Text("新しい自動提案とお誘いを止め、未確定提案を取り下げます。確定済みの予定は残り、別に取り消せます。")
         }
         .onChange(of: store.snapshot?.friends.contains(where: { $0.id == friend.id }) ?? false) {
             _, remainsFriend in
@@ -814,7 +701,7 @@ private struct ReportView: View {
             Form {
                 LabeledContent("対象", value: targetName)
                 Picker("理由", selection: Binding(get: { store.reportReason }, set: { store.send(.reportReasonChanged($0)) })) {
-                    ForEach(ReportReason.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    ForEach(ReportReason.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 TextField("補足（任意・500文字以内）", text: Binding(get: { store.reportNote }, set: { store.send(.reportNoteChanged($0)) }), axis: .vertical)
                     .lineLimit(4...8)
@@ -930,7 +817,7 @@ private struct AccountDeletionView: View {
         NavigationStack {
             List {
                 Section("削除されるもの") {
-                    Label("プロフィール、暇時間、友達、募集と招待、自動提案", systemImage: "trash")
+                    Label("プロフィール、暇時間、友達、お誘いと返事、自動提案", systemImage: "trash")
                     Text("未確定の提案を終了し、今後の確定予定を取り消し、通知配信を停止します。")
                     Label("主催中の予定は取消され、参加予定から離脱します", systemImage: "calendar.badge.minus")
                     Label("この端末のセッションを停止します", systemImage: "iphone.slash")
@@ -977,7 +864,7 @@ private struct AccountDeletionView: View {
     }
 }
 
-private struct FriendLabel: View {
+struct FriendLabel: View {
     let friend: FriendProfile
     var body: some View {
         HStack(spacing: HimatchSpacing.s) {
@@ -988,7 +875,7 @@ private struct FriendLabel: View {
     }
 }
 
-private struct EmptyRowText: View {
+struct EmptyRowText: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
@@ -1015,6 +902,7 @@ private func appleCredential(
     )
 }
 
+#if DEBUG
 #Preview {
     let scenario = HimatchPrototypeScenario()
     AppView(
@@ -1025,3 +913,4 @@ private func appleCredential(
         }
     )
 }
+#endif

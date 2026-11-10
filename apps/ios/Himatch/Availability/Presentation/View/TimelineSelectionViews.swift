@@ -245,7 +245,7 @@ struct SelectionConfirmationBar: View {
     private var failurePrefix: String {
         switch store.selectionMode {
         case .availability: "登録できませんでした。"
-        case .hosting: "招待を準備できませんでした。"
+        case .hosting: "お誘いを準備できませんでした。"
         case .deleting: "削除できませんでした。"
         }
     }

@@ -99,6 +99,8 @@ APNsとjoseの署名契約は通知Adapter実装時に一次資料で確認す�
 
 ## 変更記録
 
+- 2026-11-08: `ios-first-match-flow` の統合に伴い、`AppFeature.swift`、`AppView.swift`、`AppCompositionRoot.swift`、`SystemActionReviewView.swift`、`AvailabilityModels.swift`、`docs/architecture/ios-architecture.md` を再照合した。Home の区分と手動のお誘い導線、表示用語、アカウント境界、DEBUG デモ経路は変わったが、自動提案の初期 off・相互許可・匿名投影・1回回答・双方 OK 確定・owner/revision による旧結果破棄・実 Backend 境界は不変。DEBUG の `AutomaticSchedulingEffects.routingDemo` は所有者 `"demo"` のみ Prototype へ送り、実アカウントと Release は live effects を使う。
+
 - 2026-10-29: ユーザーの方針に基づいてホスト主導のMVPを自動提案・双方OKによる確定へ置換。実装コードも依頼範囲に含む追加指示を受領。既存仕様の影響工程の承認を失効し、再同期対象をspec.jsonへ記録した。
 
 ## 実装・独立レビュー・ローカル検証の最終記録（2026-11-03）

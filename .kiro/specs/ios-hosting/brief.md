@@ -1,7 +1,7 @@
 ---
 type: Brief
 title: "iOS 募集と招待"
-description: "暇の時間軸からの実招待、参加回答、募集取消を実現する"
+description: "副経路の手動お誘い、選択肢からの返事、取消を実Backendで扱う"
 status: stable
 sources:
   - id: user-ios-first-release
@@ -30,20 +30,20 @@ kiro:
 
 ## Desired Outcome
 
-ホストが暇登録と同じ時間軸で候補期間を選び、友達全員へ招待し、相手が自分で候補の一部を選んで参加 OK または見送りできる。募集取消までを実 Backend で扱う。予定確定は後続工程へ移管する。
+ホストがホームの各入口またはカレンダーの選択範囲から作成画面を開き、日時・友達・会い方を確認してお誘いを送る。相手は全部・前半・後半・時間指定から選び、1回で参加 OK または見送りを返せる。取消までを実 Backend で扱い、予定確定は AutomaticScheduling へ委譲する。
 
 ## Approach
 
-時間軸の選択部品を Availability と共用し、Hosting の状態と招待回答は実 Backend Adapter へ接続する。Prototype はデモ専用に残し、実サーバー安全性の証拠にはしない。
+カレンダーから始める場合だけ Availability の選択範囲を引き継ぎ、それ以外は時間候補・登録済み暇・友達を `InvitationComposerFeature` へ直接渡す。返事は `InvitationReplyFeature` と `ReplyChoicePolicy`、API・operationID・owner 照合は Root の `AppFeature`、通信は実 Backend Adapter が担う。Prototype はデモ専用に残し、実サーバー安全性の証拠にはしない。
 
 ## Scope
 
 ### In
 
-- 暇登録と共通の時間軸による募集作成、オンライン／オフライン、定型カテゴリ、候補期間、友達選択。
+- ホームの「自分で誘う」・時間候補・登録済み暇・友達、またはカレンダー選択範囲からのお誘い作成、オンライン／オフライン、定型カテゴリ、候補期間、友達選択。
 - 配信人数や不一致理由を表示しない募集完了。
 - 招待未回答、回答済み、取消、期限切れの詳細。
-- 自分が選んだ一部の候補だけの回答、見送り、回答変更・撤回。
+- 全部・前半・後半・時間指定から選ぶ返事、見送り、返事変更・撤回。
 - 要対応・進行中・終了の受信箱と Push 非依存の導線。
 
 ### Out
@@ -53,9 +53,9 @@ kiro:
 
 ## Boundary Candidates
 
-- Hosting / ParticipationResponse / HostingPolicy。
-- HostingRepository / HostingUseCases。
-- HostingCreationFeature / HostingDetailFeature / InboxFeature。
+- Hosting / HostingInvitation / Participation / ReplyChoicePolicy / TimeCandidatePolicy。
+- BackendHostingAdapter / HimatchClient の Hosting 操作。
+- InvitationComposerFeature / InvitationReplyFeature / HomeDashboard / AppFeature。
 
 ## Out of Boundary
 

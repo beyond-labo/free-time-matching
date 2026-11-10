@@ -609,7 +609,7 @@ struct TimelineBlockView: View {
         let kind: String
         switch segment.item.kind {
         case let .availability(visibility): kind = "暇、\(visibility.title)"
-        case .hosting: kind = "募集中"
+        case .hosting: kind = "お誘い中"
         case .plan: kind = "確定した予定"
         }
         let saved = isRecentlySaved ? "、登録しました" : ""

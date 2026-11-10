@@ -137,6 +137,8 @@ struct AppFeatureTests {
         let store = TestStore(initialState: state) { AppFeature() }
 
         await store.send(.authenticationInvalidated("サインインし直してください。")) {
+            $0.availabilityRevision += 1
+            $0.hostingRevision += 1
             $0.automaticScheduling.revision += 1
             $0.authenticationSession = nil
             $0.snapshot = nil
@@ -182,6 +184,8 @@ struct AppFeatureTests {
         )
 
         await store.send(.deletionSubmitted(receipt)) {
+            $0.availabilityRevision += 1
+            $0.hostingRevision += 1
             $0.automaticScheduling.revision += 1
             $0.accountDeletionReceipt = receipt
             $0.deletionOperationID = nil
@@ -235,6 +239,8 @@ struct AppFeatureTests {
             $0.isLoading = true
         }
         await store.receive(\.deletionSubmitted) {
+            $0.availabilityRevision += 1
+            $0.hostingRevision += 1
             $0.automaticScheduling.revision += 1
             $0.accountDeletionReceipt = AccountDeletionReceipt(
                 reference: receipt.reference,
@@ -663,7 +669,7 @@ struct AppFeatureTests {
         let selected = QuarterRange(start: date(3, 10, 0), end: date(3, 10, 30))
 
         await store.send(.homeTimeline(.delegate(.subtractAvailability(selected, UUID(8))))) {
-            $0.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+            $0.alertMessage = "お誘い中の時間は削除できません。ホームでお誘いを取り消してから、もう一度削除してください。"
         }
         await store.receive(\.showInbox) { $0.inboxPresented = true }
     }
@@ -691,18 +697,17 @@ struct AppFeatureTests {
         }
         await store.receive(\.availabilityDeletionBlocked) {
             $0.homeTimeline.selection?.isSaving = false
-            $0.alertMessage = "募集中の時間は削除できません。受信箱で募集を取り消してから、もう一度削除してください。"
+            $0.alertMessage = "お誘い中の時間は削除できません。ホームでお誘いを取り消してから、もう一度削除してください。"
         }
         await store.receive(\.showInbox) { $0.inboxPresented = true }
         await store.receive(\.hostingLoadCompleted)
     }
 
-    @Test("募集作成は選んだ全員と正確な範囲を送信し、成功後に募集中一覧へ反映する")
+    @Test("お誘い作成は選んだ全員と正確な範囲を送信し、成功後に送信結果を表示して会い方を記録する")
     func hostingCreationSendsSelectedFriendsAndRange() async {
         let friend = FriendProfile(id: UUID(21), displayName: "りく", icon: "figure.run")
         let secondFriend = FriendProfile(id: UUID(24), displayName: "さき", icon: "sun.max.fill")
         let hostingID = UUID(22)
-        let operationID = UUID(23)
         let start = date(4, 10, 0)
         let end = date(4, 10, 45)
         let hosting = Hosting(
@@ -723,47 +728,47 @@ struct AppFeatureTests {
             receivedDraft.setValue(draft)
             return creationResponse
         }
+        let records = FirstMatchLocalStore.inMemory()
         var state = AppFeature.State()
         state.route = .main
+        state.authenticationSession = AuthenticationSession(userID: "user-1", accessToken: "access")
         state.snapshot = .empty(profileName: "ひまり")
         state.snapshot?.friends = [friend, secondFriend]
-        state.hostingEditorPresented = true
-        state.hostingStart = start
-        state.hostingEnd = end
-        state.hostingOperationID = operationID
-        state.selectedFriendIDs = [friend.id, secondFriend.id]
-        state.hostingAvailabilityConflict = true
         let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
             $0.himatchClient = client
+            $0.firstMatchLocalStore = records
+            $0.date.now = AvailabilityTestClock.now
+            $0.calendar = AvailabilityTestClock.calendar
+            $0.uuid = .incrementing
         }
+        store.exhaustivity = .off
 
-        await store.send(.createHostingTapped)
-        #expect(receivedDraft.value == nil)
-        await store.send(.confirmHostingAvailabilityMetadata) {
-            $0.hostingAvailabilityMetadataConfirmed = true
-        }
-        await store.send(.createHostingTapped) { $0.isLoading = true }
+        await store.send(.startInvitation(.range(QuarterRange(start: start, end: end))))
+        #expect(store.state.composer?.range == QuarterRange(start: start, end: end))
+        await store.send(.composer(.presented(.allFriendsToggled)))
+        await store.send(.composer(.presented(.modeSelected(.offline))))
+        await store.send(.composer(.presented(.areaSelected(.shibuya))))
+        await store.send(.composer(.presented(.categoryToggled(.game))))
+        let operationID = store.state.composer?.operationID
+        await store.send(.composer(.presented(.submitTapped)))
+        await store.receive(\.composer.presented.delegate.submit)
         await store.receive(\.hostingCreated) {
+            $0.composer = nil
+            $0.sentInvitation = hosting
             $0.hostingRevision = 1
-            $0.snapshot = creationResponse
-            $0.hostingEditorPresented = false
-            $0.hostingOperationID = nil
-            $0.selectedFriendIDs = []
-            $0.homeTimeline.selection = nil
-            $0.isLoading = false
-            $0.alertMessage = "募集を開始しました。参加OKの回答があると、ここに表示されます。"
         }
+        #expect(store.state.alertMessage == nil)
         #expect(receivedDraft.value?.operationID == operationID)
         #expect(receivedDraft.value?.start == start)
         #expect(receivedDraft.value?.duration == end.timeIntervalSince(start))
-        #expect(receivedDraft.value?.friends == [friend, secondFriend])
-        #expect(store.state.snapshot?.hostings == [hosting])
+        #expect(Set(receivedDraft.value?.friends.map(\.id) ?? []) == [friend.id, secondFriend.id])
+        #expect(receivedDraft.value?.area == .shibuya)
+        #expect(records.load("user-1").lastMeeting == LastMeeting(mode: .offline, area: .shibuya))
     }
 
-    @Test("招待送信失敗後も範囲・友達・operation IDを保持して再試行可能にする")
+    @Test("お誘い送信失敗後も作成画面に範囲・友達・operation IDを保持して再試行可能にする")
     func hostingCreationFailureKeepsDraft() async {
         let friend = FriendProfile(id: UUID(31), displayName: "りく", icon: "figure.run")
-        let operationID = UUID(32)
         let start = date(4, 10, 0)
         var client = HimatchClient.productionPlaceholder
         client.createHosting = { _ in throw BackendClientError.response(503, "一時エラー") }
@@ -771,25 +776,27 @@ struct AppFeatureTests {
         state.route = .main
         state.snapshot = .empty(profileName: "ひまり")
         state.snapshot?.friends = [friend]
-        state.hostingEditorPresented = true
-        state.hostingStart = start
-        state.hostingEnd = start.addingTimeInterval(2700)
-        state.hostingOperationID = operationID
-        state.selectedFriendIDs = [friend.id]
         let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
             $0.himatchClient = client
+            $0.date.now = AvailabilityTestClock.now
+            $0.calendar = AvailabilityTestClock.calendar
+            $0.uuid = .incrementing
         }
+        store.exhaustivity = .off
 
-        await store.send(.createHostingTapped) { $0.isLoading = true }
-        await store.receive(\.hostingCreationFailed) {
-            $0.isLoading = false
-            $0.alertMessage = "募集を送信できませんでした。入力内容は保持しています。\n一時エラー"
-        }
-        #expect(store.state.hostingEditorPresented)
-        #expect(store.state.hostingStart == start)
-        #expect(store.state.hostingEnd == start.addingTimeInterval(2700))
-        #expect(store.state.selectedFriendIDs == [friend.id])
-        #expect(store.state.hostingOperationID == operationID)
+        await store.send(.startInvitation(.range(QuarterRange(start: start, end: start.addingTimeInterval(2700)))))
+        await store.send(.composer(.presented(.friendToggled(friend.id))))
+        await store.send(.composer(.presented(.modeSelected(.online))))
+        let operationID = store.state.composer?.operationID
+        await store.send(.composer(.presented(.submitTapped)))
+        await store.receive(\.hostingCreationFailed)
+        await store.receive(\.composer.presented.submissionFailed)
+        #expect(store.state.alertMessage == nil)
+        #expect(store.state.composer?.isSubmitting == false)
+        #expect(store.state.composer?.errorMessage?.contains("一時エラー") == true)
+        #expect(store.state.composer?.range?.start == start)
+        #expect(store.state.composer?.selectedFriendIDs == [friend.id])
+        #expect(store.state.composer?.operationID == operationID)
     }
 
     @Test("招待者の部分参加OKを範囲付きで送り、返却projectionへ更新する")
@@ -828,7 +835,6 @@ struct AppFeatureTests {
         }
         var state = AppFeature.State()
         state.route = .main
-        state.isDemo = true
         state.snapshot = .empty()
         state.snapshot?.invitations = [pending]
         state.hostingResponseOperationIDs[responseKey] = operationID
@@ -843,7 +849,6 @@ struct AppFeatureTests {
             $0.snapshot?.invitations = [accepted]
             $0.hostingResponseOperationIDs = [:]
         }
-        await store.receive(\.showInbox) { $0.inboxPresented = true }
         #expect(captured.value?.0 == [partial])
         #expect(captured.value?.1 == operationID)
         #expect(captured.value?.2 == 1)
@@ -894,63 +899,51 @@ struct AppFeatureTests {
         #expect(guardedStore.state.snapshot?.hostings == [hosting])
     }
 
-    @Test("招待時刻の編集は候補終端と冪等operation IDを更新する")
+    @Test("お誘い時刻の編集は候補終端と冪等operation IDを更新する")
     func hostingTimeEditsRotateOperationIDAndKeepRangeCoherent() async {
-        var state = AppFeature.State()
-        state.hostingStart = date(4, 10, 0)
-        state.hostingEnd = date(4, 10, 30)
-        state.hostingOperationID = UUID(61)
-        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+        let initial = InvitationComposerFeature.State(
+            start: .range(QuarterRange(start: date(4, 10, 0), end: date(4, 10, 30))),
+            friends: [], availability: [], candidates: [], lastMeeting: nil,
+            now: AvailabilityTestClock.now, operationID: UUID(61)
+        )
+        let store = TestStore(initialState: initial) { InvitationComposerFeature() } withDependencies: {
             $0.uuid = .incrementing
+            $0.calendar = AvailabilityTestClock.calendar
         }
 
-        await store.send(.hostingStartChanged(date(4, 11, 0))) {
-            $0.hostingStart = self.date(4, 11, 0)
-            $0.hostingEnd = self.date(4, 11, 30)
-            $0.hostingOperationID = UUID(0)
+        await store.send(.startChanged(date(4, 11, 0))) {
+            $0.range = QuarterRange(start: self.date(4, 11, 0), end: self.date(4, 11, 30))
+            $0.operationID = UUID(0)
         }
-        await store.send(.hostingDurationChanged(2)) {
-            $0.hostingDurationHours = 2
-            $0.hostingEnd = self.date(4, 13, 0)
-            $0.hostingOperationID = UUID(1)
+        await store.send(.endChanged(date(4, 13, 0))) {
+            $0.range = QuarterRange(start: self.date(4, 11, 0), end: self.date(4, 13, 0))
+            $0.operationID = UUID(1)
         }
     }
 
-    @Test("複数暇枠の募集統合は属性確認を必須とし、設定変更で再確認を求める")
+    @Test("複数暇枠をまたぐお誘いは属性選択を必須とし、範囲変更で再確認を求める")
     func hostingMetadataConflictRequiresConfirmation() async {
-        var state = AppFeature.State()
-        state.snapshot = .empty()
-        state.snapshot?.availability = [
-            AvailabilitySlot(
-                interval: TimeIntervalRange(start: date(4, 10, 0), end: date(4, 11, 0)),
-                category: .game
-            ),
-            AvailabilitySlot(
-                interval: TimeIntervalRange(start: date(4, 11, 0), end: date(4, 12, 0)),
-                category: .meal
-            ),
+        let availability = [
+            AvailabilitySlot(interval: TimeIntervalRange(start: date(4, 10, 0), end: date(4, 11, 0)), category: .game),
+            AvailabilitySlot(interval: TimeIntervalRange(start: date(4, 11, 0), end: date(4, 12, 0)), category: .meal),
         ]
-        state.hostingStart = date(4, 10, 30)
-        state.hostingEnd = date(4, 11, 30)
-        state.hostingOperationID = UUID(71)
-        let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
+        let initial = InvitationComposerFeature.State(
+            start: .range(QuarterRange(start: date(4, 10, 30), end: date(4, 11, 30))),
+            friends: [], availability: availability, candidates: [], lastMeeting: nil,
+            now: AvailabilityTestClock.now, operationID: UUID(71)
+        )
+        #expect(initial.availabilityConflict != nil)
+        let store = TestStore(initialState: initial) { InvitationComposerFeature() } withDependencies: {
             $0.uuid = .incrementing
+            $0.calendar = AvailabilityTestClock.calendar
         }
+        store.exhaustivity = .off
 
-        await store.send(.hostingAvailabilityCategoryChanged(.game)) {
-            $0.hostingAvailabilityCategory = .game
-            $0.hostingOperationID = UUID(0)
-            $0.hostingAvailabilityConflict = true
-        }
-        await store.send(.confirmHostingAvailabilityMetadata) {
-            $0.hostingAvailabilityMetadataConfirmed = true
-        }
-        await store.send(.hostingAvailabilityVisibilityChanged(.shareOnHosting)) {
-            $0.hostingAvailabilityVisibility = .shareOnHosting
-            $0.hostingOperationID = UUID(1)
-            $0.hostingAvailabilityMetadataConfirmed = false
-            $0.hostingAvailabilityConflict = true
-        }
+        await store.send(.availabilityMetadataChosen(.game, .privateUntilAccepted))
+        #expect(store.state.availabilityConflict?.chosen == HostingAvailabilityMetadata(category: .game, visibility: .privateUntilAccepted))
+        await store.send(.endChanged(date(4, 11, 45)))
+        #expect(store.state.availabilityConflict?.chosen == nil)
+        #expect(store.state.missingItem != nil)
     }
 
     private func date(_ day: Int, _ hour: Int, _ minute: Int) -> Date {

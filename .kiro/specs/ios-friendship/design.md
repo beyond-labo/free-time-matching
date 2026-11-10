@@ -101,3 +101,6 @@ FriendProfile の delegate は `invite(friendID)`、`report(target)`、`block(us
 - Presentation: 3区分、空・失敗、プロフィール delegate、入力保持。
 - Integration: code → profile → request → accept → friend。
 - Infrastructure: HTTP DTO、Bearer token、共通 code error、409 conflict の変換。
+
+## はじめての予定動線による変更
+友達一覧の各行の「誘う」と友達プロフィールの「自分で誘う」は、その友達を選択済みにした `InvitationComposerFeature` を開く（時間軸の選択モードには入らない）。友達プロフィールの自動提案の許可トグルは AutomaticScheduling のまま。ホームの案内から友達の許可へ進む場合、友達が2人以下なら案内上の許可ボタン、3人以上なら友達タブへ移る。詳細は [ios-first-match-flow の設計](../ios-first-match-flow/design.md)。
